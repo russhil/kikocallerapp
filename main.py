@@ -1,19 +1,37 @@
 import base64
 import io
+import logging
 import os
 import struct
 import httpx
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
 # Load .env if present (local dev), otherwise Render provides env vars
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="KikoCall AI Proxy")
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")      # Gemma + STT
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")       # Gemini Flash
+
+# google-genai SDK client (same pattern as parchi project)
+_genai_client = None
+
+def _get_genai_client():
+    global _genai_client
+    if _genai_client is None:
+        api_key = GEMINI_API_KEY or GOOGLE_API_KEY
+        if not api_key:
+            raise HTTPException(status_code=500, detail="No API key configured for Gemini")
+        logger.info("Initializing google-genai client with API key")
+        _genai_client = genai.Client(api_key=api_key)
+    return _genai_client
 
 # OAuth credentials for Gemini Live
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
@@ -93,57 +111,49 @@ async def transcribe(req: TranscribeRequest):
 
 @app.post("/api/transcribe-gemini")
 async def transcribe_gemini(req: TranscribeGeminiRequest):
-    """Fallback transcription using Gemini 2.0 Flash multimodal audio input."""
-    # Convert raw PCM base64 to WAV base64 so Gemini can parse it
-    pcm_bytes = base64.b64decode(req.audio_base64)
-    wav_bytes = _pcm_to_wav(pcm_bytes, req.sample_rate_hertz, channels=1, bits_per_sample=16)
-    wav_base64 = base64.b64encode(wav_bytes).decode("utf-8")
+    """Fallback transcription using google-genai SDK (same as parchi project)."""
+    try:
+        # Convert raw PCM to WAV so Gemini can parse the audio
+        pcm_bytes = base64.b64decode(req.audio_base64)
+        wav_bytes = _pcm_to_wav(pcm_bytes, req.sample_rate_hertz, channels=1, bits_per_sample=16)
 
-    lang_names = {
-        "hi-IN": "Hindi",
-        "en-IN": "English",
-        "mr-IN": "Marathi",
-        "gu-IN": "Gujarati",
-    }
-    lang_name = lang_names.get(req.language_code, req.language_code)
+        lang_names = {
+            "hi-IN": "Hindi",
+            "en-IN": "English",
+            "mr-IN": "Marathi",
+            "gu-IN": "Gujarati",
+        }
+        lang_name = lang_names.get(req.language_code, req.language_code)
 
-    payload = {
-        "contents": [
-            {
-                "parts": [
-                    {
-                        "inline_data": {
-                            "mime_type": "audio/wav",
-                            "data": wav_base64,
-                        }
-                    },
-                    {
-                        "text": (
-                            f"Transcribe this audio recording accurately. "
-                            f"The primary language is {lang_name}. "
-                            f"Return ONLY the transcription text, nothing else. "
-                            f"If the audio is unclear or empty, return an empty string."
-                        ),
-                    },
+        client = _get_genai_client()
+
+        logger.info("transcribe-gemini: sending %d bytes of audio (lang=%s)", len(wav_bytes), lang_name)
+
+        response = await client.aio.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=types.Content(
+                parts=[
+                    types.Part(inline_data=types.Blob(
+                        data=wav_bytes,
+                        mime_type="audio/wav",
+                    )),
+                    types.Part(text=(
+                        f"Transcribe this audio recording accurately. "
+                        f"The primary language is {lang_name}. "
+                        f"Return ONLY the transcription text, nothing else. "
+                        f"If the audio is unclear or empty, return an empty string."
+                    )),
                 ]
-            }
-        ]
-    }
-
-    access_token = await _get_oauth_access_token()
-
-    async with httpx.AsyncClient(timeout=120) as client:
-        resp = await client.post(
-            GEMINI_URL,
-            json=payload,
-            headers={"Authorization": f"Bearer {access_token}"},
+            ),
         )
-    if resp.status_code != 200:
-        raise HTTPException(status_code=resp.status_code, detail=resp.text)
 
-    data = resp.json()
-    text = _extract_text(data)
-    return {"transcript": text}
+        text = response.text.strip() if response.text else None
+        logger.info("transcribe-gemini: result=%s", text[:200] if text else "None")
+        return {"transcript": text or None}
+
+    except Exception as e:
+        logger.error("transcribe-gemini failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Gemini transcription failed: {e}")
 
 
 # ---------- Classify (Gemma) ----------
@@ -262,26 +272,6 @@ async def gemini_live_token():
 
 
 # ---------- Helpers ----------
-
-async def _get_oauth_access_token() -> str:
-    """Exchange refresh token for a short-lived OAuth access token."""
-    if not GOOGLE_OAUTH_REFRESH_TOKEN:
-        raise HTTPException(status_code=500, detail="OAuth refresh token not configured")
-
-    payload = {
-        "client_id": GOOGLE_OAUTH_CLIENT_ID,
-        "client_secret": GOOGLE_OAUTH_CLIENT_SECRET,
-        "refresh_token": GOOGLE_OAUTH_REFRESH_TOKEN,
-        "grant_type": "refresh_token",
-    }
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(GOOGLE_TOKEN_URL, data=payload)
-
-    if resp.status_code != 200:
-        raise HTTPException(status_code=resp.status_code, detail=f"OAuth token refresh failed: {resp.text}")
-
-    return resp.json()["access_token"]
-
 
 def _pcm_to_wav(
     pcm_data: bytes,
