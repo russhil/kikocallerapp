@@ -12,9 +12,15 @@ app = FastAPI(title="KikoCall AI Proxy")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")      # Gemma + STT
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")       # Gemini Flash
 
+# OAuth credentials for Gemini Live
+GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
+GOOGLE_OAUTH_REFRESH_TOKEN = os.getenv("GOOGLE_OAUTH_REFRESH_TOKEN", "")
+
 GEMMA_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 STT_URL = "https://speech.googleapis.com/v1/speech:recognize"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 
 # ---------- Request models ----------
@@ -160,6 +166,33 @@ If any field cannot be determined, use null. Always generate an order_id. Use "{
         cleaned = cleaned.removesuffix("```")
 
     return {"order_json": cleaned.strip()}
+
+
+# ---------- Gemini Live Token (OAuth) ----------
+
+@app.get("/api/gemini-live-token")
+async def gemini_live_token():
+    """Exchange refresh token for a short-lived access token for Gemini Live WebSocket."""
+    if not GOOGLE_OAUTH_REFRESH_TOKEN:
+        raise HTTPException(status_code=500, detail="OAuth refresh token not configured")
+
+    payload = {
+        "client_id": GOOGLE_OAUTH_CLIENT_ID,
+        "client_secret": GOOGLE_OAUTH_CLIENT_SECRET,
+        "refresh_token": GOOGLE_OAUTH_REFRESH_TOKEN,
+        "grant_type": "refresh_token",
+    }
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(GOOGLE_TOKEN_URL, data=payload)
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+
+    data = resp.json()
+    return {
+        "access_token": data["access_token"],
+        "expires_in": data.get("expires_in", 3600),
+    }
 
 
 # ---------- Helpers ----------

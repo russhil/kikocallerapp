@@ -1,4 +1,6 @@
 .env
+.env.render
 __pycache__/
 *.pyc
 .venv/
+.DS_Store
