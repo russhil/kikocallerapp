@@ -4,10 +4,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-# Load env — local dev uses explicit path, Render uses its own env vars
-local_env = os.path.expanduser("~/Desktop/stuff/parchi/backend/.env")
-if os.path.exists(local_env):
-    load_dotenv(local_env)
+# Load .env if present (local dev), otherwise Render provides env vars
+load_dotenv()
 
 app = FastAPI(title="KikoCall AI Proxy")
 
