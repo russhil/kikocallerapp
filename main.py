@@ -130,10 +130,13 @@ async def transcribe_gemini(req: TranscribeGeminiRequest):
         ]
     }
 
+    access_token = await _get_oauth_access_token()
+
     async with httpx.AsyncClient(timeout=120) as client:
         resp = await client.post(
-            f"{GEMINI_URL}?key={GEMINI_API_KEY}",
+            GEMINI_URL,
             json=payload,
+            headers={"Authorization": f"Bearer {access_token}"},
         )
     if resp.status_code != 200:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
@@ -259,6 +262,26 @@ async def gemini_live_token():
 
 
 # ---------- Helpers ----------
+
+async def _get_oauth_access_token() -> str:
+    """Exchange refresh token for a short-lived OAuth access token."""
+    if not GOOGLE_OAUTH_REFRESH_TOKEN:
+        raise HTTPException(status_code=500, detail="OAuth refresh token not configured")
+
+    payload = {
+        "client_id": GOOGLE_OAUTH_CLIENT_ID,
+        "client_secret": GOOGLE_OAUTH_CLIENT_SECRET,
+        "refresh_token": GOOGLE_OAUTH_REFRESH_TOKEN,
+        "grant_type": "refresh_token",
+    }
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(GOOGLE_TOKEN_URL, data=payload)
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=f"OAuth token refresh failed: {resp.text}")
+
+    return resp.json()["access_token"]
+
 
 def _pcm_to_wav(
     pcm_data: bytes,
