@@ -1,4 +1,7 @@
+import base64
+import io
 import os
+import struct
 import httpx
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -29,6 +32,12 @@ class TranscribeRequest(BaseModel):
     audio_base64: str
     language_code: str = "hi-IN"
     encoding: str = "LINEAR16"
+    sample_rate_hertz: int = 16000
+
+
+class TranscribeGeminiRequest(BaseModel):
+    audio_base64: str
+    language_code: str = "hi-IN"
     sample_rate_hertz: int = 16000
 
 
@@ -78,6 +87,60 @@ async def transcribe(req: TranscribeRequest):
         if alt.get("transcript")
     )
     return {"transcript": transcript or None}
+
+
+# ---------- Transcribe via Gemini (fallback) ----------
+
+@app.post("/api/transcribe-gemini")
+async def transcribe_gemini(req: TranscribeGeminiRequest):
+    """Fallback transcription using Gemini 2.0 Flash multimodal audio input."""
+    # Convert raw PCM base64 to WAV base64 so Gemini can parse it
+    pcm_bytes = base64.b64decode(req.audio_base64)
+    wav_bytes = _pcm_to_wav(pcm_bytes, req.sample_rate_hertz, channels=1, bits_per_sample=16)
+    wav_base64 = base64.b64encode(wav_bytes).decode("utf-8")
+
+    lang_names = {
+        "hi-IN": "Hindi",
+        "en-IN": "English",
+        "mr-IN": "Marathi",
+        "gu-IN": "Gujarati",
+    }
+    lang_name = lang_names.get(req.language_code, req.language_code)
+
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "inline_data": {
+                            "mime_type": "audio/wav",
+                            "data": wav_base64,
+                        }
+                    },
+                    {
+                        "text": (
+                            f"Transcribe this audio recording accurately. "
+                            f"The primary language is {lang_name}. "
+                            f"Return ONLY the transcription text, nothing else. "
+                            f"If the audio is unclear or empty, return an empty string."
+                        ),
+                    },
+                ]
+            }
+        ]
+    }
+
+    async with httpx.AsyncClient(timeout=120) as client:
+        resp = await client.post(
+            f"{GEMINI_URL}?key={GEMINI_API_KEY}",
+            json=payload,
+        )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+
+    data = resp.json()
+    text = _extract_text(data)
+    return {"transcript": text}
 
 
 # ---------- Classify (Gemma) ----------
@@ -196,6 +259,37 @@ async def gemini_live_token():
 
 
 # ---------- Helpers ----------
+
+def _pcm_to_wav(
+    pcm_data: bytes,
+    sample_rate: int = 16000,
+    channels: int = 1,
+    bits_per_sample: int = 16,
+) -> bytes:
+    """Wrap raw PCM bytes in a WAV header."""
+    byte_rate = sample_rate * channels * bits_per_sample // 8
+    block_align = channels * bits_per_sample // 8
+    data_size = len(pcm_data)
+    buf = io.BytesIO()
+    # RIFF header
+    buf.write(b"RIFF")
+    buf.write(struct.pack("<I", 36 + data_size))
+    buf.write(b"WAVE")
+    # fmt chunk
+    buf.write(b"fmt ")
+    buf.write(struct.pack("<I", 16))              # chunk size
+    buf.write(struct.pack("<H", 1))               # PCM format
+    buf.write(struct.pack("<H", channels))
+    buf.write(struct.pack("<I", sample_rate))
+    buf.write(struct.pack("<I", byte_rate))
+    buf.write(struct.pack("<H", block_align))
+    buf.write(struct.pack("<H", bits_per_sample))
+    # data chunk
+    buf.write(b"data")
+    buf.write(struct.pack("<I", data_size))
+    buf.write(pcm_data)
+    return buf.getvalue()
+
 
 def _extract_text(response_data: dict) -> str | None:
     candidates = response_data.get("candidates", [])
