@@ -28,9 +28,9 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 STT_URL = "https://speech.googleapis.com/v1/speech:recognize"
 
-# Models (same as parchi)
-TRANSCRIBE_MODEL = "gemini-2.0-flash"
-CLASSIFY_MODEL = "gemini-2.0-flash"
+# Models
+TRANSCRIBE_MODEL = "gemini-2.5-flash"
+CLASSIFY_MODEL = "gemini-2.5-flash"
 EXTRACT_MODEL = "gemini-2.5-flash"
 
 print(f"[KikoCall] GOOGLE_API_KEY set: {bool(GOOGLE_API_KEY)}", flush=True)
