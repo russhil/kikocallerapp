@@ -1,5 +1,9 @@
 .env
+.env.*
 .env.render
+.env.local
+*.json
+credentials*.json
 __pycache__/
 *.pyc
 .venv/
