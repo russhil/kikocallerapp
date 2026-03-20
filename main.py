@@ -286,6 +286,7 @@ class ExtractOrderRequest(BaseModel):
 class SyncOrderRequest(BaseModel):
     order_id: str
     recording_id: Optional[int] = None
+    recording_filename: Optional[str] = None
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
     store_name: str = ""
@@ -832,8 +833,22 @@ async def sync_order(req: SyncOrderRequest, user: Optional[dict] = Depends(get_o
         }
         if user:
             row["user_phone"] = user["phone"]
-        if req.recording_id is not None:
-            row["recording_id"] = req.recording_id
+
+        # Resolve recording_id: look up Supabase recording by filename
+        # (the client sends local Room DB recording_id which doesn't match Supabase IDs)
+        if req.recording_filename:
+            try:
+                rec_result = sb.table("recordings").select("id").eq("filename", req.recording_filename)
+                if user:
+                    rec_result = rec_result.eq("user_phone", user["phone"])
+                rec_result = rec_result.limit(1).execute()
+                if rec_result.data:
+                    row["recording_id"] = rec_result.data[0]["id"]
+                    print(f"[SyncOrder] Resolved recording: {req.recording_filename} -> id={row['recording_id']}", flush=True)
+            except Exception as e:
+                print(f"[SyncOrder] Could not resolve recording: {e}", flush=True)
+        # Don't include recording_id if we couldn't resolve it (avoid FK violation)
+
         if req.created_at is not None:
             row["created_at"] = req.created_at
         sb.table("orders").upsert(row, on_conflict="order_id").execute()
