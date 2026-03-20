@@ -307,8 +307,6 @@ class VerifyOtpRequest(BaseModel):
 
 
 class SignupRequest(BaseModel):
-    phone: str
-    otp: str
     shop_name: str
     shopkeeper_name: str
 
@@ -447,36 +445,17 @@ async def verify_otp(req: VerifyOtpRequest):
 
 
 @app.post("/api/auth/signup")
-async def signup(req: SignupRequest):
-    """Complete signup for a new user — sets shop_name and shopkeeper_name."""
-    phone = req.phone.replace("+", "").strip()
-    if len(phone) == 10:
-        phone = f"91{phone}"
+async def signup(req: SignupRequest, user: dict = Depends(get_current_user)):
+    """Complete signup for a new user — sets shop_name and shopkeeper_name.
+    Uses the auth token from verify-otp (Bearer header) instead of re-checking OTP."""
+    phone = user["phone"]
 
     sb = _require_supabase()
     try:
-        # First verify OTP
-        result = sb.table("users").select("*").eq("phone", phone).execute()
-        if not result.data:
-            raise HTTPException(status_code=404, detail="Phone not found. Send OTP first.")
-
-        user = result.data[0]
-        now_ms = int(time.time() * 1000)
-
-        if user.get("otp_code") != req.otp:
-            raise HTTPException(status_code=401, detail="Invalid OTP")
-        if user.get("otp_expires_at", 0) < now_ms:
-            raise HTTPException(status_code=401, detail="OTP expired")
-
-        # Generate auth token and update user profile
-        auth_token = secrets.token_hex(32)
-
+        # Update user profile with shop details
         sb.table("users").update({
             "shop_name": req.shop_name,
             "shopkeeper_name": req.shopkeeper_name,
-            "otp_code": None,
-            "otp_expires_at": 0,
-            "auth_token": auth_token,
         }).eq("phone", phone).execute()
 
         # Initialize order counter for this user
@@ -488,7 +467,7 @@ async def signup(req: SignupRequest):
         print(f"[Auth] ✓ Signup complete for {phone}: {req.shop_name}", flush=True)
         return {
             "status": "ok",
-            "token": auth_token,
+            "token": user["auth_token"],
             "user": {
                 "phone": phone,
                 "shop_name": req.shop_name,
