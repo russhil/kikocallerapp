@@ -1,12 +1,19 @@
+import asyncio
 import base64
 import io
 import os
+import random
+import secrets
 import struct
 import traceback
 import time
+import urllib.parse
+
+from typing import Optional
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -15,6 +22,29 @@ load_dotenv()
 print("[KikoCall] Starting up...", flush=True)
 
 app = FastAPI(title="KikoCall AI Proxy")
+
+# ---------- Keepalive (Render) ----------
+KEEPALIVE_URL = os.getenv("KEEPALIVE_URL", "") # E.g. https://kikocall-backend.onrender.com/
+
+async def keepalive_task():
+    """Pings the keepalive URL every 7 minutes to prevent Render free tier from sleeping."""
+    if not KEEPALIVE_URL:
+        print("[Keepalive] ⚠ KEEPALIVE_URL not set. Background ping disabled.", flush=True)
+        return
+        
+    print(f"[Keepalive] ✓ Background task started. Pinging {KEEPALIVE_URL} every 7 mins.", flush=True)
+    async with httpx.AsyncClient(timeout=30) as client:
+        while True:
+            await asyncio.sleep(7 * 60) # 7 minutes
+            try:
+                resp = await client.get(KEEPALIVE_URL)
+                print(f"[Keepalive] Pinged {KEEPALIVE_URL} - Status: {resp.status_code}", flush=True)
+            except Exception as e:
+                print(f"[Keepalive] ✗ Ping failed: {e}", flush=True)
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(keepalive_task())
 
 # ---------- Config ----------
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
@@ -33,8 +63,73 @@ TRANSCRIBE_MODEL = "gemini-2.5-flash"
 CLASSIFY_MODEL = "gemini-2.5-flash"
 EXTRACT_MODEL = "gemini-2.5-flash"
 
+# Gupshup SMS config
+GUPSHUP_USERID = os.getenv("GUPSHUP_USERID", "2000202768")
+GUPSHUP_PASSWORD = os.getenv("GUPSHUP_PASSWORD", "Kikotv@614")
+GUPSHUP_URL = os.getenv("GUPSHUP_URL", "https://enterprise.smsgupshup.com/GatewayAPI/rest")
+GUPSHUP_HASH_CODE = os.getenv("GUPSHUP_HASH_CODE", "bggVMT0/6Yc")
+
+# Auth
+AUTH_SECRET = os.getenv("AUTH_SECRET", secrets.token_hex(32))
+
 print(f"[KikoCall] GOOGLE_API_KEY set: {bool(GOOGLE_API_KEY)}", flush=True)
 print(f"[KikoCall] OAUTH configured: {bool(GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_REFRESH_TOKEN)}", flush=True)
+print(f"[KikoCall] Gupshup configured: userid={GUPSHUP_USERID}", flush=True)
+
+# ---------- Supabase ----------
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+_supabase_client = None
+
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        from supabase import create_client
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("[KikoCall] Supabase configured ✓", flush=True)
+    except ImportError:
+        print("[KikoCall] supabase package not installed, sync disabled", flush=True)
+    except Exception as e:
+        print(f"[KikoCall] Supabase init failed: {e}", flush=True)
+else:
+    print("[KikoCall] Supabase not configured (SUPABASE_URL/SUPABASE_KEY missing)", flush=True)
+
+# ---------- Auth helpers ----------
+security = HTTPBearer(auto_error=False)
+
+
+def _require_supabase():
+    if _supabase_client is None:
+        raise HTTPException(status_code=503, detail="Supabase not configured")
+    return _supabase_client
+
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Extract and validate auth token from Authorization header."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+    token = credentials.credentials
+    sb = _require_supabase()
+    try:
+        result = sb.table("users").select("*").eq("auth_token", token).execute()
+        if not result.data:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        return result.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Auth] Token validation failed: {e}", flush=True)
+        raise HTTPException(status_code=401, detail="Token validation failed")
+
+
+async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[dict]:
+    """Like get_current_user but returns None instead of 401."""
+    if not credentials:
+        return None
+    try:
+        return await get_current_user(credentials)
+    except HTTPException:
+        return None
+
 
 # ---------- OAuth token cache ----------
 _cached_token = None
@@ -155,6 +250,309 @@ class ExtractOrderRequest(BaseModel):
     store_name: str = ""
 
 
+class SyncOrderRequest(BaseModel):
+    order_id: str
+    recording_id: Optional[int] = None
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    store_name: str = ""
+    store_number: Optional[str] = None
+    products: list[dict] = []
+    total_amount: float = 0.0
+    notes: Optional[str] = None
+    address: Optional[str] = None
+    whatsapp_sent: bool = False
+    is_read: bool = False
+    created_at: Optional[int] = None
+    call_direction: str = "INCOMING"
+
+
+class SyncRecordingRequest(BaseModel):
+    device_id: str = ""
+    filename: str
+    path: str
+    duration_ms: int = 0
+    date_recorded: int = 0
+    transcript: Optional[str] = None
+    classification: Optional[str] = None
+    is_processed: bool = False
+    source_phone: Optional[str] = None
+    contact_name: Optional[str] = None
+    call_direction: str = "INCOMING"
+    created_at: Optional[int] = None
+
+
+class UpdateOrderRequest(BaseModel):
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    store_name: Optional[str] = None
+    store_number: Optional[str] = None
+    products: Optional[list[dict]] = None
+    total_amount: Optional[float] = None
+    notes: Optional[str] = None
+    address: Optional[str] = None
+    whatsapp_sent: Optional[bool] = None
+    is_read: Optional[bool] = None
+
+
+# ---------- Auth request models ----------
+
+class SendOtpRequest(BaseModel):
+    phone: str
+
+
+class VerifyOtpRequest(BaseModel):
+    phone: str
+    otp: str
+
+
+class SignupRequest(BaseModel):
+    phone: str
+    otp: str
+    shop_name: str
+    shopkeeper_name: str
+
+
+# ============================================================
+# AUTH ENDPOINTS
+# ============================================================
+
+@app.post("/api/auth/send-otp")
+async def send_otp(req: SendOtpRequest):
+    """Generate OTP and send via Gupshup SMS."""
+    phone = req.phone.replace("+", "").strip()
+    if not phone:
+        raise HTTPException(status_code=400, detail="Phone number required")
+
+    # Ensure 10-digit number gets 91 prefix
+    if len(phone) == 10:
+        phone = f"91{phone}"
+
+    otp = str(random.randint(100000, 999999))
+    expires_at = int(time.time() * 1000) + (5 * 60 * 1000)  # 5 minutes
+
+    print(f"[Auth] Sending OTP to {phone}: {otp}", flush=True)
+
+    # Store OTP in Supabase
+    sb = _require_supabase()
+    try:
+        # Upsert user row with OTP (creates if not exists)
+        sb.table("users").upsert(
+            {
+                "phone": phone,
+                "otp_code": otp,
+                "otp_expires_at": expires_at,
+            },
+            on_conflict="phone"
+        ).execute()
+    except Exception as e:
+        print(f"[Auth] Failed to store OTP: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to store OTP: {e}")
+
+    # Send SMS via Gupshup (GET request with query params)
+    msg_text = f"Use {otp} as your OTP for Kiko Live login {GUPSHUP_HASH_CODE}"
+
+    params = {
+        "send_to": phone,
+        "userid": GUPSHUP_USERID,
+        "password": GUPSHUP_PASSWORD,
+        "auth_scheme": "plain",
+        "method": "SendMessage",
+        "v": "1.1",
+        "format": "text",
+        "msg": msg_text,
+        "msg_type": "TEXT",
+    }
+
+    try:
+        # Build URL with encoded params (matching existing Gupshup integration pattern)
+        query_string = urllib.parse.urlencode(params)
+        full_url = f"{GUPSHUP_URL}?{query_string}"
+        print(f"[Gupshup] Sending SMS: {full_url}", flush=True)
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(full_url)
+
+        response_text = resp.text.strip()
+        print(f"[Gupshup] Response: {response_text}", flush=True)
+
+        if response_text.startswith("success"):
+            return {"status": "ok", "message": "OTP sent successfully"}
+        else:
+            print(f"[Gupshup] ✗ SMS send failed: {response_text}", flush=True)
+            raise HTTPException(status_code=502, detail=f"SMS send failed: {response_text}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Gupshup] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=502, detail=f"SMS send failed: {e}")
+
+
+@app.post("/api/auth/verify-otp")
+async def verify_otp(req: VerifyOtpRequest):
+    """Verify OTP. Returns token + user info. If user is new (no shop_name), returns is_new_user=True."""
+    phone = req.phone.replace("+", "").strip()
+    if len(phone) == 10:
+        phone = f"91{phone}"
+
+    sb = _require_supabase()
+    try:
+        result = sb.table("users").select("*").eq("phone", phone).execute()
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Phone not found. Send OTP first.")
+
+        user = result.data[0]
+        now_ms = int(time.time() * 1000)
+
+        # Check OTP
+        if user.get("otp_code") != req.otp:
+            raise HTTPException(status_code=401, detail="Invalid OTP")
+        if user.get("otp_expires_at", 0) < now_ms:
+            raise HTTPException(status_code=401, detail="OTP expired")
+
+        # Generate auth token
+        auth_token = secrets.token_hex(32)
+
+        # Clear OTP and set token
+        sb.table("users").update({
+            "otp_code": None,
+            "otp_expires_at": 0,
+            "auth_token": auth_token,
+        }).eq("phone", phone).execute()
+
+        # Check if user is new (no shop_name set)
+        is_new_user = not user.get("shop_name")
+
+        print(f"[Auth] ✓ OTP verified for {phone}, is_new={is_new_user}", flush=True)
+        return {
+            "status": "ok",
+            "token": auth_token,
+            "is_new_user": is_new_user,
+            "user": {
+                "phone": phone,
+                "shop_name": user.get("shop_name", ""),
+                "shopkeeper_name": user.get("shopkeeper_name", ""),
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Auth] ✗ Verify OTP failed: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"OTP verification failed: {e}")
+
+
+@app.post("/api/auth/signup")
+async def signup(req: SignupRequest):
+    """Complete signup for a new user — sets shop_name and shopkeeper_name."""
+    phone = req.phone.replace("+", "").strip()
+    if len(phone) == 10:
+        phone = f"91{phone}"
+
+    sb = _require_supabase()
+    try:
+        # First verify OTP
+        result = sb.table("users").select("*").eq("phone", phone).execute()
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Phone not found. Send OTP first.")
+
+        user = result.data[0]
+        now_ms = int(time.time() * 1000)
+
+        if user.get("otp_code") != req.otp:
+            raise HTTPException(status_code=401, detail="Invalid OTP")
+        if user.get("otp_expires_at", 0) < now_ms:
+            raise HTTPException(status_code=401, detail="OTP expired")
+
+        # Generate auth token and update user profile
+        auth_token = secrets.token_hex(32)
+
+        sb.table("users").update({
+            "shop_name": req.shop_name,
+            "shopkeeper_name": req.shopkeeper_name,
+            "otp_code": None,
+            "otp_expires_at": 0,
+            "auth_token": auth_token,
+        }).eq("phone", phone).execute()
+
+        # Initialize order counter for this user
+        sb.table("order_counters").upsert(
+            {"user_phone": phone, "last_order_num": 0},
+            on_conflict="user_phone"
+        ).execute()
+
+        print(f"[Auth] ✓ Signup complete for {phone}: {req.shop_name}", flush=True)
+        return {
+            "status": "ok",
+            "token": auth_token,
+            "user": {
+                "phone": phone,
+                "shop_name": req.shop_name,
+                "shopkeeper_name": req.shopkeeper_name,
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Auth] ✗ Signup failed: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Signup failed: {e}")
+
+
+@app.get("/api/auth/me")
+async def get_me(user: dict = Depends(get_current_user)):
+    """Return current user profile."""
+    return {
+        "user": {
+            "phone": user["phone"],
+            "shop_name": user.get("shop_name", ""),
+            "shopkeeper_name": user.get("shopkeeper_name", ""),
+        }
+    }
+
+
+# ============================================================
+# SERIALIZED ORDER ID
+# ============================================================
+
+@app.get("/api/orders/next-id")
+async def get_next_order_id(user: dict = Depends(get_current_user)):
+    """Generate next serialized order ID for the authenticated user."""
+    sb = _require_supabase()
+    phone = user["phone"]
+    phone_last4 = phone[-4:]
+
+    try:
+        # Get or create counter
+        result = sb.table("order_counters").select("*").eq("user_phone", phone).execute()
+        if not result.data:
+            sb.table("order_counters").insert({"user_phone": phone, "last_order_num": 0}).execute()
+            current_num = 0
+        else:
+            current_num = result.data[0]["last_order_num"]
+
+        next_num = current_num + 1
+
+        # Update counter
+        sb.table("order_counters").update(
+            {"last_order_num": next_num}
+        ).eq("user_phone", phone).execute()
+
+        order_id = f"KIKO-{phone_last4}-{next_num:04d}"
+        print(f"[OrderID] ✓ Generated {order_id} for {phone}", flush=True)
+        return {"order_id": order_id, "order_num": next_num}
+
+    except Exception as e:
+        print(f"[OrderID] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to generate order ID: {e}")
+
+
 # ---------- Health ----------
 
 @app.get("/")
@@ -163,6 +561,8 @@ def health():
         "status": "ok",
         "google_api_key_set": bool(GOOGLE_API_KEY),
         "oauth_configured": bool(GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_REFRESH_TOKEN),
+        "supabase_configured": _supabase_client is not None,
+        "gupshup_configured": bool(GUPSHUP_USERID),
         "models": {
             "transcribe": TRANSCRIBE_MODEL,
             "classify": CLASSIFY_MODEL,
@@ -313,8 +713,12 @@ async def extract_order(req: ExtractOrderRequest):
     }}
   ],
   "total_amount": number (use 0 if total not mentioned),
-  "notes": "string or null"
+  "notes": "string or null",
+  "address": "string or null (delivery address if mentioned by the customer)"
 }}
+
+IMPORTANT: ALL output text MUST be in English script (Roman/Latin alphabet) only. Even if the transcript is in Hindi, Marathi, Gujarati, or any other Indian language, transliterate all names, product names, notes, and addresses into English script. Do NOT use Devanagari, Arabic, or any non-Latin script. For example: use "Atta" not "आटा", "Chawal" not "चावल", "Rajesh" not "राजेश".
+
 If any field cannot be determined, use null. Always generate an order_id. Use "{req.store_name}" as the store_name if not mentioned in the transcript."""
 
         payload = {
@@ -347,6 +751,202 @@ If any field cannot be determined, use null. Always generate an order_id. Use "{
         print(f"[ExtractOrder] ✗ Exception: {e}", flush=True)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Order extraction failed: {e}")
+
+
+# ---------- Sync Recording to Supabase ----------
+
+@app.post("/api/sync-recording")
+async def sync_recording(req: SyncRecordingRequest, user: Optional[dict] = Depends(get_optional_user)):
+    print(f"[SyncRecording] Request: filename={req.filename}", flush=True)
+    sb = _require_supabase()
+    try:
+        row = {
+            "device_id": req.device_id,
+            "filename": req.filename,
+            "path": req.path,
+            "duration_ms": req.duration_ms,
+            "date_recorded": req.date_recorded,
+            "transcript": req.transcript,
+            "classification": req.classification,
+            "is_processed": req.is_processed,
+            "source_phone": req.source_phone,
+            "contact_name": req.contact_name,
+            "call_direction": req.call_direction,
+        }
+        if user:
+            row["user_phone"] = user["phone"]
+        if req.created_at is not None:
+            row["created_at"] = req.created_at
+        result = sb.table("recordings").upsert(
+            row, on_conflict="device_id,path"
+        ).execute()
+        rec_id = result.data[0]["id"] if result.data else None
+        print(f"[SyncRecording] ✓ Upserted recording id={rec_id}", flush=True)
+        return {"status": "ok", "id": rec_id}
+    except Exception as e:
+        print(f"[SyncRecording] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Sync recording failed: {e}")
+
+
+# ---------- Sync Order to Supabase ----------
+
+@app.post("/api/sync-order")
+async def sync_order(req: SyncOrderRequest, user: Optional[dict] = Depends(get_optional_user)):
+    print(f"[SyncOrder] Request: order_id={req.order_id}", flush=True)
+    sb = _require_supabase()
+    try:
+        row = {
+            "order_id": req.order_id,
+            "customer_name": req.customer_name,
+            "customer_phone": req.customer_phone,
+            "store_name": req.store_name,
+            "store_number": req.store_number,
+            "products": req.products,
+            "total_amount": req.total_amount,
+            "notes": req.notes,
+            "address": req.address,
+            "whatsapp_sent": req.whatsapp_sent,
+            "is_read": req.is_read,
+            "call_direction": req.call_direction,
+        }
+        if user:
+            row["user_phone"] = user["phone"]
+        if req.recording_id is not None:
+            row["recording_id"] = req.recording_id
+        if req.created_at is not None:
+            row["created_at"] = req.created_at
+        sb.table("orders").upsert(row, on_conflict="order_id").execute()
+        print(f"[SyncOrder] ✓ Upserted order {req.order_id}", flush=True)
+        return {"status": "ok", "order_id": req.order_id}
+    except Exception as e:
+        print(f"[SyncOrder] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Sync failed: {e}")
+
+
+# ---------- Get Orders (scoped to user) ----------
+
+@app.get("/api/orders")
+async def list_orders(
+    store_name: str = "",
+    limit: int = 100,
+    offset: int = 0,
+    user: Optional[dict] = Depends(get_optional_user),
+):
+    sb = _require_supabase()
+    try:
+        query = sb.table("orders").select("*").order("created_at", desc=True)
+        if user:
+            query = query.eq("user_phone", user["phone"])
+        if store_name:
+            query = query.eq("store_name", store_name)
+        result = query.range(offset, offset + limit - 1).execute()
+        return {"orders": result.data}
+    except Exception as e:
+        print(f"[ListOrders] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to list orders: {e}")
+
+
+@app.get("/api/orders/{order_id}")
+async def get_order(order_id: str):
+    sb = _require_supabase()
+    try:
+        result = sb.table("orders").select("*").eq("order_id", order_id).execute()
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Order not found")
+        return {"order": result.data[0]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[GetOrder] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to get order: {e}")
+
+
+# ---------- Update Order ----------
+
+@app.put("/api/orders/{order_id}")
+async def update_order(order_id: str, req: UpdateOrderRequest):
+    sb = _require_supabase()
+    try:
+        updates = {k: v for k, v in req.model_dump().items() if v is not None}
+        if not updates:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        result = sb.table("orders").update(updates).eq("order_id", order_id).execute()
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Order not found")
+        return {"status": "ok", "order": result.data[0]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[UpdateOrder] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to update order: {e}")
+
+
+# ---------- Delete Order ----------
+
+@app.delete("/api/orders/{order_id}")
+async def delete_order(order_id: str):
+    sb = _require_supabase()
+    try:
+        sb.table("orders").delete().eq("order_id", order_id).execute()
+        print(f"[DeleteOrder] ✓ Deleted order {order_id}", flush=True)
+        return {"status": "ok", "order_id": order_id}
+    except Exception as e:
+        print(f"[DeleteOrder] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to delete order: {e}")
+
+
+# ---------- Get Recordings ----------
+
+@app.get("/api/recordings")
+async def list_recordings(device_id: str = "", limit: int = 100, offset: int = 0):
+    sb = _require_supabase()
+    try:
+        query = sb.table("recordings").select("*").order("date_recorded", desc=True)
+        if device_id:
+            query = query.eq("device_id", device_id)
+        result = query.range(offset, offset + limit - 1).execute()
+        return {"recordings": result.data}
+    except Exception as e:
+        print(f"[ListRecordings] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to list recordings: {e}")
+
+
+@app.get("/api/recordings/{recording_id}")
+async def get_recording(recording_id: int):
+    sb = _require_supabase()
+    try:
+        result = sb.table("recordings").select("*").eq("id", recording_id).execute()
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Recording not found")
+        return {"recording": result.data[0]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[GetRecording] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to get recording: {e}")
+
+
+# ---------- Delete Recording ----------
+
+@app.delete("/api/recordings/{recording_id}")
+async def delete_recording(recording_id: int):
+    sb = _require_supabase()
+    try:
+        sb.table("recordings").delete().eq("id", recording_id).execute()
+        print(f"[DeleteRecording] ✓ Deleted recording {recording_id}", flush=True)
+        return {"status": "ok", "id": recording_id}
+    except Exception as e:
+        print(f"[DeleteRecording] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to delete recording: {e}")
 
 
 # ---------- Gemini Live Token (OAuth) ----------
