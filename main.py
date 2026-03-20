@@ -308,11 +308,11 @@ async def extract_order(req: ExtractOrderRequest):
   "products": [
     {{
       "name": "string",
-      "quantity": number,
-      "price": number
+      "quantity": "string (include unit if mentioned, e.g. '2 kg', '5 liters', '3 boxes', '1 dozen', or just '2' if no unit specified)",
+      "price": number (use 0 if price not mentioned)
     }}
   ],
-  "total_amount": number,
+  "total_amount": number (use 0 if total not mentioned),
   "notes": "string or null"
 }}
 If any field cannot be determined, use null. Always generate an order_id. Use "{req.store_name}" as the store_name if not mentioned in the transcript."""
