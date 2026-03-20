@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import collections
 import io
 import os
 import random
@@ -13,6 +14,7 @@ from typing import Optional
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -22,6 +24,37 @@ load_dotenv()
 print("[KikoCall] Starting up...", flush=True)
 
 app = FastAPI(title="KikoCall AI Proxy")
+
+# ---------- CORS (production) ----------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ---------- Request Logging Middleware ----------
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    duration = time.time() - start
+    print(f"[HTTP] {request.method} {request.url.path} -> {response.status_code} ({duration:.2f}s)", flush=True)
+    return response
+
+# ---------- Rate Limiter ----------
+_rate_limits: dict[str, list[float]] = collections.defaultdict(list)
+RATE_LIMIT_WINDOW = 300  # 5 minutes
+RATE_LIMIT_MAX = 5  # max requests per window
+
+def _check_rate_limit(key: str):
+    """Simple in-memory rate limiter. Raises 429 if exceeded."""
+    now = time.time()
+    _rate_limits[key] = [t for t in _rate_limits[key] if now - t < RATE_LIMIT_WINDOW]
+    if len(_rate_limits[key]) >= RATE_LIMIT_MAX:
+        raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
+    _rate_limits[key].append(now)
 
 # ---------- Keepalive (Render) ----------
 KEEPALIVE_URL = os.getenv("KEEPALIVE_URL", "") # E.g. https://kikocall-backend.onrender.com/
@@ -322,6 +355,9 @@ async def send_otp(req: SendOtpRequest):
     if not phone:
         raise HTTPException(status_code=400, detail="Phone number required")
 
+    # Rate limit per phone number
+    _check_rate_limit(f"otp:{phone}")
+
     # Ensure 10-digit number gets 91 prefix
     if len(phone) == 10:
         phone = f"91{phone}"
@@ -501,31 +537,36 @@ async def get_me(user: dict = Depends(get_current_user)):
 
 @app.get("/api/orders/next-id")
 async def get_next_order_id(user: dict = Depends(get_current_user)):
-    """Generate next serialized order ID for the authenticated user."""
+    """Generate next serialized order ID for the authenticated user.
+    Uses atomic Supabase RPC function to prevent race conditions."""
     sb = _require_supabase()
     phone = user["phone"]
     phone_last4 = phone[-4:]
 
     try:
-        # Get or create counter
-        result = sb.table("order_counters").select("*").eq("user_phone", phone).execute()
-        if not result.data:
-            sb.table("order_counters").insert({"user_phone": phone, "last_order_num": 0}).execute()
-            current_num = 0
-        else:
-            current_num = result.data[0]["last_order_num"]
-
-        next_num = current_num + 1
-
-        # Update counter
-        sb.table("order_counters").update(
-            {"last_order_num": next_num}
-        ).eq("user_phone", phone).execute()
+        # Atomic increment via Supabase RPC (race-condition safe)
+        try:
+            result = sb.rpc("increment_order_counter", {"p_user_phone": phone}).execute()
+            next_num = result.data if isinstance(result.data, int) else int(result.data)
+        except Exception:
+            # Fallback to manual increment if RPC not available
+            result = sb.table("order_counters").select("*").eq("user_phone", phone).execute()
+            if not result.data:
+                sb.table("order_counters").insert({"user_phone": phone, "last_order_num": 0}).execute()
+                current_num = 0
+            else:
+                current_num = result.data[0]["last_order_num"]
+            next_num = current_num + 1
+            sb.table("order_counters").update(
+                {"last_order_num": next_num}
+            ).eq("user_phone", phone).execute()
 
         order_id = f"KIKO-{phone_last4}-{next_num:04d}"
         print(f"[OrderID] ✓ Generated {order_id} for {phone}", flush=True)
         return {"order_id": order_id, "order_num": next_num}
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[OrderID] ✗ Exception: {e}", flush=True)
         traceback.print_exc()
