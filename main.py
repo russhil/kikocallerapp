@@ -412,13 +412,18 @@ async def send_otp(req: SendOtpRequest):
     # Store OTP in Supabase
     sb = _require_supabase()
     try:
-        # Ensure a store row exists for this phone (FK requirement)
-        sb.table("stores").upsert(
-            {"phone": phone},
-            on_conflict="phone"
-        ).execute()
+        # Step 1: Ensure a store row exists for this phone (FK requirement)
+        # Check if store already exists
+        store_check = sb.table("stores").select("phone").eq("phone", phone).execute()
+        if not store_check.data:
+            # Insert new store row
+            print(f"[Auth] Creating store row for {phone}", flush=True)
+            sb.table("stores").insert({"phone": phone, "store_name": "", "owner_name": ""}).execute()
+            print(f"[Auth] ✓ Store row created for {phone}", flush=True)
+        else:
+            print(f"[Auth] Store row already exists for {phone}", flush=True)
 
-        # Upsert user row with OTP (creates if not exists)
+        # Step 2: Upsert user row with OTP (creates if not exists)
         sb.table("users").upsert(
             {
                 "phone": phone,
