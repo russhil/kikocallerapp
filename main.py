@@ -100,7 +100,7 @@ EXTRACT_MODEL = "gemini-2.5-flash"
 GUPSHUP_USERID = os.getenv("GUPSHUP_USERID", "2000202768")
 GUPSHUP_PASSWORD = os.getenv("GUPSHUP_PASSWORD", "Kikotv@614")
 GUPSHUP_URL = os.getenv("GUPSHUP_URL", "https://enterprise.smsgupshup.com/GatewayAPI/rest")
-GUPSHUP_HASH_CODE = os.getenv("GUPSHUP_HASH_CODE", "bggVMT0/6Yc")
+GUPSHUP_HASH_CODE = os.getenv("GUPSHUP_HASH_CODE", "WkvzfHFQrep")
 
 # Auth
 AUTH_SECRET = os.getenv("AUTH_SECRET", secrets.token_hex(32))
@@ -438,7 +438,7 @@ async def send_otp(req: SendOtpRequest):
         raise HTTPException(status_code=500, detail=f"Failed to store OTP: {e}")
 
     # Send SMS via Gupshup (GET request with query params)
-    msg_text = f"Use {otp} as your OTP for Kiko Live login {GUPSHUP_HASH_CODE}"
+    msg_text = f"<#> Use {otp} as your OTP for Kiko Live login {GUPSHUP_HASH_CODE}"
 
     params = {
         "send_to": phone,
