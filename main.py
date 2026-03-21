@@ -289,6 +289,7 @@ class SyncOrderRequest(BaseModel):
     recording_filename: Optional[str] = None
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
+    customer_address: Optional[str] = None
     store_name: str = ""
     store_number: Optional[str] = None
     products: list[dict] = []
@@ -297,8 +298,24 @@ class SyncOrderRequest(BaseModel):
     address: Optional[str] = None
     whatsapp_sent: bool = False
     is_read: bool = False
-    created_at: Optional[int] = None
+    is_cancelled: bool = False
+    cancelled_at: Optional[int] = None
+    cancel_reason: Optional[str] = None
+    order_source: str = "call"
     call_direction: str = "INCOMING"
+    payment_status: str = "pending"
+    payment_method: Optional[str] = None
+    delivery_status: str = "pending"
+    delivered_at: Optional[int] = None
+    confidence_score: Optional[float] = None
+    processing_time_ms: Optional[int] = None
+    device_model: Optional[str] = None
+    device_os_version: Optional[str] = None
+    app_version: Optional[str] = None
+    session_id: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    created_at: Optional[int] = None
 
 
 class SyncRecordingRequest(BaseModel):
@@ -313,12 +330,24 @@ class SyncRecordingRequest(BaseModel):
     source_phone: Optional[str] = None
     contact_name: Optional[str] = None
     call_direction: str = "INCOMING"
+    call_type: Optional[str] = None
+    sim_slot: Optional[int] = None
+    network_type: Optional[str] = None
+    language_detected: Optional[str] = None
+    sentiment: Optional[str] = None
+    audio_quality_score: Optional[float] = None
+    word_count: Optional[int] = None
+    speaker_count: Optional[int] = None
+    processing_time_ms: Optional[int] = None
+    ai_model_used: Optional[str] = None
+    transcript_confidence: Optional[float] = None
     created_at: Optional[int] = None
 
 
 class UpdateOrderRequest(BaseModel):
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
+    customer_address: Optional[str] = None
     store_name: Optional[str] = None
     store_number: Optional[str] = None
     products: Optional[list[dict]] = None
@@ -327,6 +356,13 @@ class UpdateOrderRequest(BaseModel):
     address: Optional[str] = None
     whatsapp_sent: Optional[bool] = None
     is_read: Optional[bool] = None
+    is_cancelled: Optional[bool] = None
+    cancelled_at: Optional[int] = None
+    cancel_reason: Optional[str] = None
+    payment_status: Optional[str] = None
+    payment_method: Optional[str] = None
+    delivery_status: Optional[str] = None
+    delivered_at: Optional[int] = None
 
 
 # ---------- Auth request models ----------
@@ -343,6 +379,11 @@ class VerifyOtpRequest(BaseModel):
 class SignupRequest(BaseModel):
     shop_name: str
     shopkeeper_name: str
+    store_category: Optional[str] = None
+    store_address: Optional[str] = None
+    store_city: Optional[str] = None
+    store_state: Optional[str] = None
+    store_pincode: Optional[str] = None
 
 
 # ============================================================
@@ -371,6 +412,12 @@ async def send_otp(req: SendOtpRequest):
     # Store OTP in Supabase
     sb = _require_supabase()
     try:
+        # Ensure a store row exists for this phone (FK requirement)
+        sb.table("stores").upsert(
+            {"phone": phone},
+            on_conflict="phone"
+        ).execute()
+
         # Upsert user row with OTP (creates if not exists)
         sb.table("users").upsert(
             {
@@ -451,12 +498,20 @@ async def verify_otp(req: VerifyOtpRequest):
         # Generate auth token
         auth_token = secrets.token_hex(32)
 
-        # Clear OTP and set token
+        # Clear OTP and set token, increment login count
         sb.table("users").update({
             "otp_code": None,
             "otp_expires_at": 0,
             "auth_token": auth_token,
+            "last_login_at": now_ms,
+            "login_count": (user.get("login_count") or 0) + 1,
         }).eq("phone", phone).execute()
+
+        # Update store last_active_at
+        try:
+            sb.table("stores").update({"last_active_at": now_ms}).eq("phone", phone).execute()
+        except Exception:
+            pass  # Non-critical
 
         # Check if user is new (no shop_name set)
         is_new_user = not user.get("shop_name")
@@ -489,13 +544,33 @@ async def signup(req: SignupRequest, user: dict = Depends(get_current_user)):
 
     sb = _require_supabase()
     try:
+        # Create/update the store record (phone is PK)
+        store_row = {
+            "phone": phone,
+            "store_name": req.shop_name,
+            "owner_name": req.shopkeeper_name,
+            "onboarding_completed": True,
+        }
+        if req.store_category:
+            store_row["store_category"] = req.store_category
+        if req.store_address:
+            store_row["store_address"] = req.store_address
+        if req.store_city:
+            store_row["store_city"] = req.store_city
+        if req.store_state:
+            store_row["store_state"] = req.store_state
+        if req.store_pincode:
+            store_row["store_pincode"] = req.store_pincode
+
+        sb.table("stores").upsert(store_row, on_conflict="phone").execute()
+
         # Update user profile with shop details
         sb.table("users").update({
             "shop_name": req.shop_name,
             "shopkeeper_name": req.shopkeeper_name,
         }).eq("phone", phone).execute()
 
-        # Initialize order counter for this user
+        # Initialize order counter for this store
         sb.table("order_counters").upsert(
             {"user_phone": phone, "last_order_num": 0},
             on_conflict="user_phone"
@@ -781,6 +856,7 @@ async def sync_recording(req: SyncRecordingRequest, user: Optional[dict] = Depen
     print(f"[SyncRecording] Request: filename={req.filename}", flush=True)
     sb = _require_supabase()
     try:
+        store_phone = user["phone"] if user else None
         row = {
             "device_id": req.device_id,
             "filename": req.filename,
@@ -793,9 +869,21 @@ async def sync_recording(req: SyncRecordingRequest, user: Optional[dict] = Depen
             "source_phone": req.source_phone,
             "contact_name": req.contact_name,
             "call_direction": req.call_direction,
+            "call_type": req.call_type,
+            "sim_slot": req.sim_slot,
+            "network_type": req.network_type,
+            "language_detected": req.language_detected,
+            "sentiment": req.sentiment,
+            "audio_quality_score": req.audio_quality_score,
+            "word_count": req.word_count,
+            "speaker_count": req.speaker_count,
+            "processing_time_ms": req.processing_time_ms,
+            "ai_model_used": req.ai_model_used,
+            "transcript_confidence": req.transcript_confidence,
         }
-        if user:
-            row["user_phone"] = user["phone"]
+        if store_phone:
+            row["store_phone"] = store_phone
+            row["user_phone"] = store_phone  # backward compat
         if req.created_at is not None:
             row["created_at"] = req.created_at
         result = sb.table("recordings").upsert(
@@ -817,30 +905,50 @@ async def sync_order(req: SyncOrderRequest, user: Optional[dict] = Depends(get_o
     print(f"[SyncOrder] Request: order_id={req.order_id}", flush=True)
     sb = _require_supabase()
     try:
+        store_phone = user["phone"] if user else None
         row = {
             "order_id": req.order_id,
             "customer_name": req.customer_name,
             "customer_phone": req.customer_phone,
+            "customer_address": req.customer_address,
             "store_name": req.store_name,
             "store_number": req.store_number,
             "products": req.products,
             "total_amount": req.total_amount,
+            "item_count": len(req.products),
             "notes": req.notes,
             "address": req.address,
             "whatsapp_sent": req.whatsapp_sent,
             "is_read": req.is_read,
+            "is_cancelled": req.is_cancelled,
+            "cancelled_at": req.cancelled_at,
+            "cancel_reason": req.cancel_reason,
+            "order_source": req.order_source,
             "call_direction": req.call_direction,
+            "payment_status": req.payment_status,
+            "payment_method": req.payment_method,
+            "delivery_status": req.delivery_status,
+            "delivered_at": req.delivered_at,
+            "confidence_score": req.confidence_score,
+            "processing_time_ms": req.processing_time_ms,
+            "device_model": req.device_model,
+            "device_os_version": req.device_os_version,
+            "app_version": req.app_version,
+            "session_id": req.session_id,
+            "latitude": req.latitude,
+            "longitude": req.longitude,
         }
-        if user:
-            row["user_phone"] = user["phone"]
+        if store_phone:
+            row["store_phone"] = store_phone
+            row["user_phone"] = store_phone  # backward compat
 
         # Resolve recording_id: look up Supabase recording by filename
         # (the client sends local Room DB recording_id which doesn't match Supabase IDs)
         if req.recording_filename:
             try:
                 rec_result = sb.table("recordings").select("id").eq("filename", req.recording_filename)
-                if user:
-                    rec_result = rec_result.eq("user_phone", user["phone"])
+                if store_phone:
+                    rec_result = rec_result.eq("store_phone", store_phone)
                 rec_result = rec_result.limit(1).execute()
                 if rec_result.data:
                     row["recording_id"] = rec_result.data[0]["id"]
@@ -852,6 +960,55 @@ async def sync_order(req: SyncOrderRequest, user: Optional[dict] = Depends(get_o
         if req.created_at is not None:
             row["created_at"] = req.created_at
         sb.table("orders").upsert(row, on_conflict="order_id").execute()
+
+        # Normalize products into order_items table
+        if store_phone and req.products:
+            try:
+                # Delete existing items for this order (in case of re-sync)
+                sb.table("order_items").delete().eq("order_id", req.order_id).execute()
+
+                items = []
+                for p in req.products:
+                    qty_str = str(p.get("quantity", "1"))
+                    price = float(p.get("price", 0))
+                    # Parse quantity into numeric + unit (e.g. "2.5 kg" -> 2.5, "kg")
+                    qty_numeric = None
+                    qty_unit = None
+                    try:
+                        parts = qty_str.strip().split()
+                        if parts:
+                            qty_numeric = float(parts[0])
+                            qty_unit = parts[1] if len(parts) > 1 else "pieces"
+                    except (ValueError, IndexError):
+                        pass
+
+                    items.append({
+                        "order_id": req.order_id,
+                        "store_phone": store_phone,
+                        "product_name": p.get("name", "Unknown"),
+                        "quantity": qty_str,
+                        "quantity_numeric": qty_numeric,
+                        "quantity_unit": qty_unit,
+                        "unit_price": price,
+                        "total_price": price,  # price is already total for that line item
+                    })
+
+                if items:
+                    sb.table("order_items").insert(items).execute()
+                    print(f"[SyncOrder] ✓ Inserted {len(items)} order_items", flush=True)
+            except Exception as e:
+                print(f"[SyncOrder] ⚠ order_items insert failed (non-critical): {e}", flush=True)
+
+        # Update store aggregate stats (non-critical)
+        if store_phone and not req.is_cancelled:
+            try:
+                sb.table("stores").update({
+                    "total_orders": sb.table("orders").select("id", count="exact").eq("store_phone", store_phone).eq("is_cancelled", False).execute().count or 0,
+                    "last_active_at": int(time.time() * 1000),
+                }).eq("phone", store_phone).execute()
+            except Exception:
+                pass  # Non-critical
+
         print(f"[SyncOrder] ✓ Upserted order {req.order_id}", flush=True)
         return {"status": "ok", "order_id": req.order_id}
     except Exception as e:
@@ -982,6 +1139,189 @@ async def delete_recording(recording_id: int):
         print(f"[DeleteRecording] ✗ Exception: {e}", flush=True)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to delete recording: {e}")
+
+
+# ============================================================
+# ADMIN ENDPOINTS — Cross-store data access for analytics
+# ============================================================
+
+ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "")
+
+
+def _require_admin(request: Request):
+    """Check admin API key from X-Admin-Key header."""
+    key = request.headers.get("X-Admin-Key", "")
+    if not ADMIN_API_KEY:
+        # If no admin key configured, allow access (dev mode)
+        return True
+    if key != ADMIN_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid admin API key")
+    return True
+
+
+@app.get("/api/admin/stores")
+async def admin_list_stores(
+    request: Request,
+    city: str = "",
+    category: str = "",
+    active_only: bool = True,
+    limit: int = 100,
+    offset: int = 0,
+):
+    """List all stores with their aggregate stats."""
+    _require_admin(request)
+    sb = _require_supabase()
+    try:
+        query = sb.table("stores").select("*").order("created_at", desc=True)
+        if city:
+            query = query.eq("store_city", city)
+        if category:
+            query = query.eq("store_category", category)
+        if active_only:
+            query = query.eq("is_active", True)
+        result = query.range(offset, offset + limit - 1).execute()
+        return {"stores": result.data, "count": len(result.data)}
+    except Exception as e:
+        print(f"[Admin] ✗ list_stores failed: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/stores/{phone}")
+async def admin_get_store(phone: str, request: Request):
+    """Get a single store's full details."""
+    _require_admin(request)
+    sb = _require_supabase()
+    try:
+        store_result = sb.table("stores").select("*").eq("phone", phone).execute()
+        if not store_result.data:
+            raise HTTPException(status_code=404, detail="Store not found")
+
+        order_count = sb.table("orders").select("id", count="exact").eq("store_phone", phone).execute()
+        recording_count = sb.table("recordings").select("id", count="exact").eq("store_phone", phone).execute()
+
+        store = store_result.data[0]
+        store["_order_count"] = order_count.count or 0
+        store["_recording_count"] = recording_count.count or 0
+
+        return {"store": store}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Admin] ✗ get_store failed: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/stores/{phone}/orders")
+async def admin_store_orders(
+    phone: str,
+    request: Request,
+    limit: int = 100,
+    offset: int = 0,
+    include_items: bool = False,
+):
+    """List all orders for a specific store."""
+    _require_admin(request)
+    sb = _require_supabase()
+    try:
+        result = sb.table("orders").select("*").eq("store_phone", phone)\
+            .order("created_at", desc=True)\
+            .range(offset, offset + limit - 1).execute()
+
+        orders = result.data
+        if include_items and orders:
+            order_ids = [o["order_id"] for o in orders]
+            items_result = sb.table("order_items").select("*")\
+                .in_("order_id", order_ids).execute()
+            items_by_order = {}
+            for item in (items_result.data or []):
+                items_by_order.setdefault(item["order_id"], []).append(item)
+            for order in orders:
+                order["_items"] = items_by_order.get(order["order_id"], [])
+
+        return {"orders": orders, "count": len(orders)}
+    except Exception as e:
+        print(f"[Admin] ✗ store_orders failed: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/analytics/top-products")
+async def admin_top_products(
+    request: Request,
+    limit: int = 50,
+    store_phone: str = "",
+):
+    """Get top products across all stores (or a specific store)."""
+    _require_admin(request)
+    sb = _require_supabase()
+    try:
+        # We query order_items and aggregate in Python since Supabase REST
+        # doesn't support GROUP BY. For large datasets, use the SQL view instead.
+        query = sb.table("order_items").select("product_name,quantity_numeric,quantity_unit,unit_price,total_price,store_phone")
+        if store_phone:
+            query = query.eq("store_phone", store_phone)
+        result = query.limit(10000).execute()
+
+        # Aggregate
+        product_stats: dict[str, dict] = {}
+        for item in (result.data or []):
+            name = item.get("product_name", "Unknown")
+            if name not in product_stats:
+                product_stats[name] = {
+                    "product_name": name,
+                    "times_ordered": 0,
+                    "total_revenue": 0.0,
+                    "stores": set(),
+                }
+            product_stats[name]["times_ordered"] += 1
+            product_stats[name]["total_revenue"] += item.get("total_price", 0) or 0
+            product_stats[name]["stores"].add(item.get("store_phone", ""))
+
+        # Sort and serialize
+        top = sorted(product_stats.values(), key=lambda x: x["times_ordered"], reverse=True)[:limit]
+        for p in top:
+            p["store_count"] = len(p.pop("stores"))
+
+        return {"top_products": top}
+    except Exception as e:
+        print(f"[Admin] ✗ top_products failed: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/export")
+async def admin_export(
+    request: Request,
+    table: str = "orders",
+    store_phone: str = "",
+    limit: int = 10000,
+    offset: int = 0,
+):
+    """Export data as JSON for data brokering. Tables: stores, orders, order_items, recordings."""
+    _require_admin(request)
+    sb = _require_supabase()
+    allowed_tables = {"stores", "orders", "order_items", "recordings", "activity_log"}
+    if table not in allowed_tables:
+        raise HTTPException(status_code=400, detail=f"Table must be one of: {allowed_tables}")
+    try:
+        query = sb.table(table).select("*")
+        if store_phone and table != "stores":
+            query = query.eq("store_phone", store_phone)
+        elif store_phone and table == "stores":
+            query = query.eq("phone", store_phone)
+        result = query.range(offset, offset + limit - 1).execute()
+        return {
+            "table": table,
+            "count": len(result.data),
+            "offset": offset,
+            "data": result.data,
+        }
+    except Exception as e:
+        print(f"[Admin] ✗ export failed: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ---------- Gemini Live Token (OAuth) ----------
