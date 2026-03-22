@@ -763,9 +763,15 @@ async def classify(req: ClassifyRequest):
     try:
         system_prompt = (
             "You are a call classifier for an Indian retail shop. "
-            "Classify this call transcript strictly as one of two categories: ORDER_CALL or PERSONAL_CALL. "
-            "An ORDER_CALL contains any mention of products, quantities, prices, delivery, or purchase intent. "
-            "Respond ONLY with the single word: ORDER_CALL or PERSONAL_CALL"
+            "Classify this call transcript as ORDER_CALL or PERSONAL_CALL. "
+            "Default to ORDER_CALL if there is ANY hint of ordering, products, items, "
+            "quantities, prices, delivery, supply requests, stock inquiries, or business transactions. "
+            "Even if the call also contains personal conversation, if any part mentions ordering items, "
+            "requesting products, discussing prices, asking about availability, or listing multiple items, "
+            "classify it as ORDER_CALL. Only classify as PERSONAL_CALL if the call is entirely personal "
+            "with absolutely no mention of products, orders, or business. "
+            "When in doubt, always classify as ORDER_CALL. "
+            "Respond ONLY with: ORDER_CALL or PERSONAL_CALL"
         )
         payload = {
             "contents": [
