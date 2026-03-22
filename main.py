@@ -781,16 +781,25 @@ async def classify(req: ClassifyRequest, user: dict = Depends(get_current_user))
     print(f"[Classify] Request: transcript_len={len(req.transcript)}", flush=True)
     try:
         system_prompt = (
-            "You are a call classifier for an Indian retail shop. "
-            "Classify this call transcript as ORDER_CALL or PERSONAL_CALL. "
-            "Default to ORDER_CALL if there is ANY hint of ordering, products, items, "
-            "quantities, prices, delivery, supply requests, stock inquiries, or business transactions. "
-            "Even if the call also contains personal conversation, if any part mentions ordering items, "
-            "requesting products, discussing prices, asking about availability, or listing multiple items, "
-            "classify it as ORDER_CALL. Only classify as PERSONAL_CALL if the call is entirely personal "
-            "with absolutely no mention of products, orders, or business. "
-            "When in doubt, always classify as ORDER_CALL. "
-            "Respond ONLY with: ORDER_CALL or PERSONAL_CALL"
+            "You are a call classifier for small Indian retail shopkeepers (kirana stores, general stores, etc.). "
+            "Classify this call transcript as ORDER_CALL or PERSONAL_CALL, and provide a confidence score.\n\n"
+            "CRITICAL RULES:\n"
+            "- This is for SMALL INDIAN SHOPKEEPERS. Customers often call casually, chat about personal things, "
+            "and somewhere in the conversation informally mention they need something.\n"
+            "- If ANYWHERE in the call — even buried in 5 minutes of small talk — someone mentions needing, "
+            "wanting, ordering, or requesting ANY product or item (even just '1 Maggi' or 'thoda tel bhi dena'), "
+            "it is an ORDER_CALL. The informality does NOT matter.\n"
+            "- Even if 95% of the call is personal chitchat and only one line says 'aur haan, 2 packet doodh bhi rakh dena', "
+            "that is an ORDER_CALL.\n"
+            "- Product mentions, item names, quantities, prices, delivery requests, stock inquiries, "
+            "supply requests, 'bhej dena', 'rakh dena', 'chahiye', 'de dena', 'send karo' — ALL of these "
+            "mean ORDER_CALL regardless of the rest of the conversation.\n"
+            "- Only classify as PERSONAL_CALL if the ENTIRE call is purely personal with absolutely ZERO "
+            "mention of any product, item, or order.\n"
+            "- When in doubt, ALWAYS classify as ORDER_CALL.\n\n"
+            "Respond ONLY with valid JSON in this exact format (no markdown, no backticks):\n"
+            '{\"classification\": \"ORDER_CALL\", \"confidence\": 0.85}\n\n'
+            "Where confidence is a float from 0.0 to 1.0 indicating how confident you are in your classification."
         )
         payload = {
             "contents": [
@@ -800,15 +809,43 @@ async def classify(req: ClassifyRequest, user: dict = Depends(get_current_user))
 
         data = await _call_gemini(CLASSIFY_MODEL, payload)
         text = _extract_gemini_text(data)
-        print(f"[Classify] ✓ Result: {text}", flush=True)
+        print(f"[Classify] ✓ Raw result: {text}", flush=True)
 
         if text is None:
-            return {"classification": None}
-        if "ORDER_CALL" in text:
-            return {"classification": "ORDER_CALL"}
-        elif "PERSONAL_CALL" in text:
-            return {"classification": "PERSONAL_CALL"}
-        return {"classification": None}
+            return {"classification": None, "confidence": 0.0}
+
+        # Try to parse JSON response with confidence
+        import json as _json
+        try:
+            # Strip markdown code fences if present
+            clean = text.strip()
+            if clean.startswith("```"):
+                clean = clean.split("\n", 1)[-1]  # remove first line
+                if clean.endswith("```"):
+                    clean = clean[:-3]
+                clean = clean.strip()
+            parsed = _json.loads(clean)
+            classification = parsed.get("classification", "").upper().strip()
+            confidence = float(parsed.get("confidence", 0.5))
+            confidence = max(0.0, min(1.0, confidence))  # clamp to [0, 1]
+
+            if "ORDER" in classification:
+                classification = "ORDER_CALL"
+            elif "PERSONAL" in classification:
+                classification = "PERSONAL_CALL"
+            else:
+                classification = "ORDER_CALL"  # default to order when in doubt
+
+            print(f"[Classify] ✓ Parsed: classification={classification}, confidence={confidence}", flush=True)
+            return {"classification": classification, "confidence": confidence}
+        except (_json.JSONDecodeError, ValueError, TypeError) as parse_err:
+            print(f"[Classify] ⚠ JSON parse failed ({parse_err}), falling back to text matching: {text}", flush=True)
+            # Fallback: extract from raw text
+            if "ORDER_CALL" in text.upper():
+                return {"classification": "ORDER_CALL", "confidence": 0.5}
+            elif "PERSONAL_CALL" in text.upper():
+                return {"classification": "PERSONAL_CALL", "confidence": 0.5}
+            return {"classification": "ORDER_CALL", "confidence": 0.3}  # default to order
 
     except HTTPException:
         raise
