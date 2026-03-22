@@ -45,12 +45,23 @@ async def log_requests(request: Request, call_next):
 
 # ---------- Rate Limiter ----------
 _rate_limits: dict[str, list[float]] = collections.defaultdict(list)
+_rate_limit_last_cleanup = 0.0
 RATE_LIMIT_WINDOW = 300  # 5 minutes
 RATE_LIMIT_MAX = 5  # max requests per window
+RATE_LIMIT_CLEANUP_INTERVAL = 600  # cleanup stale keys every 10 minutes
 
 def _check_rate_limit(key: str):
-    """Simple in-memory rate limiter. Raises 429 if exceeded."""
+    """In-memory rate limiter with periodic cleanup to prevent unbounded memory growth."""
+    global _rate_limit_last_cleanup
     now = time.time()
+
+    # Periodic cleanup: remove keys with no recent activity to prevent OOM at scale
+    if now - _rate_limit_last_cleanup > RATE_LIMIT_CLEANUP_INTERVAL:
+        stale_keys = [k for k, timestamps in _rate_limits.items() if not timestamps or now - timestamps[-1] > RATE_LIMIT_WINDOW]
+        for k in stale_keys:
+            del _rate_limits[k]
+        _rate_limit_last_cleanup = now
+
     _rate_limits[key] = [t for t in _rate_limits[key] if now - t < RATE_LIMIT_WINDOW]
     if len(_rate_limits[key]) >= RATE_LIMIT_MAX:
         raise HTTPException(status_code=429, detail="Too many requests. Try again later.")
@@ -202,8 +213,9 @@ async def _get_access_token() -> str:
     return _cached_token
 
 
-async def _call_gemini(model: str, payload: dict) -> dict:
-    """Call Gemini API. Tries API key first, falls back to OAuth Bearer."""
+async def _call_gemini(model: str, payload: dict, timeout_seconds: int = 90) -> dict:
+    """Call Gemini API. Tries API key first, falls back to OAuth Bearer.
+    Default timeout is 90s (was 120s) to prevent app-side timeout races."""
     url = f"{GEMINI_BASE}/{model}:generateContent"
     errors = []
 
@@ -211,7 +223,7 @@ async def _call_gemini(model: str, payload: dict) -> dict:
     if GOOGLE_API_KEY:
         try:
             print(f"[Gemini] Trying {model} with API key...", flush=True)
-            async with httpx.AsyncClient(timeout=120) as client:
+            async with httpx.AsyncClient(timeout=timeout_seconds) as client:
                 resp = await client.post(f"{url}?key={GOOGLE_API_KEY}", json=payload)
             if resp.status_code == 200:
                 print(f"[Gemini] ✓ API key auth succeeded", flush=True)
@@ -229,7 +241,7 @@ async def _call_gemini(model: str, payload: dict) -> dict:
         try:
             print(f"[Gemini] Trying {model} with OAuth Bearer...", flush=True)
             token = await _get_access_token()
-            async with httpx.AsyncClient(timeout=120) as client:
+            async with httpx.AsyncClient(timeout=timeout_seconds) as client:
                 resp = await client.post(
                     url, json=payload,
                     headers={"Authorization": f"Bearer {token}"},
@@ -260,6 +272,9 @@ def _extract_gemini_text(response_data: dict) -> str | None:
 
 
 # ---------- Request models ----------
+
+# Max ~20MB of base64 (≈15MB raw audio), prevents OOM from massive payloads
+AUDIO_BASE64_MAX_LENGTH = 20_000_000
 
 class TranscribeRequest(BaseModel):
     audio_base64: str
@@ -675,7 +690,9 @@ def health():
 # ---------- Transcribe (Google Cloud STT) ----------
 
 @app.post("/api/transcribe")
-async def transcribe(req: TranscribeRequest):
+async def transcribe(req: TranscribeRequest, user: dict = Depends(get_current_user)):
+    if len(req.audio_base64) > AUDIO_BASE64_MAX_LENGTH:
+        raise HTTPException(status_code=413, detail="Audio payload too large (max 20MB)")
     print(f"[STT] Request: lang={req.language_code}, audio_len={len(req.audio_base64)}", flush=True)
     try:
         payload = {
@@ -716,7 +733,9 @@ async def transcribe(req: TranscribeRequest):
 # ---------- Transcribe via Gemini (fallback) ----------
 
 @app.post("/api/transcribe-gemini")
-async def transcribe_gemini(req: TranscribeGeminiRequest):
+async def transcribe_gemini(req: TranscribeGeminiRequest, user: dict = Depends(get_current_user)):
+    if len(req.audio_base64) > AUDIO_BASE64_MAX_LENGTH:
+        raise HTTPException(status_code=413, detail="Audio payload too large (max 20MB)")
     """Fallback transcription: send audio to Gemini and ask for transcript."""
     print(f"[Transcribe-Gemini] Request: lang={req.language_code}, audio_len={len(req.audio_base64)}", flush=True)
     try:
@@ -758,7 +777,7 @@ async def transcribe_gemini(req: TranscribeGeminiRequest):
 # ---------- Classify ----------
 
 @app.post("/api/classify")
-async def classify(req: ClassifyRequest):
+async def classify(req: ClassifyRequest, user: dict = Depends(get_current_user)):
     print(f"[Classify] Request: transcript_len={len(req.transcript)}", flush=True)
     try:
         system_prompt = (
@@ -801,8 +820,41 @@ async def classify(req: ClassifyRequest):
 
 # ---------- Extract Order ----------
 
+def _validate_extracted_order(order_json: str) -> str | None:
+    """Validate that extracted order JSON has real products.
+    Returns the JSON if valid, None if bogus (no real products)."""
+    import json
+    try:
+        data = json.loads(order_json)
+        products = data.get("products", [])
+        if not products:
+            print("[ExtractOrder] ⚠ Rejected: 0 products", flush=True)
+            return None
+
+        # Filter out fake/placeholder products
+        invalid_names = {"n/a", "na", "none", "unknown", "null", "", "-",
+                         "no product", "no item", "no items", "not mentioned",
+                         "not specified", "not available"}
+        valid_products = [
+            p for p in products
+            if p.get("name", "").strip().lower() not in invalid_names
+               and p.get("name", "").strip() != ""
+        ]
+
+        if not valid_products:
+            print(f"[ExtractOrder] ⚠ Rejected: {len(products)} products but all invalid names", flush=True)
+            return None
+
+        # Replace products with only valid ones
+        data["products"] = valid_products
+        return json.dumps(data)
+    except (json.JSONDecodeError, Exception) as e:
+        print(f"[ExtractOrder] ⚠ Validation parse error: {e}", flush=True)
+        return order_json  # Return as-is if we can't parse (let app handle it)
+
+
 @app.post("/api/extract-order")
-async def extract_order(req: ExtractOrderRequest):
+async def extract_order(req: ExtractOrderRequest, user: dict = Depends(get_current_user)):
     print(f"[ExtractOrder] Request: transcript_len={len(req.transcript)}", flush=True)
     try:
         system_prompt = f"""You are an order extraction assistant for an Indian retail shop. Extract all order information from this call transcript and return ONLY a valid JSON object (no markdown, no explanation) in this exact schema:
@@ -814,7 +866,7 @@ async def extract_order(req: ExtractOrderRequest):
   "order_id": "string (generate a unique 8-char alphanumeric if not mentioned)",
   "products": [
     {{
-      "name": "string",
+      "name": "string (the actual product name, NOT 'N/A' or 'unknown')",
       "quantity": "string (include unit if mentioned, e.g. '2 kg', '5 liters', '3 boxes', '1 dozen', or just '2' if no unit specified)",
       "price": number (use 0 if price not mentioned)
     }}
@@ -824,9 +876,13 @@ async def extract_order(req: ExtractOrderRequest):
   "address": "string or null (delivery address if mentioned by the customer)"
 }}
 
-IMPORTANT: ALL output text MUST be in English script (Roman/Latin alphabet) only. Even if the transcript is in Hindi, Marathi, Gujarati, or any other Indian language, transliterate all names, product names, notes, and addresses into English script. Do NOT use Devanagari, Arabic, or any non-Latin script. For example: use "Atta" not "आटा", "Chawal" not "चावल", "Rajesh" not "राजेश".
-
-If any field cannot be determined, use null. Always generate an order_id. Use "{req.store_name}" as the store_name if not mentioned in the transcript."""
+CRITICAL RULES:
+1. ONLY return products that are ACTUALLY mentioned as items to order in the transcript.
+2. If NO specific products/items are mentioned for ordering, return an EMPTY products array [].
+3. Do NOT invent or hallucinate products. Do NOT use placeholder names like "N/A" or "Unknown".
+4. ALL output text MUST be in English script (Roman/Latin alphabet) only. Transliterate from Hindi/Marathi/Gujarati etc.
+5. If any field cannot be determined, use null. Always generate an order_id.
+6. Use "{req.store_name}" as the store_name if not mentioned in the transcript."""
 
         payload = {
             "contents": [
@@ -848,9 +904,16 @@ If any field cannot be determined, use null. Always generate an order_id. Use "{
             cleaned = cleaned.removeprefix("```")
         if cleaned.endswith("```"):
             cleaned = cleaned.removesuffix("```")
+        cleaned = cleaned.strip()
 
-        print(f"[ExtractOrder] ✓ Extracted order ({len(cleaned)} chars)", flush=True)
-        return {"order_json": cleaned.strip()}
+        # Server-side validation: reject bogus orders with no real products
+        validated = _validate_extracted_order(cleaned)
+        if validated is None:
+            print("[ExtractOrder] ⚠ Order rejected by validation (no valid products)", flush=True)
+            return {"order_json": None}
+
+        print(f"[ExtractOrder] ✓ Extracted order ({len(validated)} chars)", flush=True)
+        return {"order_json": validated}
 
     except HTTPException:
         raise
@@ -863,11 +926,11 @@ If any field cannot be determined, use null. Always generate an order_id. Use "{
 # ---------- Sync Recording to Supabase ----------
 
 @app.post("/api/sync-recording")
-async def sync_recording(req: SyncRecordingRequest, user: Optional[dict] = Depends(get_optional_user)):
+async def sync_recording(req: SyncRecordingRequest, user: dict = Depends(get_current_user)):
     print(f"[SyncRecording] Request: filename={req.filename}", flush=True)
     sb = _require_supabase()
     try:
-        store_phone = user["phone"] if user else None
+        store_phone = user["phone"]
         row = {
             "device_id": req.device_id,
             "filename": req.filename,
@@ -912,11 +975,11 @@ async def sync_recording(req: SyncRecordingRequest, user: Optional[dict] = Depen
 # ---------- Sync Order to Supabase ----------
 
 @app.post("/api/sync-order")
-async def sync_order(req: SyncOrderRequest, user: Optional[dict] = Depends(get_optional_user)):
+async def sync_order(req: SyncOrderRequest, user: dict = Depends(get_current_user)):
     print(f"[SyncOrder] Request: order_id={req.order_id}", flush=True)
     sb = _require_supabase()
     try:
-        store_phone = user["phone"] if user else None
+        store_phone = user["phone"]
         row = {
             "order_id": req.order_id,
             "customer_name": req.customer_name,
@@ -1035,13 +1098,12 @@ async def list_orders(
     store_name: str = "",
     limit: int = 100,
     offset: int = 0,
-    user: Optional[dict] = Depends(get_optional_user),
+    user: dict = Depends(get_current_user),
 ):
     sb = _require_supabase()
     try:
         query = sb.table("orders").select("*").order("created_at", desc=True)
-        if user:
-            query = query.eq("user_phone", user["phone"])
+        query = query.eq("user_phone", user["phone"])
         if store_name:
             query = query.eq("store_name", store_name)
         result = query.range(offset, offset + limit - 1).execute()
@@ -1053,10 +1115,10 @@ async def list_orders(
 
 
 @app.get("/api/orders/{order_id}")
-async def get_order(order_id: str):
+async def get_order(order_id: str, user: dict = Depends(get_current_user)):
     sb = _require_supabase()
     try:
-        result = sb.table("orders").select("*").eq("order_id", order_id).execute()
+        result = sb.table("orders").select("*").eq("order_id", order_id).eq("user_phone", user["phone"]).execute()
         if not result.data:
             raise HTTPException(status_code=404, detail="Order not found")
         return {"order": result.data[0]}
@@ -1071,13 +1133,13 @@ async def get_order(order_id: str):
 # ---------- Update Order ----------
 
 @app.put("/api/orders/{order_id}")
-async def update_order(order_id: str, req: UpdateOrderRequest):
+async def update_order(order_id: str, req: UpdateOrderRequest, user: dict = Depends(get_current_user)):
     sb = _require_supabase()
     try:
         updates = {k: v for k, v in req.model_dump().items() if v is not None}
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")
-        result = sb.table("orders").update(updates).eq("order_id", order_id).execute()
+        result = sb.table("orders").update(updates).eq("order_id", order_id).eq("user_phone", user["phone"]).execute()
         if not result.data:
             raise HTTPException(status_code=404, detail="Order not found")
         return {"status": "ok", "order": result.data[0]}
@@ -1092,10 +1154,10 @@ async def update_order(order_id: str, req: UpdateOrderRequest):
 # ---------- Delete Order ----------
 
 @app.delete("/api/orders/{order_id}")
-async def delete_order(order_id: str):
+async def delete_order(order_id: str, user: dict = Depends(get_current_user)):
     sb = _require_supabase()
     try:
-        sb.table("orders").delete().eq("order_id", order_id).execute()
+        sb.table("orders").delete().eq("order_id", order_id).eq("user_phone", user["phone"]).execute()
         print(f"[DeleteOrder] ✓ Deleted order {order_id}", flush=True)
         return {"status": "ok", "order_id": order_id}
     except Exception as e:
@@ -1107,10 +1169,11 @@ async def delete_order(order_id: str):
 # ---------- Get Recordings ----------
 
 @app.get("/api/recordings")
-async def list_recordings(device_id: str = "", limit: int = 100, offset: int = 0):
+async def list_recordings(device_id: str = "", limit: int = 100, offset: int = 0, user: dict = Depends(get_current_user)):
     sb = _require_supabase()
     try:
         query = sb.table("recordings").select("*").order("date_recorded", desc=True)
+        query = query.eq("store_phone", user["phone"])
         if device_id:
             query = query.eq("device_id", device_id)
         result = query.range(offset, offset + limit - 1).execute()
@@ -1122,10 +1185,10 @@ async def list_recordings(device_id: str = "", limit: int = 100, offset: int = 0
 
 
 @app.get("/api/recordings/{recording_id}")
-async def get_recording(recording_id: int):
+async def get_recording(recording_id: int, user: dict = Depends(get_current_user)):
     sb = _require_supabase()
     try:
-        result = sb.table("recordings").select("*").eq("id", recording_id).execute()
+        result = sb.table("recordings").select("*").eq("id", recording_id).eq("store_phone", user["phone"]).execute()
         if not result.data:
             raise HTTPException(status_code=404, detail="Recording not found")
         return {"recording": result.data[0]}
@@ -1140,10 +1203,10 @@ async def get_recording(recording_id: int):
 # ---------- Delete Recording ----------
 
 @app.delete("/api/recordings/{recording_id}")
-async def delete_recording(recording_id: int):
+async def delete_recording(recording_id: int, user: dict = Depends(get_current_user)):
     sb = _require_supabase()
     try:
-        sb.table("recordings").delete().eq("id", recording_id).execute()
+        sb.table("recordings").delete().eq("id", recording_id).eq("store_phone", user["phone"]).execute()
         print(f"[DeleteRecording] ✓ Deleted recording {recording_id}", flush=True)
         return {"status": "ok", "id": recording_id}
     except Exception as e:
@@ -1163,8 +1226,8 @@ def _require_admin(request: Request):
     """Check admin API key from X-Admin-Key header."""
     key = request.headers.get("X-Admin-Key", "")
     if not ADMIN_API_KEY:
-        # If no admin key configured, allow access (dev mode)
-        return True
+        # Deny access when no admin key is configured (prevents open access at scale)
+        raise HTTPException(status_code=403, detail="Admin access not configured")
     if key != ADMIN_API_KEY:
         raise HTTPException(status_code=403, detail="Invalid admin API key")
     return True
@@ -1273,7 +1336,7 @@ async def admin_top_products(
         query = sb.table("order_items").select("product_name,quantity_numeric,quantity_unit,unit_price,total_price,store_phone")
         if store_phone:
             query = query.eq("store_phone", store_phone)
-        result = query.limit(10000).execute()
+        result = query.limit(1000).execute()
 
         # Aggregate
         product_stats: dict[str, dict] = {}
@@ -1338,7 +1401,7 @@ async def admin_export(
 # ---------- Gemini Live Token (OAuth) ----------
 
 @app.get("/api/gemini-live-token")
-async def gemini_live_token():
+async def gemini_live_token(user: dict = Depends(get_current_user)):
     """Exchange refresh token for a short-lived access token for Gemini Live WebSocket."""
     token = await _get_access_token()
     return {"access_token": token, "expires_in": 3600}
