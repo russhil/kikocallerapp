@@ -137,6 +137,42 @@ if SUPABASE_URL and SUPABASE_KEY:
 else:
     print("[KikoCall] Supabase not configured (SUPABASE_URL/SUPABASE_KEY missing)", flush=True)
 
+# ---------- Activity Logging to Supabase ----------
+
+def _log_activity(
+    action: str,
+    store_phone: str = None,
+    entity_type: str = None,
+    entity_id: str = None,
+    metadata: dict = None,
+    request: Request = None,
+):
+    """Fire-and-forget log to activity_log table in Supabase.
+    Non-blocking: failures are silently logged to stdout."""
+    if _supabase_client is None:
+        return
+    try:
+        row = {
+            "action": action,
+            "created_at": int(time.time() * 1000),
+        }
+        if store_phone:
+            row["store_phone"] = store_phone
+            row["user_phone"] = store_phone
+        if entity_type:
+            row["entity_type"] = entity_type
+        if entity_id:
+            row["entity_id"] = entity_id
+        if metadata:
+            row["metadata"] = metadata
+        if request:
+            row["ip_address"] = request.client.host if request.client else None
+            row["user_agent"] = request.headers.get("user-agent", "")[:500]
+        _supabase_client.table("activity_log").insert(row).execute()
+    except Exception as e:
+        print(f"[ActivityLog] ⚠ Failed to log '{action}': {e}", flush=True)
+
+
 # ---------- Auth helpers ----------
 security = HTTPBearer(auto_error=False)
 
@@ -406,7 +442,7 @@ class SignupRequest(BaseModel):
 # ============================================================
 
 @app.post("/api/auth/send-otp")
-async def send_otp(req: SendOtpRequest):
+async def send_otp(req: SendOtpRequest, request: Request = None):
     """Generate OTP and send via Gupshup SMS."""
     phone = req.phone.replace("+", "").strip()
     if not phone:
@@ -480,6 +516,7 @@ async def send_otp(req: SendOtpRequest):
         print(f"[Gupshup] Response: {response_text}", flush=True)
 
         if response_text.startswith("success"):
+            _log_activity("auth.otp_sent", store_phone=phone, entity_type="user", entity_id=phone, request=request)
             return {"status": "ok", "message": "OTP sent successfully"}
         else:
             print(f"[Gupshup] ✗ SMS send failed: {response_text}", flush=True)
@@ -494,7 +531,7 @@ async def send_otp(req: SendOtpRequest):
 
 
 @app.post("/api/auth/verify-otp")
-async def verify_otp(req: VerifyOtpRequest):
+async def verify_otp(req: VerifyOtpRequest, request: Request = None):
     """Verify OTP. Returns token + user info. If user is new (no shop_name), returns is_new_user=True."""
     phone = req.phone.replace("+", "").strip()
     if len(phone) == 10:
@@ -536,6 +573,8 @@ async def verify_otp(req: VerifyOtpRequest):
         # Check if user is new (no shop_name set)
         is_new_user = not user.get("shop_name")
 
+        _log_activity("auth.login", store_phone=phone, entity_type="user", entity_id=phone,
+                      metadata={"is_new_user": is_new_user}, request=request)
         print(f"[Auth] ✓ OTP verified for {phone}, is_new={is_new_user}", flush=True)
         return {
             "status": "ok",
@@ -557,7 +596,7 @@ async def verify_otp(req: VerifyOtpRequest):
 
 
 @app.post("/api/auth/signup")
-async def signup(req: SignupRequest, user: dict = Depends(get_current_user)):
+async def signup(req: SignupRequest, request: Request = None, user: dict = Depends(get_current_user)):
     """Complete signup for a new user — sets shop_name and shopkeeper_name.
     Uses the auth token from verify-otp (Bearer header) instead of re-checking OTP."""
     phone = user["phone"]
@@ -596,6 +635,8 @@ async def signup(req: SignupRequest, user: dict = Depends(get_current_user)):
             on_conflict="user_phone"
         ).execute()
 
+        _log_activity("auth.signup", store_phone=phone, entity_type="store", entity_id=phone,
+                      metadata={"shop_name": req.shop_name, "category": req.store_category, "city": req.store_city}, request=request)
         print(f"[Auth] ✓ Signup complete for {phone}: {req.shop_name}", flush=True)
         return {
             "status": "ok",
@@ -690,7 +731,7 @@ def health():
 # ---------- Transcribe (Google Cloud STT) ----------
 
 @app.post("/api/transcribe")
-async def transcribe(req: TranscribeRequest, user: dict = Depends(get_current_user)):
+async def transcribe(req: TranscribeRequest, request: Request = None, user: dict = Depends(get_current_user)):
     if len(req.audio_base64) > AUDIO_BASE64_MAX_LENGTH:
         raise HTTPException(status_code=413, detail="Audio payload too large (max 20MB)")
     print(f"[STT] Request: lang={req.language_code}, audio_len={len(req.audio_base64)}", flush=True)
@@ -720,6 +761,8 @@ async def transcribe(req: TranscribeRequest, user: dict = Depends(get_current_us
             if alt.get("transcript")
         )
         print(f"[STT] ✓ Result: {(transcript or 'None')[:100]}", flush=True)
+        _log_activity("api.transcribe", store_phone=user.get("phone"), entity_type="recording",
+                      metadata={"lang": req.language_code, "audio_len": len(req.audio_base64), "has_result": bool(transcript)}, request=request)
         return {"transcript": transcript or None}
 
     except HTTPException:
@@ -727,13 +770,15 @@ async def transcribe(req: TranscribeRequest, user: dict = Depends(get_current_us
     except Exception as e:
         print(f"[STT] ✗ Exception: {e}", flush=True)
         traceback.print_exc()
+        _log_activity("api.transcribe.error", store_phone=user.get("phone"), entity_type="recording",
+                      metadata={"error": str(e)[:200]}, request=request)
         raise HTTPException(status_code=500, detail=f"STT failed: {e}")
 
 
 # ---------- Transcribe via Gemini (fallback) ----------
 
 @app.post("/api/transcribe-gemini")
-async def transcribe_gemini(req: TranscribeGeminiRequest, user: dict = Depends(get_current_user)):
+async def transcribe_gemini(req: TranscribeGeminiRequest, request: Request = None, user: dict = Depends(get_current_user)):
     if len(req.audio_base64) > AUDIO_BASE64_MAX_LENGTH:
         raise HTTPException(status_code=413, detail="Audio payload too large (max 20MB)")
     """Fallback transcription: send audio to Gemini and ask for transcript."""
@@ -764,6 +809,8 @@ async def transcribe_gemini(req: TranscribeGeminiRequest, user: dict = Depends(g
         data = await _call_gemini(TRANSCRIBE_MODEL, payload)
         text = _extract_gemini_text(data)
         print(f"[Transcribe-Gemini] ✓ Result: {(text or 'None')[:200]}", flush=True)
+        _log_activity("api.transcribe_gemini", store_phone=user.get("phone"), entity_type="recording",
+                      metadata={"lang": req.language_code, "audio_len": len(req.audio_base64), "has_result": bool(text)}, request=request)
         return {"transcript": text or None}
 
     except HTTPException:
@@ -771,13 +818,15 @@ async def transcribe_gemini(req: TranscribeGeminiRequest, user: dict = Depends(g
     except Exception as e:
         print(f"[Transcribe-Gemini] ✗ Exception: {e}", flush=True)
         traceback.print_exc()
+        _log_activity("api.transcribe_gemini.error", store_phone=user.get("phone"), entity_type="recording",
+                      metadata={"error": str(e)[:200]}, request=request)
         raise HTTPException(status_code=500, detail=f"Gemini transcription failed: {e}")
 
 
 # ---------- Classify ----------
 
 @app.post("/api/classify")
-async def classify(req: ClassifyRequest, user: dict = Depends(get_current_user)):
+async def classify(req: ClassifyRequest, request: Request = None, user: dict = Depends(get_current_user)):
     print(f"[Classify] Request: transcript_len={len(req.transcript)}", flush=True)
     try:
         system_prompt = (
@@ -837,6 +886,8 @@ async def classify(req: ClassifyRequest, user: dict = Depends(get_current_user))
                 classification = "ORDER_CALL"  # default to order when in doubt
 
             print(f"[Classify] ✓ Parsed: classification={classification}, confidence={confidence}", flush=True)
+            _log_activity("api.classify", store_phone=user.get("phone"), entity_type="recording",
+                          metadata={"classification": classification, "confidence": confidence, "transcript_len": len(req.transcript)}, request=request)
             return {"classification": classification, "confidence": confidence}
         except (_json.JSONDecodeError, ValueError, TypeError) as parse_err:
             print(f"[Classify] ⚠ JSON parse failed ({parse_err}), falling back to text matching: {text}", flush=True)
@@ -891,7 +942,7 @@ def _validate_extracted_order(order_json: str) -> str | None:
 
 
 @app.post("/api/extract-order")
-async def extract_order(req: ExtractOrderRequest, user: dict = Depends(get_current_user)):
+async def extract_order(req: ExtractOrderRequest, request: Request = None, user: dict = Depends(get_current_user)):
     print(f"[ExtractOrder] Request: transcript_len={len(req.transcript)}", flush=True)
     try:
         system_prompt = f"""You are an order extraction assistant for an Indian retail shop. Extract all order information from this call transcript and return ONLY a valid JSON object (no markdown, no explanation) in this exact schema:
@@ -950,6 +1001,8 @@ CRITICAL RULES:
             return {"order_json": None}
 
         print(f"[ExtractOrder] ✓ Extracted order ({len(validated)} chars)", flush=True)
+        _log_activity("api.extract_order", store_phone=user.get("phone"), entity_type="order",
+                      metadata={"transcript_len": len(req.transcript), "order_json_len": len(validated), "store_name": req.store_name}, request=request)
         return {"order_json": validated}
 
     except HTTPException:
@@ -963,7 +1016,7 @@ CRITICAL RULES:
 # ---------- Sync Recording to Supabase ----------
 
 @app.post("/api/sync-recording")
-async def sync_recording(req: SyncRecordingRequest, user: dict = Depends(get_current_user)):
+async def sync_recording(req: SyncRecordingRequest, request: Request = None, user: dict = Depends(get_current_user)):
     print(f"[SyncRecording] Request: filename={req.filename}", flush=True)
     sb = _require_supabase()
     try:
@@ -1001,6 +1054,9 @@ async def sync_recording(req: SyncRecordingRequest, user: dict = Depends(get_cur
             row, on_conflict="device_id,path"
         ).execute()
         rec_id = result.data[0]["id"] if result.data else None
+        _log_activity("recording.synced", store_phone=user.get("phone"), entity_type="recording",
+                      entity_id=str(rec_id), metadata={"filename": req.filename, "classification": req.classification,
+                      "source_phone": req.source_phone, "contact_name": req.contact_name}, request=request)
         print(f"[SyncRecording] ✓ Upserted recording id={rec_id}", flush=True)
         return {"status": "ok", "id": rec_id}
     except Exception as e:
@@ -1012,7 +1068,7 @@ async def sync_recording(req: SyncRecordingRequest, user: dict = Depends(get_cur
 # ---------- Sync Order to Supabase ----------
 
 @app.post("/api/sync-order")
-async def sync_order(req: SyncOrderRequest, user: dict = Depends(get_current_user)):
+async def sync_order(req: SyncOrderRequest, request: Request = None, user: dict = Depends(get_current_user)):
     print(f"[SyncOrder] Request: order_id={req.order_id}", flush=True)
     sb = _require_supabase()
     try:
@@ -1120,6 +1176,10 @@ async def sync_order(req: SyncOrderRequest, user: dict = Depends(get_current_use
             except Exception:
                 pass  # Non-critical
 
+        _log_activity("order.synced", store_phone=user.get("phone"), entity_type="order",
+                      entity_id=req.order_id, metadata={"customer_name": req.customer_name,
+                      "customer_phone": req.customer_phone, "total_amount": req.total_amount,
+                      "product_count": len(req.products)}, request=request)
         print(f"[SyncOrder] ✓ Upserted order {req.order_id}", flush=True)
         return {"status": "ok", "order_id": req.order_id}
     except Exception as e:
@@ -1191,10 +1251,11 @@ async def update_order(order_id: str, req: UpdateOrderRequest, user: dict = Depe
 # ---------- Delete Order ----------
 
 @app.delete("/api/orders/{order_id}")
-async def delete_order(order_id: str, user: dict = Depends(get_current_user)):
+async def delete_order(order_id: str, request: Request = None, user: dict = Depends(get_current_user)):
     sb = _require_supabase()
     try:
         sb.table("orders").delete().eq("order_id", order_id).eq("user_phone", user["phone"]).execute()
+        _log_activity("order.deleted", store_phone=user.get("phone"), entity_type="order", entity_id=order_id, request=request)
         print(f"[DeleteOrder] ✓ Deleted order {order_id}", flush=True)
         return {"status": "ok", "order_id": order_id}
     except Exception as e:
@@ -1240,10 +1301,11 @@ async def get_recording(recording_id: int, user: dict = Depends(get_current_user
 # ---------- Delete Recording ----------
 
 @app.delete("/api/recordings/{recording_id}")
-async def delete_recording(recording_id: int, user: dict = Depends(get_current_user)):
+async def delete_recording(recording_id: int, request: Request = None, user: dict = Depends(get_current_user)):
     sb = _require_supabase()
     try:
         sb.table("recordings").delete().eq("id", recording_id).eq("store_phone", user["phone"]).execute()
+        _log_activity("recording.deleted", store_phone=user.get("phone"), entity_type="recording", entity_id=str(recording_id), request=request)
         print(f"[DeleteRecording] ✓ Deleted recording {recording_id}", flush=True)
         return {"status": "ok", "id": recording_id}
     except Exception as e:

@@ -1,0 +1,655 @@
+=== Kiko Call Debug Logs ===
+Exported: 2026-03-23 13:12:22.468
+Device: samsung SM-S911B
+Android: 16 (SDK 36)
+App entries: 632
+========================================
+
+2026-03-23 05:24:07.089 [DEBUG] [Lifecycle] [main] OrderLensApp: Application onCreate started
+2026-03-23 05:24:07.216 [DEBUG] [Lifecycle] [main] OrderLensApp: Application onCreate complete
+2026-03-23 05:24:07.217 [INFO ] [OrderLensApp] [main] App initialized | loggedIn=false, deviceId=09c1c3e8a5f32b1b
+2026-03-23 05:24:12.753 [INFO ] [Auth] [DefaultDispatcher-worker-1] Sending OTP | phone=9619363677
+2026-03-23 05:24:12.753 [INFO ] [AuthApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/auth/send-otp
+2026-03-23 05:24:54.996 [ERROR] [AuthApi] [DefaultDispatcher-worker-1] Send OTP connection error | ConnectException: Failed to connect to ordertaker.kiko.live/20.80.98.55:443
+java.net.ConnectException: Failed to connect to ordertaker.kiko.live/20.80.98.55:443
+	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+	a
+2026-03-23 05:25:08.534 [INFO ] [Auth] [DefaultDispatcher-worker-1] Sending OTP | phone=9619363677
+2026-03-23 05:25:08.535 [INFO ] [AuthApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/auth/send-otp
+2026-03-23 05:25:37.079 [ERROR] [AuthApi] [DefaultDispatcher-worker-1] Send OTP connection error | ConnectException: Failed to connect to ordertaker.kiko.live/20.80.98.55:443
+java.net.ConnectException: Failed to connect to ordertaker.kiko.live/20.80.98.55:443
+	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+	a
+2026-03-23 05:36:44.740 [INFO ] [Auth] [DefaultDispatcher-worker-1] Sending OTP | phone=9619363677
+2026-03-23 05:36:44.742 [INFO ] [AuthApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/auth/send-otp
+2026-03-23 05:36:48.354 [INFO ] [AuthApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/auth/send-otp 3612ms body=49B
+2026-03-23 05:36:48.355 [INFO ] [Auth] [DefaultDispatcher-worker-1] OTP sent successfully | phone=9619363677, elapsed=3613ms
+2026-03-23 05:36:51.211 [INFO ] [Auth] [DefaultDispatcher-worker-1] Verifying OTP | phone=9619363677
+2026-03-23 05:36:51.211 [INFO ] [AuthApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/auth/verify-otp
+2026-03-23 05:36:52.187 [INFO ] [AuthApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/auth/verify-otp 974ms body=193B
+2026-03-23 05:36:52.189 [INFO ] [Auth] [DefaultDispatcher-worker-1] OTP verified | phone=9619363677, is_new=false
+2026-03-23 05:36:52.196 [DEBUG] [Lifecycle] [main] OrderLensApp: Reinitializing authenticated HTTP client
+2026-03-23 05:36:53.855 [DEBUG] [Lifecycle] [main] MainActivity: onCreate
+2026-03-23 05:36:53.889 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 05:36:53.890 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 05:36:53.993 [DEBUG] [Lifecycle] [main] RecordingMonitor: Service created
+2026-03-23 05:36:54.013 [DEBUG] [Lifecycle] [main] RecordingMonitor: FileObserver started
+2026-03-23 05:36:54.017 [WARN ] [RecordingMonitor] [main] Cannot register CallLogObserver — READ_CALL_LOG permission missing
+2026-03-23 05:36:54.020 [DEBUG] [Lifecycle] [main] RecordingMonitor: PhoneStateReceiver registered (service-level)
+2026-03-23 05:36:54.020 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-1] RecordingMonitor: Polling loop started
+2026-03-23 05:36:57.683 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 05:36:57.687 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 05:36:57.687 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 05:37:06.947 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 05:37:06.947 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 05:37:12.085 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 05:37:12.085 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 05:37:19.333 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 05:37:19.333 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 08:16:22.017 [DEBUG] [Lifecycle] [main] MainActivity: onDestroy
+2026-03-23 09:34:44.331 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 09:34:44.366 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 09:34:44.376 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 09:34:44.377 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 09:35:25.526 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 09:35:25.531 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 09:35:25.538 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 09:35:25.540 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 09:35:30.532 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-1] Post-call scan triggered
+2026-03-23 09:35:30.533 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] Immediate scan requested
+2026-03-23 09:35:30.534 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-1] OrderLensApp: Starting monitor service
+2026-03-23 09:35:30.962 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] Immediate scan — waking up early (waited 16000ms of 60000ms)
+2026-03-23 09:35:31.553 [DEBUG] [RecordingMonitor] [DefaultDispatcher-worker-1] Skipping outgoing call | file=Call recording Imran Alam Kiko Live_260323_093455.m4a
+2026-03-23 09:35:49.074 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 09:35:49.083 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 09:35:49.088 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 09:35:49.090 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 09:35:52.114 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 09:35:52.115 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 09:35:52.120 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 09:35:52.121 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 09:36:33.003 [DEBUG] [RecordingMonitor] [DefaultDispatcher-worker-3] Skipping outgoing call | file=Call recording Imran Alam Kiko Live_260323_093455.m4a
+2026-03-23 09:36:35.765 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 09:36:35.770 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 09:36:35.776 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 09:36:35.777 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 09:36:40.769 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-3] Post-call scan triggered
+2026-03-23 09:36:40.771 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-3] Immediate scan requested
+2026-03-23 09:36:40.772 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-3] OrderLensApp: Starting monitor service
+2026-03-23 09:36:41.037 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-3] Immediate scan — waking up early (waited 8000ms of 60000ms)
+2026-03-23 09:36:41.509 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-3] New recording inserted | direction=INCOMING, file=Call recording Imran Alam Kiko Live_260323_093552.m4a, id=151, phone=9711918660, contact=Imran Alam Kiko Live
+2026-03-23 09:36:41.578 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-3] New recording inserted | direction=INCOMING, file=Call recording Imran Alam Kiko Live_260323_093455.m4a, id=152, phone=9711918660, contact=Imran Alam Kiko Live
+2026-03-23 09:36:41.622 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-3] Processing 2 recordings in parallel
+2026-03-23 09:36:41.626 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Auto-processing started | dateRecorded=1774238725000
+2026-03-23 09:36:41.627 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Auto-processing started | dateRecorded=1774238795000
+2026-03-23 09:36:41.636 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093552.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Imran Alam Kiko Live_260323_093552.m4a
+2026-03-23 09:36:41.639 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093455.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Imran Alam Kiko Live_260323_093455.m4a
+2026-03-23 09:36:41.645 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Decoding audio | path=/storage/emulated/0/Recordings/Call/Call recording Imran Alam Kiko Live_260323_093552.m4a
+2026-03-23 09:36:41.647 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Decoding audio | path=/storage/emulated/0/Recordings/Call/Call recording Imran Alam Kiko Live_260323_093455.m4a
+2026-03-23 09:36:44.819 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Audio decoded | 950954 bytes in 3172ms
+2026-03-23 09:36:44.826 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Vosk pre-screening | model_ready=true
+2026-03-23 09:36:45.683 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 09:36:45.685 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 09:36:45.690 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 09:36:45.691 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 09:36:46.977 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Audio decoded | 1367380 bytes in 5332ms
+2026-03-23 09:36:46.983 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Vosk pre-screening | model_ready=true
+2026-03-23 09:36:49.300 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 09:36:49.303 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 09:36:49.307 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 09:36:49.309 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 09:37:06.252 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Vosk result | transcript_len=27, preview=luke luke i'm gonna go okay, elapsed=21425ms
+2026-03-23 09:37:06.262 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Classifying via Vosk transcript
+2026-03-23 09:37:06.266 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-2] Classify request | transcript_len=27
+2026-03-23 09:37:06.277 [INFO ] [GemmaApi] [DefaultDispatcher-worker-2] → POST https://ordertaker.kiko.live/api/classify body=49B
+2026-03-23 09:37:09.347 [INFO ] [GemmaApi] [DefaultDispatcher-worker-2] ← 200 POST https://ordertaker.kiko.live/api/classify 3069ms body=34B
+2026-03-23 09:37:09.355 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-2] Classify result | classification=PERSONAL_CALL, confidence=0.5
+2026-03-23 09:37:09.356 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Classification result | classification=PERSONAL_CALL, confidence=0.5, elapsed=3093ms
+2026-03-23 09:37:09.357 [WARN ] [RecordingProcessor] [DefaultDispatcher-worker-2] Low-confidence PERSONAL_CALL (0.5 < 0.7), continuing to extract: Call recording Imran Alam Kiko Live_260323_093455.m4a
+2026-03-23 09:37:09.362 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Gemini transcription | encoding PCM to base64
+2026-03-23 09:37:09.395 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Base64 encoded | base64_len=1267940
+2026-03-23 09:37:09.399 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-2] Transcribe request | lang=hi-IN, audioSize=1267940
+2026-03-23 09:37:09.652 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-2] → POST https://ordertaker.kiko.live/api/transcribe-gemini body=1268014B
+2026-03-23 09:37:32.348 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 09:37:32.351 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 09:37:32.358 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 09:37:32.359 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 09:37:37.358 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-5] Post-call scan triggered
+2026-03-23 09:37:37.359 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Immediate scan requested
+2026-03-23 09:37:37.360 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-5] OrderLensApp: Starting monitor service
+2026-03-23 09:37:51.684 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-2] ← 200 POST https://ordertaker.kiko.live/api/transcribe-gemini 42031ms body=152B
+2026-03-23 09:37:51.688 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-2] Gemini transcript | len=135, preview=हेलो हेलो हां गुड मॉर्निंग बोल देना सर टाइम है तो नहीं दो कॉल कर दो मुझे एक ऑर्ड
+2026-03-23 09:37:51.688 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-2] Transcribe succeeded via Gemini | result_len=135
+2026-03-23 09:37:51.689 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Transcription complete | len=135, preview=हेलो हेलो हां गुड मॉर्निंग बोल देना सर टाइम है तो नहीं दो कॉल कर दो मुझे एक ऑर्डर चाहिए कौन सा था एक, elapsed=42292ms
+2026-03-23 09:37:51.710 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Extracting order | store=The Shop
+2026-03-23 09:37:51.717 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-2] Extract order request | transcript_len=135, store=The Shop
+2026-03-23 09:37:51.723 [INFO ] [GeminiApi] [DefaultDispatcher-worker-2] → POST https://ordertaker.kiko.live/api/extract-order body=176B
+2026-03-23 09:37:54.571 [INFO ] [GeminiApi] [DefaultDispatcher-worker-2] ← 200 POST https://ordertaker.kiko.live/api/extract-order 2846ms body=331B
+2026-03-23 09:37:54.572 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-2] Extract order response | body_len=331
+2026-03-23 09:37:54.579 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-2] Extract order result | orderJson_len=280
+2026-03-23 09:37:54.581 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Order extracted | json_len=280, elapsed=2871ms
+2026-03-23 09:37:54.593 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Order numbering | orderCount=0, nextNum=1
+2026-03-23 09:37:54.619 [WARN ] [RecordingProcessor] [DefaultDispatcher-worker-2] Bogus order rejected (no valid products): Call recording Imran Alam Kiko Live_260323_093455.m4a
+2026-03-23 09:37:54.629 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093455.m4a] RESULT: SUCCESS (72990ms)
+2026-03-23 09:37:54.630 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093455.m4a] Auto-processing complete
+2026-03-23 09:38:06.024 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Vosk result | transcript_len=49, preview=oh do you watch a lot of a total number of people, elapsed=79040ms
+2026-03-23 09:38:06.030 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Classifying via Vosk transcript
+2026-03-23 09:38:06.031 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-1] Classify request | transcript_len=49
+2026-03-23 09:38:06.032 [INFO ] [GemmaApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/classify body=66B
+2026-03-23 09:38:08.027 [INFO ] [GemmaApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/classify 1987ms body=34B
+2026-03-23 09:38:08.034 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-1] Classify result | classification=PERSONAL_CALL, confidence=0.5
+2026-03-23 09:38:08.036 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Classification result | classification=PERSONAL_CALL, confidence=0.5, elapsed=2006ms
+2026-03-23 09:38:08.037 [WARN ] [RecordingProcessor] [DefaultDispatcher-worker-1] Low-confidence PERSONAL_CALL (0.5 < 0.7), continuing to extract: Call recording Imran Alam Kiko Live_260323_093552.m4a
+2026-03-23 09:38:08.043 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Gemini transcription | encoding PCM to base64
+2026-03-23 09:38:08.090 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Base64 encoded | base64_len=1823176
+2026-03-23 09:38:08.098 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-1] Transcribe request | lang=hi-IN, audioSize=1823176
+2026-03-23 09:38:08.621 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/transcribe-gemini body=1823255B
+2026-03-23 09:38:19.459 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/transcribe-gemini 10836ms body=300B
+2026-03-23 09:38:19.460 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-1] Gemini transcript | len=283, preview=हेलो आवाज आ रही है जी भैया सर इसको ऑर्डर लिखवाना था हां जी बताइए हां एक किलो चने
+2026-03-23 09:38:19.461 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-1] Transcribe succeeded via Gemini | result_len=283
+2026-03-23 09:38:19.461 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Transcription complete | len=283, preview=हेलो आवाज आ रही है जी भैया सर इसको ऑर्डर लिखवाना था हां जी बताइए हां एक किलो चने की दाल लिख लीजिए ठी, elapsed=11370ms
+2026-03-23 09:38:19.577 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Extracting order | store=The Shop
+2026-03-23 09:38:19.580 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-1] Extract order request | transcript_len=283, store=The Shop
+2026-03-23 09:38:19.581 [INFO ] [GeminiApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/extract-order body=324B
+2026-03-23 09:38:23.670 [INFO ] [GeminiApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/extract-order 4087ms body=547B
+2026-03-23 09:38:23.672 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-1] Extract order response | body_len=547
+2026-03-23 09:38:23.674 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-1] Extract order result | orderJson_len=464
+2026-03-23 09:38:23.674 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Order extracted | json_len=464, elapsed=4096ms
+2026-03-23 09:38:23.682 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Order numbering | orderCount=0, nextNum=1
+2026-03-23 09:38:23.828 [INFO ] [RecordingProcessor] [DefaultDispatcher-worker-1] Order saved | order_id=001, customer=Imran Alam Kiko Live, total=0.0, db_id=1
+2026-03-23 09:38:23.831 [DEBUG] [SyncApi] [DefaultDispatcher-worker-1] Sync order request | order_id=001, store=The Shop, products=[{"name":"Chana Dal","price":0.0,"quantity":"1 kg"},{"name":"Atta","price":0.0,"quantity":"5 kg"},{"
+2026-03-23 09:38:23.837 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/sync-order body=703B
+2026-03-23 09:38:26.454 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/sync-order 2616ms body=32B
+2026-03-23 09:38:26.456 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] Order synced successfully | order_id=001
+2026-03-23 09:38:26.457 [INFO ] [RecordingProcessor] [DefaultDispatcher-worker-1] Order synced to backend | order_id=001
+2026-03-23 09:38:26.476 [DEBUG] [SyncApi] [DefaultDispatcher-worker-1] Sync recording request | filename=Call recording Imran Alam Kiko Live_260323_093552.m4a, duration=42730ms, classification=ORDER_CALL
+2026-03-23 09:38:26.478 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/sync-recording body=718B
+2026-03-23 09:38:27.220 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/sync-recording 740ms body=23B
+2026-03-23 09:38:27.222 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] Recording synced successfully | filename=Call recording Imran Alam Kiko Live_260323_093552.m4a
+2026-03-23 09:38:27.223 [INFO ] [RecordingProcessor] [DefaultDispatcher-worker-1] Recording synced to backend | filename=Call recording Imran Alam Kiko Live_260323_093552.m4a
+2026-03-23 09:38:27.229 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] RESULT: SUCCESS (105593ms)
+2026-03-23 09:38:27.229 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_093552.m4a] Auto-processing complete
+2026-03-23 09:38:27.231 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] Immediate scan — waking up early (waited 0ms of 60000ms)
+2026-03-23 09:38:29.330 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] New recording inserted | direction=INCOMING, file=Call recording Imran Alam Kiko Live_260323_093649.m4a, id=153, phone=9711918660, contact=Imran Alam Kiko Live
+2026-03-23 09:38:29.458 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] Processing 1 recordings in parallel
+2026-03-23 09:38:29.459 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Auto-processing started | dateRecorded=1774238851000
+2026-03-23 09:38:29.463 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Imran Alam Kiko Live_260323_093649.m4a
+2026-03-23 09:38:29.468 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Decoding audio | path=/storage/emulated/0/Recordings/Call/Call recording Imran Alam Kiko Live_260323_093649.m4a
+2026-03-23 09:38:39.581 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Audio decoded | 1349632 bytes in 10113ms
+2026-03-23 09:38:39.583 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Vosk pre-screening | model_ready=true
+2026-03-23 09:38:43.528 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Vosk result | transcript_len=5, preview=hello, elapsed=3944ms
+2026-03-23 09:38:43.530 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Classifying via Vosk transcript
+2026-03-23 09:38:43.530 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-5] Classify request | transcript_len=5
+2026-03-23 09:38:43.530 [INFO ] [GemmaApi] [DefaultDispatcher-worker-5] → POST https://ordertaker.kiko.live/api/classify body=22B
+2026-03-23 09:38:45.032 [INFO ] [GemmaApi] [DefaultDispatcher-worker-5] ← 200 POST https://ordertaker.kiko.live/api/classify 1501ms body=34B
+2026-03-23 09:38:45.033 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-5] Classify result | classification=PERSONAL_CALL, confidence=0.5
+2026-03-23 09:38:45.034 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Classification result | classification=PERSONAL_CALL, confidence=0.5, elapsed=1504ms
+2026-03-23 09:38:45.034 [WARN ] [RecordingProcessor] [DefaultDispatcher-worker-5] Low-confidence PERSONAL_CALL (0.5 < 0.7), continuing to extract: Call recording Imran Alam Kiko Live_260323_093649.m4a
+2026-03-23 09:38:45.039 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Gemini transcription | encoding PCM to base64
+2026-03-23 09:38:45.078 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Base64 encoded | base64_len=1799512
+2026-03-23 09:38:45.080 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-5] Transcribe request | lang=hi-IN, audioSize=1799512
+2026-03-23 09:38:45.234 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-5] → POST https://ordertaker.kiko.live/api/transcribe-gemini body=1799591B
+2026-03-23 09:38:50.083 [DEBUG] [Lifecycle] [main] MainActivity: onCreate
+2026-03-23 09:38:50.085 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 09:38:50.088 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 09:38:50.088 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 09:39:10.259 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-5] ← 200 POST https://ordertaker.kiko.live/api/transcribe-gemini 25023ms body=381B
+2026-03-23 09:39:10.264 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-5] Gemini transcript | len=364, preview=हेलो हां भाई सब बढ़िया सब खैरियत सब बढ़िया सब खैरियत कहां आजकल मिलते ना है पर भाई 
+2026-03-23 09:39:10.265 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-5] Transcribe succeeded via Gemini | result_len=364
+2026-03-23 09:39:10.265 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Transcription complete | len=364, preview=हेलो हां भाई सब बढ़िया सब खैरियत सब बढ़िया सब खैरियत कहां आजकल मिलते ना है पर भाई साहब चल रहे हैं यही , elapsed=25186ms
+2026-03-23 09:39:10.280 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Extracting order | store=The Shop
+2026-03-23 09:39:10.283 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-5] Extract order request | transcript_len=364, store=The Shop
+2026-03-23 09:39:10.284 [INFO ] [GeminiApi] [DefaultDispatcher-worker-5] → POST https://ordertaker.kiko.live/api/extract-order body=405B
+2026-03-23 09:39:14.483 [INFO ] [GeminiApi] [DefaultDispatcher-worker-5] ← 200 POST https://ordertaker.kiko.live/api/extract-order 4197ms body=255B
+2026-03-23 09:39:14.484 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-5] Extract order response | body_len=255
+2026-03-23 09:39:14.485 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-5] Extract order result | orderJson_len=206
+2026-03-23 09:39:14.486 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Order extracted | json_len=206, elapsed=4205ms
+2026-03-23 09:39:14.492 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Order numbering | orderCount=1, nextNum=2
+2026-03-23 09:39:14.499 [WARN ] [RecordingProcessor] [DefaultDispatcher-worker-5] Bogus order rejected (no valid products): Call recording Imran Alam Kiko Live_260323_093649.m4a
+2026-03-23 09:39:14.511 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] RESULT: SUCCESS (45048ms)
+2026-03-23 09:39:14.511 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_093649.m4a] Auto-processing complete
+2026-03-23 09:39:42.557 [DEBUG] [Lifecycle] [main] MainActivity: onDestroy
+2026-03-23 11:16:50.320 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 11:16:50.326 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 11:16:50.328 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 11:16:50.329 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 11:16:55.226 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:16:55.230 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:16:55.237 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:16:55.239 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:17:49.200 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 11:17:49.303 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:17:49.329 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:17:49.335 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:17:54.290 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-2] Post-call scan triggered
+2026-03-23 11:17:54.292 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-2] Immediate scan requested
+2026-03-23 11:17:54.292 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-2] OrderLensApp: Starting monitor service
+2026-03-23 11:17:54.660 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-2] Immediate scan — waking up early (waited 44000ms of 60000ms)
+2026-03-23 11:17:55.089 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 11:17:55.091 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 11:17:55.094 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 11:17:55.097 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 11:17:55.871 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-2] New recording inserted | direction=INCOMING, file=Call recording Imran Alam Kiko Live_260323_111655.m4a, id=882, phone=9711918660, contact=Imran Alam Kiko Live
+2026-03-23 11:17:55.916 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-2] Processing 1 recordings in parallel
+2026-03-23 11:17:55.918 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Auto-processing started | dateRecorded=1774244868000
+2026-03-23 11:17:55.924 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_111655.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Imran Alam Kiko Live_260323_111655.m4a
+2026-03-23 11:17:55.928 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Decoding audio | path=/storage/emulated/0/Recordings/Call/Call recording Imran Alam Kiko Live_260323_111655.m4a
+2026-03-23 11:17:58.379 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:17:58.382 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:17:58.386 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:17:58.391 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:18:01.639 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Audio decoded | 1682772 bytes in 5711ms
+2026-03-23 11:18:01.645 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Vosk pre-screening | model_ready=true
+2026-03-23 11:18:35.229 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 11:18:35.235 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:18:35.262 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:18:35.263 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:18:40.322 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-5] Post-call scan triggered
+2026-03-23 11:18:40.325 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Immediate scan requested
+2026-03-23 11:18:40.326 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-5] OrderLensApp: Starting monitor service
+2026-03-23 11:19:48.077 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:19:48.096 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:19:48.104 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:19:48.105 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:20:38.506 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 11:20:38.574 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:20:38.621 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:20:38.622 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:20:43.664 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-5] Post-call scan triggered
+2026-03-23 11:20:43.665 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Immediate scan requested
+2026-03-23 11:20:43.666 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-5] OrderLensApp: Starting monitor service
+2026-03-23 11:21:05.163 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Vosk result | transcript_len=27, preview=hello i'm gonna take notice, elapsed=183518ms
+2026-03-23 11:21:05.476 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Classifying via Vosk transcript
+2026-03-23 11:21:05.477 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-1] Classify request | transcript_len=27
+2026-03-23 11:21:05.479 [INFO ] [GemmaApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/classify body=49B
+2026-03-23 11:21:08.304 [INFO ] [GemmaApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/classify 2823ms body=34B
+2026-03-23 11:21:08.306 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-1] Classify result | classification=PERSONAL_CALL, confidence=0.5
+2026-03-23 11:21:08.307 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Classification result | classification=PERSONAL_CALL, confidence=0.5, elapsed=2830ms
+2026-03-23 11:21:08.307 [WARN ] [RecordingProcessor] [DefaultDispatcher-worker-1] Low-confidence PERSONAL_CALL (0.5 < 0.7), continuing to extract: Call recording Imran Alam Kiko Live_260323_111655.m4a
+2026-03-23 11:21:08.314 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Gemini transcription | encoding PCM to base64
+2026-03-23 11:21:08.380 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Base64 encoded | base64_len=2243696
+2026-03-23 11:21:08.383 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-1] Transcribe request | lang=hi-IN, audioSize=2243696
+2026-03-23 11:21:10.383 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/transcribe-gemini body=2243765B
+2026-03-23 11:21:19.295 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/transcribe-gemini 8909ms body=553B
+2026-03-23 11:21:19.301 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-1] Gemini transcript | len=535, preview=हेलो
+हां जी भाई साहब ऑर्डर लिखिए। हां जी बताइए। हां, ये ऑर्डर है ना पीछे गली नंब
+2026-03-23 11:21:19.302 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-1] Transcribe succeeded via Gemini | result_len=535
+2026-03-23 11:21:19.303 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Transcription complete | len=535, preview=हेलो
+हां जी भाई साहब ऑर्डर लिखिए। हां जी बताइए। हां, ये ऑर्डर है ना पीछे गली नंबर पांच में। कल भी आय, elapsed=10922ms
+2026-03-23 11:21:19.328 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Extracting order | store=The Shop
+2026-03-23 11:21:19.332 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-2] Extract order request | transcript_len=535, store=The Shop
+2026-03-23 11:21:19.334 [INFO ] [GeminiApi] [DefaultDispatcher-worker-2] → POST https://ordertaker.kiko.live/api/extract-order body=577B
+2026-03-23 11:21:24.377 [INFO ] [GeminiApi] [DefaultDispatcher-worker-2] ← 200 POST https://ordertaker.kiko.live/api/extract-order 5042ms body=789B
+2026-03-23 11:21:24.380 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-2] Extract order response | body_len=789
+2026-03-23 11:21:24.382 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-2] Extract order result | orderJson_len=662
+2026-03-23 11:21:24.383 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Order extracted | json_len=662, elapsed=5054ms
+2026-03-23 11:21:24.391 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Order numbering | orderCount=1, nextNum=2
+2026-03-23 11:21:24.792 [INFO ] [RecordingProcessor] [DefaultDispatcher-worker-2] Order saved | order_id=002, customer=Imran Alam Kiko Live, total=900.0, db_id=2
+2026-03-23 11:21:24.793 [DEBUG] [SyncApi] [DefaultDispatcher-worker-2] Sync order request | order_id=002, store=The Shop, products=[{"name":"India Gate Basmati Rice","price":0.0,"quantity":"5 kg"},{"name":"Chane ki Dal","price":0.0
+2026-03-23 11:21:24.797 [INFO ] [SyncApi] [DefaultDispatcher-worker-2] → POST https://ordertaker.kiko.live/api/sync-order body=720B
+2026-03-23 11:21:29.074 [INFO ] [SyncApi] [DefaultDispatcher-worker-2] ← 200 POST https://ordertaker.kiko.live/api/sync-order 4276ms body=32B
+2026-03-23 11:21:29.075 [INFO ] [SyncApi] [DefaultDispatcher-worker-2] Order synced successfully | order_id=002
+2026-03-23 11:21:29.076 [INFO ] [RecordingProcessor] [DefaultDispatcher-worker-2] Order synced to backend | order_id=002
+2026-03-23 11:21:29.088 [DEBUG] [SyncApi] [DefaultDispatcher-worker-2] Sync recording request | filename=Call recording Imran Alam Kiko Live_260323_111655.m4a, duration=52585ms, classification=ORDER_CALL
+2026-03-23 11:21:29.092 [INFO ] [SyncApi] [DefaultDispatcher-worker-2] → POST https://ordertaker.kiko.live/api/sync-recording body=971B
+2026-03-23 11:21:30.316 [INFO ] [SyncApi] [DefaultDispatcher-worker-2] ← 200 POST https://ordertaker.kiko.live/api/sync-recording 1222ms body=23B
+2026-03-23 11:21:30.317 [INFO ] [SyncApi] [DefaultDispatcher-worker-2] Recording synced successfully | filename=Call recording Imran Alam Kiko Live_260323_111655.m4a
+2026-03-23 11:21:30.318 [INFO ] [RecordingProcessor] [DefaultDispatcher-worker-2] Recording synced to backend | filename=Call recording Imran Alam Kiko Live_260323_111655.m4a
+2026-03-23 11:21:30.324 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111655.m4a] RESULT: SUCCESS (214401ms)
+2026-03-23 11:21:30.325 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111655.m4a] Auto-processing complete
+2026-03-23 11:21:30.331 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] Immediate scan — waking up early (waited 0ms of 60000ms)
+2026-03-23 11:21:36.968 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] New recording inserted | direction=INCOMING, file=Call recording Imran Alam Kiko Live_260323_111758.m4a, id=883, phone=9711918660, contact=Imran Alam Kiko Live
+2026-03-23 11:21:36.996 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] Processing 1 recordings in parallel
+2026-03-23 11:21:36.997 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Auto-processing started | dateRecorded=1774244914000
+2026-03-23 11:21:37.000 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Imran Alam Kiko Live_260323_111758.m4a
+2026-03-23 11:21:37.003 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Decoding audio | path=/storage/emulated/0/Recordings/Call/Call recording Imran Alam Kiko Live_260323_111758.m4a
+2026-03-23 11:21:40.660 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Audio decoded | 1147562 bytes in 3657ms
+2026-03-23 11:21:40.663 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Vosk pre-screening | model_ready=true
+2026-03-23 11:21:50.055 [DEBUG] [Lifecycle] [main] MainActivity: onCreate
+2026-03-23 11:21:50.067 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 11:21:50.072 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 11:21:50.072 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 11:22:06.025 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Vosk result | transcript_len=60, preview=hello mr close who was a video game of are selling on sunday, elapsed=25362ms
+2026-03-23 11:22:06.035 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Classifying via Vosk transcript
+2026-03-23 11:22:06.035 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-2] Classify request | transcript_len=60
+2026-03-23 11:22:06.036 [INFO ] [GemmaApi] [DefaultDispatcher-worker-2] → POST https://ordertaker.kiko.live/api/classify body=77B
+2026-03-23 11:22:07.887 [INFO ] [GemmaApi] [DefaultDispatcher-worker-2] ← 200 POST https://ordertaker.kiko.live/api/classify 1849ms body=31B
+2026-03-23 11:22:07.888 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-2] Classify result | classification=ORDER_CALL, confidence=0.5
+2026-03-23 11:22:07.888 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Classification result | classification=ORDER_CALL, confidence=0.5, elapsed=1853ms
+2026-03-23 11:22:07.891 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Gemini transcription | encoding PCM to base64
+2026-03-23 11:22:07.919 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Base64 encoded | base64_len=1530084
+2026-03-23 11:22:07.920 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-2] Transcribe request | lang=hi-IN, audioSize=1530084
+2026-03-23 11:22:07.995 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-2] → POST https://ordertaker.kiko.live/api/transcribe-gemini body=1530158B
+2026-03-23 11:22:12.189 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-2] ← 200 POST https://ordertaker.kiko.live/api/transcribe-gemini 4194ms body=474B
+2026-03-23 11:22:12.190 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-2] Gemini transcript | len=457, preview=हेलो गुरुराज कैसे हो आप ठीक है बढ़िया आप कैसे हो फर्स्ट क्लास क्या हो रहा है कुछ
+2026-03-23 11:22:12.190 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-2] Transcribe succeeded via Gemini | result_len=457
+2026-03-23 11:22:12.191 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Transcription complete | len=457, preview=हेलो गुरुराज कैसे हो आप ठीक है बढ़िया आप कैसे हो फर्स्ट क्लास क्या हो रहा है कुछ नहीं चल काम काम चल , elapsed=4271ms
+2026-03-23 11:22:12.200 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Extracting order | store=The Shop
+2026-03-23 11:22:12.202 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-2] Extract order request | transcript_len=457, store=The Shop
+2026-03-23 11:22:12.204 [INFO ] [GeminiApi] [DefaultDispatcher-worker-2] → POST https://ordertaker.kiko.live/api/extract-order body=498B
+2026-03-23 11:22:17.618 [INFO ] [GeminiApi] [DefaultDispatcher-worker-2] ← 200 POST https://ordertaker.kiko.live/api/extract-order 5412ms body=255B
+2026-03-23 11:22:17.618 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-2] Extract order response | body_len=255
+2026-03-23 11:22:17.619 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-2] Extract order result | orderJson_len=206
+2026-03-23 11:22:17.619 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Order extracted | json_len=206, elapsed=5418ms
+2026-03-23 11:22:17.622 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Order numbering | orderCount=2, nextNum=3
+2026-03-23 11:22:17.626 [WARN ] [RecordingProcessor] [DefaultDispatcher-worker-2] Bogus order rejected (no valid products): Call recording Imran Alam Kiko Live_260323_111758.m4a
+2026-03-23 11:22:17.630 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] RESULT: SUCCESS (40630ms)
+2026-03-23 11:22:17.631 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_111758.m4a] Auto-processing complete
+2026-03-23 11:22:25.610 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 11:22:25.610 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 11:23:04.703 [DEBUG] [Lifecycle] [main] MainActivity: onDestroy
+2026-03-23 11:23:04.742 [DEBUG] [Lifecycle] [main] MainActivity: onCreate
+2026-03-23 11:23:04.744 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 11:23:04.746 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 11:23:04.746 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 11:24:31.774 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:24:31.776 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:24:31.798 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:24:31.799 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:25:07.695 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 11:25:07.699 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:25:07.703 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:25:07.704 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:25:12.700 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-2] Post-call scan triggered
+2026-03-23 11:25:12.703 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-2] Immediate scan requested
+2026-03-23 11:25:12.704 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-2] OrderLensApp: Starting monitor service
+2026-03-23 11:25:12.951 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-2] Immediate scan — waking up early (waited 11000ms of 60000ms)
+2026-03-23 11:31:10.859 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 11:31:10.875 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 11:31:10.881 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 11:31:10.885 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 11:31:19.506 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:31:19.507 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:31:19.516 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:31:19.517 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 11:34:53.928 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 11:34:53.944 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:34:53.958 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:34:53.964 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 11:34:58.934 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-5] Post-call scan triggered
+2026-03-23 11:34:58.936 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Immediate scan requested
+2026-03-23 11:34:58.937 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-5] OrderLensApp: Starting monitor service
+2026-03-23 11:34:59.095 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Immediate scan — waking up early (waited 27000ms of 60000ms)
+2026-03-23 11:34:59.837 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] New recording inserted | direction=INCOMING, file=Call recording Airtel Warning SPAM_260323_113119.m4a, id=884, phone=3369058994, contact=null
+2026-03-23 11:34:59.882 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Processing 1 recordings in parallel
+2026-03-23 11:34:59.887 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing started | dateRecorded=1774245893000
+2026-03-23 11:34:59.894 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 11:34:59.900 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] Decoding audio | path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 11:35:27.099 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] Audio decoded | 6821204 bytes in 27197ms
+2026-03-23 11:35:27.106 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] Vosk pre-screening | model_ready=true
+2026-03-23 11:44:57.234 [ERROR] [RecordingProcessor] [DefaultDispatcher-worker-5] Processing timed out after 240s: Call recording Airtel Warning SPAM_260323_113119.m4a (elapsed 597339ms)
+2026-03-23 11:44:57.257 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing complete
+2026-03-23 11:45:11.541 [DEBUG] [Lifecycle] [main] MainActivity: onDestroy
+2026-03-23 11:46:00.562 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Processing 1 recordings in parallel
+2026-03-23 11:46:00.565 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing started | dateRecorded=1774245893000
+2026-03-23 11:46:00.576 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 11:46:00.587 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Decoding audio | path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 11:46:56.880 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Audio decoded | 6821204 bytes in 56292ms
+2026-03-23 11:46:56.890 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Vosk pre-screening | model_ready=true
+2026-03-23 12:02:38.498 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:02:38.515 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:02:38.520 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:02:38.522 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:04:01.802 [ERROR] [RecordingProcessor] [DefaultDispatcher-worker-2] Processing timed out after 240s: Call recording Airtel Warning SPAM_260323_113119.m4a (elapsed 1081226ms)
+2026-03-23 12:04:01.839 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing complete
+2026-03-23 12:04:04.531 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 12:04:04.548 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:04:04.565 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:04:04.566 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:04:09.547 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-1] Post-call scan triggered
+2026-03-23 12:04:09.548 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] Immediate scan requested
+2026-03-23 12:04:09.549 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-1] OrderLensApp: Starting monitor service
+2026-03-23 12:04:10.069 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] Immediate scan — waking up early (waited 8000ms of 60000ms)
+2026-03-23 12:04:12.495 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] Processing 1 recordings in parallel
+2026-03-23 12:04:12.497 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing started | dateRecorded=1774245893000
+2026-03-23 12:04:12.504 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 12:04:12.510 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] Decoding audio | path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 12:04:13.143 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 12:04:13.145 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 12:04:13.157 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 12:04:13.158 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 12:04:15.682 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:04:15.684 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:04:15.694 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:04:15.696 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:05:06.870 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] Audio decoded | 6821888 bytes in 54359ms
+2026-03-23 12:05:06.880 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] Vosk pre-screening | model_ready=true
+2026-03-23 12:26:48.607 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 12:26:48.638 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:26:48.644 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:26:48.645 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:26:53.814 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-2] Post-call scan triggered
+2026-03-23 12:26:53.847 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-2] Immediate scan requested
+2026-03-23 12:26:53.848 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-2] OrderLensApp: Starting monitor service
+2026-03-23 12:27:12.628 [ERROR] [RecordingProcessor] [DefaultDispatcher-worker-5] Processing timed out after 240s: Call recording Airtel Warning SPAM_260323_113119.m4a (elapsed 1380123ms)
+2026-03-23 12:27:13.960 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing complete
+2026-03-23 12:27:13.965 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Immediate scan — waking up early (waited 0ms of 60000ms)
+2026-03-23 12:27:42.875 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Processing 1 recordings in parallel
+2026-03-23 12:27:43.180 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing started | dateRecorded=1774245893000
+2026-03-23 12:27:43.197 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 12:27:43.207 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Decoding audio | path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 12:28:04.797 [DEBUG] [Lifecycle] [main] MainActivity: onCreate
+2026-03-23 12:28:04.801 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:28:04.807 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 12:28:04.807 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:28:12.725 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 12:28:12.725 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:28:13.043 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Audio decoded | 6821888 bytes in 29835ms
+2026-03-23 12:28:13.047 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Vosk pre-screening | model_ready=true
+2026-03-23 12:28:14.053 [DEBUG] [Lifecycle] [main] MainActivity: onDestroy
+2026-03-23 12:30:07.306 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 12:30:07.313 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 12:30:07.319 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 12:30:07.320 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 12:30:11.360 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:30:11.363 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:30:11.369 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:30:11.371 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:31:42.276 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 12:31:42.378 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:31:42.381 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:31:42.383 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:31:47.377 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-2] Post-call scan triggered
+2026-03-23 12:31:47.379 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-2] Immediate scan requested
+2026-03-23 12:31:47.379 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-2] OrderLensApp: Starting monitor service
+2026-03-23 12:47:35.462 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:47:35.479 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:47:35.483 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:47:35.485 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:47:54.309 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 12:47:54.419 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:47:54.427 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:47:54.428 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:47:59.420 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-2] Post-call scan triggered
+2026-03-23 12:47:59.421 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-2] Immediate scan requested
+2026-03-23 12:47:59.422 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-2] OrderLensApp: Starting monitor service
+2026-03-23 12:47:59.473 [DEBUG] [Lifecycle] [main] MainActivity: onCreate
+2026-03-23 12:47:59.480 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:47:59.485 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 12:47:59.485 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:48:00.943 [ERROR] [RecordingProcessor] [DefaultDispatcher-worker-1] Processing timed out after 240s: Call recording Airtel Warning SPAM_260323_113119.m4a (elapsed 1217746ms)
+2026-03-23 12:48:00.946 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing complete
+2026-03-23 12:48:00.948 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] Immediate scan — waking up early (waited 0ms of 60000ms)
+2026-03-23 12:48:02.150 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-2] Processing 1 recordings in parallel
+2026-03-23 12:48:02.152 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing started | dateRecorded=1774245893000
+2026-03-23 12:48:02.155 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 12:48:02.161 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Decoding audio | path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 12:48:04.627 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 12:48:04.633 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 12:48:04.637 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 12:48:04.638 [DEBUG] [PhoneStateReceiver] [main] Phone state: RINGING
+2026-03-23 12:48:10.726 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:48:10.728 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:48:10.737 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:48:10.739 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 12:48:43.277 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Audio decoded | 6821888 bytes in 41115ms
+2026-03-23 12:48:43.287 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Vosk pre-screening | model_ready=true
+2026-03-23 12:49:02.893 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 12:49:02.913 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:49:02.923 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:49:02.924 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 12:49:08.048 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-2] Post-call scan triggered
+2026-03-23 12:49:08.049 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-2] Immediate scan requested
+2026-03-23 12:49:08.050 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-2] OrderLensApp: Starting monitor service
+2026-03-23 12:54:58.529 [DEBUG] [Lifecycle] [main] MainActivity: onDestroy
+2026-03-23 12:54:58.766 [DEBUG] [Lifecycle] [main] MainActivity: onCreate
+2026-03-23 12:54:58.769 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:54:58.774 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 12:54:58.774 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:55:13.548 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 12:55:13.548 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:55:14.140 [DEBUG] [Lifecycle] [main] MainActivity: onDestroy
+2026-03-23 12:55:15.425 [DEBUG] [Lifecycle] [main] MainActivity: onCreate
+2026-03-23 12:55:15.426 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:55:15.428 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 12:55:15.429 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:56:51.454 [ERROR] [RecordingProcessor] [DefaultDispatcher-worker-1] Processing timed out after 240s: Call recording Airtel Warning SPAM_260323_113119.m4a (elapsed 529299ms)
+2026-03-23 12:56:51.461 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing complete
+2026-03-23 12:56:51.465 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] Immediate scan — waking up early (waited 0ms of 60000ms)
+2026-03-23 12:56:51.960 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-1] Processing 2 recordings in parallel
+2026-03-23 12:56:51.963 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Auto-processing started | dateRecorded=1774250343000
+2026-03-23 12:56:51.963 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing started | dateRecorded=1774245893000
+2026-03-23 12:56:51.971 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Imran Alam Kiko Live_260323_124810.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Imran Alam Kiko Live_260323_124810.m4a
+2026-03-23 12:56:51.971 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Airtel Warning SPAM_260323_113119.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 12:56:51.979 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Decoding audio | path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 12:56:51.983 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Decoding audio | path=/storage/emulated/0/Recordings/Call/Call recording Imran Alam Kiko Live_260323_124810.m4a
+2026-03-23 12:56:56.431 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Audio decoded | 1635668 bytes in 4448ms
+2026-03-23 12:56:56.441 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Vosk pre-screening | model_ready=true
+2026-03-23 12:57:21.721 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Audio decoded | 6821888 bytes in 29741ms
+2026-03-23 12:57:21.728 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Vosk pre-screening | model_ready=true
+2026-03-23 12:57:41.606 [DEBUG] [Lifecycle] [main] MainActivity: onDestroy
+2026-03-23 12:57:41.672 [DEBUG] [Lifecycle] [main] MainActivity: onCreate
+2026-03-23 12:57:41.673 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:57:41.675 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 12:57:41.675 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:57:46.394 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Vosk result | transcript_len=77, preview=hello hello hello hello taken fortunately like guy gave me a little being you, elapsed=49952ms
+2026-03-23 12:57:46.399 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Classifying via Vosk transcript
+2026-03-23 12:57:46.399 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-5] Classify request | transcript_len=77
+2026-03-23 12:57:46.399 [INFO ] [GemmaApi] [DefaultDispatcher-worker-5] → POST https://ordertaker.kiko.live/api/classify body=94B
+2026-03-23 12:57:53.009 [INFO ] [GemmaApi] [DefaultDispatcher-worker-5] ← 200 POST https://ordertaker.kiko.live/api/classify 6606ms body=34B
+2026-03-23 12:57:53.011 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-5] Classify result | classification=PERSONAL_CALL, confidence=0.5
+2026-03-23 12:57:53.012 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Classification result | classification=PERSONAL_CALL, confidence=0.5, elapsed=6613ms
+2026-03-23 12:57:53.013 [WARN ] [RecordingProcessor] [DefaultDispatcher-worker-5] Low-confidence PERSONAL_CALL (0.5 < 0.7), continuing to extract: Call recording Imran Alam Kiko Live_260323_124810.m4a
+2026-03-23 12:57:53.024 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Gemini transcription | encoding PCM to base64
+2026-03-23 12:57:53.073 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Base64 encoded | base64_len=2180892
+2026-03-23 12:57:53.075 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-5] Transcribe request | lang=hi-IN, audioSize=2180892
+2026-03-23 12:57:53.295 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-5] → POST https://ordertaker.kiko.live/api/transcribe-gemini body=2180966B
+2026-03-23 12:58:05.927 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-5] ← 200 POST https://ordertaker.kiko.live/api/transcribe-gemini 12629ms body=763B
+2026-03-23 12:58:05.931 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-5] Gemini transcript | len=746, preview=Hello. Hello. Namaste Sharma ji. Haan ji bataiye. Sharma ji Sonu baat kar raha h
+2026-03-23 12:58:05.932 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-5] Transcribe succeeded via Gemini | result_len=746
+2026-03-23 12:58:05.933 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Transcription complete | len=746, preview=Hello. Hello. Namaste Sharma ji. Haan ji bataiye. Sharma ji Sonu baat kar raha hu main piche char nu, elapsed=12859ms
+2026-03-23 12:58:05.959 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Extracting order | store=The Shop
+2026-03-23 12:58:05.962 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-5] Extract order request | transcript_len=746, store=The Shop
+2026-03-23 12:58:05.964 [INFO ] [GeminiApi] [DefaultDispatcher-worker-5] → POST https://ordertaker.kiko.live/api/extract-order body=787B
+2026-03-23 12:58:21.104 [INFO ] [GeminiApi] [DefaultDispatcher-worker-5] ← 200 POST https://ordertaker.kiko.live/api/extract-order 15138ms body=599B
+2026-03-23 12:58:21.105 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-5] Extract order response | body_len=599
+2026-03-23 12:58:21.108 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-5] Extract order result | orderJson_len=508
+2026-03-23 12:58:21.108 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Order extracted | json_len=508, elapsed=15148ms
+2026-03-23 12:58:21.114 [INFO ] [Pipeline] [DefaultDispatcher-worker-5] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Order numbering | orderCount=2, nextNum=3
+2026-03-23 12:58:21.149 [INFO ] [RecordingProcessor] [DefaultDispatcher-worker-1] Order saved | order_id=003, customer=Imran Alam Kiko Live, total=0.0, db_id=3
+2026-03-23 12:58:21.151 [DEBUG] [SyncApi] [DefaultDispatcher-worker-1] Sync order request | order_id=003, store=The Shop, products=[{"name":"Aashirwad Atta","price":0.0,"quantity":"5 kg"},{"name":"Chane ki Daal","price":0.0,"quanti
+2026-03-23 12:58:21.155 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/sync-order body=706B
+2026-03-23 12:58:25.038 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/sync-order 3875ms body=32B
+2026-03-23 12:58:25.040 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] Order synced successfully | order_id=003
+2026-03-23 12:58:25.041 [INFO ] [RecordingProcessor] [DefaultDispatcher-worker-1] Order synced to backend | order_id=003
+2026-03-23 12:58:25.045 [DEBUG] [SyncApi] [DefaultDispatcher-worker-1] Sync recording request | filename=Call recording Imran Alam Kiko Live_260323_124810.m4a, duration=51135ms, classification=ORDER_CALL
+2026-03-23 12:58:25.048 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/sync-recording body=1181B
+2026-03-23 12:58:26.125 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/sync-recording 1077ms body=23B
+2026-03-23 12:58:26.125 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] Recording synced successfully | filename=Call recording Imran Alam Kiko Live_260323_124810.m4a
+2026-03-23 12:58:26.126 [INFO ] [RecordingProcessor] [DefaultDispatcher-worker-1] Recording synced to backend | filename=Call recording Imran Alam Kiko Live_260323_124810.m4a
+2026-03-23 12:58:26.130 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_124810.m4a] RESULT: SUCCESS (94159ms)
+2026-03-23 12:58:26.130 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Imran Alam Kiko Live_260323_124810.m4a] Auto-processing complete
+2026-03-23 12:58:48.738 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 12:58:48.738 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 12:58:50.972 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 12:58:50.973 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 13:00:14.408 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Vosk result | transcript_len=450, preview=good for a recordable can't find a better you can get more information to docume, elapsed=172679ms
+2026-03-23 13:00:14.448 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Classifying via Vosk transcript
+2026-03-23 13:00:14.450 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-2] Classify request | transcript_len=450
+2026-03-23 13:00:14.453 [INFO ] [GemmaApi] [DefaultDispatcher-worker-2] → POST https://ordertaker.kiko.live/api/classify body=472B
+2026-03-23 13:00:18.091 [INFO ] [GemmaApi] [DefaultDispatcher-worker-2] ← 200 POST https://ordertaker.kiko.live/api/classify 3637ms body=34B
+2026-03-23 13:00:18.096 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-2] Classify result | classification=PERSONAL_CALL, confidence=0.5
+2026-03-23 13:00:18.097 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Classification result | classification=PERSONAL_CALL, confidence=0.5, elapsed=3648ms
+2026-03-23 13:00:18.097 [WARN ] [RecordingProcessor] [DefaultDispatcher-worker-2] Low-confidence PERSONAL_CALL (0.5 < 0.7), continuing to extract: Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 13:00:18.107 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Gemini transcription | encoding PCM to base64
+2026-03-23 13:00:18.342 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Base64 encoded | base64_len=9095852
+2026-03-23 13:00:18.344 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-2] Transcribe request | lang=hi-IN, audioSize=9095852
+2026-03-23 13:00:19.501 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-2] → POST https://ordertaker.kiko.live/api/transcribe-gemini body=9095926B
+2026-03-23 13:00:38.743 [INFO ] [SpeechToTextApi] [DefaultDispatcher-worker-2] ← 200 POST https://ordertaker.kiko.live/api/transcribe-gemini 19239ms body=2392B
+2026-03-23 13:00:38.751 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-2] Gemini transcript | len=2375, preview=हेलो, गुड आफ्टरनून सर राहुल बात कर रहा हूं पॉलिसी बाजार.com से। आईडी है 363615 र
+2026-03-23 13:00:38.752 [DEBUG] [SpeechToTextApi] [DefaultDispatcher-worker-2] Transcribe succeeded via Gemini | result_len=2375
+2026-03-23 13:00:38.753 [INFO ] [Pipeline] [DefaultDispatcher-worker-2] [Call recording Airtel Warning SPAM_260323_113119.m4a] Transcription complete | len=2375, preview=हेलो, गुड आफ्टरनून सर राहुल बात कर रहा हूं पॉलिसी बाजार.com से। आईडी है 363615 रिकॉर्डेबल कॉल पे आपक, elapsed=20410ms
+2026-03-23 13:00:38.797 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Extracting order | store=The Shop
+2026-03-23 13:00:38.801 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-1] Extract order request | transcript_len=2375, store=The Shop
+2026-03-23 13:00:38.803 [INFO ] [GeminiApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/extract-order body=2416B
+2026-03-23 13:00:52.245 [INFO ] [GeminiApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/extract-order 13438ms body=462B
+2026-03-23 13:00:52.249 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-1] Extract order response | body_len=462
+2026-03-23 13:00:52.250 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-1] Extract order result | orderJson_len=409
+2026-03-23 13:00:52.251 [ERROR] [RecordingProcessor] [DefaultDispatcher-worker-1] Processing timed out after 240s: Call recording Airtel Warning SPAM_260323_113119.m4a (elapsed 240280ms)
+2026-03-23 13:00:52.259 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing complete
+2026-03-23 13:01:53.501 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Processing 1 recordings in parallel
+2026-03-23 13:01:53.505 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing started | dateRecorded=1774245893000
+2026-03-23 13:01:53.522 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] PIPELINE START | forceOrder=false, path=/storage/emulated/0/Recordings/Call/Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 13:01:53.525 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Using cached transcript | len=2375, preview=हेलो, गुड आफ्टरनून सर राहुल बात कर रहा हूं पॉलिसी बाजार.com से। आईडी है 363615 र
+2026-03-23 13:01:53.534 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Classifying cached transcript
+2026-03-23 13:01:53.536 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-1] Classify request | transcript_len=2375
+2026-03-23 13:01:53.538 [INFO ] [GemmaApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/classify body=2392B
+2026-03-23 13:02:00.289 [INFO ] [GemmaApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/classify 6749ms body=31B
+2026-03-23 13:02:00.292 [DEBUG] [GemmaApi] [DefaultDispatcher-worker-1] Classify result | classification=ORDER_CALL, confidence=0.5
+2026-03-23 13:02:00.297 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Classification result | classification=ORDER_CALL, confidence=0.5, elapsed=6758ms
+2026-03-23 13:02:00.312 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Extracting order | store=The Shop
+2026-03-23 13:02:00.315 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-1] Extract order request | transcript_len=2375, store=The Shop
+2026-03-23 13:02:00.316 [INFO ] [GeminiApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/extract-order body=2416B
+2026-03-23 13:02:12.643 [INFO ] [GeminiApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/extract-order 12322ms body=685B
+2026-03-23 13:02:12.645 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-1] Extract order response | body_len=685
+2026-03-23 13:02:12.648 [DEBUG] [GeminiApi] [DefaultDispatcher-worker-1] Extract order result | orderJson_len=616
+2026-03-23 13:02:12.649 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Order extracted | json_len=616, elapsed=12336ms
+2026-03-23 13:02:12.661 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Order numbering | orderCount=3, nextNum=4
+2026-03-23 13:02:12.714 [INFO ] [RecordingProcessor] [DefaultDispatcher-worker-1] Order saved | order_id=004, customer=Gururaj Chandrashekhar Chaugule, total=0.0, db_id=4
+2026-03-23 13:02:12.716 [DEBUG] [SyncApi] [DefaultDispatcher-worker-1] Sync order request | order_id=004, store=The Shop, products=[{"name":"Life Insurance Policy","price":0.0,"quantity":"1"}]
+2026-03-23 13:02:12.720 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/sync-order body=778B
+2026-03-23 13:02:16.857 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/sync-order 4135ms body=32B
+2026-03-23 13:02:16.860 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] Order synced successfully | order_id=004
+2026-03-23 13:02:16.860 [INFO ] [RecordingProcessor] [DefaultDispatcher-worker-1] Order synced to backend | order_id=004
+2026-03-23 13:02:16.865 [DEBUG] [SyncApi] [DefaultDispatcher-worker-1] Sync recording request | filename=Call recording Airtel Warning SPAM_260323_113119.m4a, duration=213180ms, classification=ORDER_CALL
+2026-03-23 13:02:16.869 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] → POST https://ordertaker.kiko.live/api/sync-recording body=2771B
+2026-03-23 13:02:18.570 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] ← 200 POST https://ordertaker.kiko.live/api/sync-recording 1699ms body=23B
+2026-03-23 13:02:18.571 [INFO ] [SyncApi] [DefaultDispatcher-worker-1] Recording synced successfully | filename=Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 13:02:18.572 [INFO ] [RecordingProcessor] [DefaultDispatcher-worker-1] Recording synced to backend | filename=Call recording Airtel Warning SPAM_260323_113119.m4a
+2026-03-23 13:02:18.580 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] RESULT: SUCCESS (25059ms)
+2026-03-23 13:02:18.581 [INFO ] [Pipeline] [DefaultDispatcher-worker-1] [Call recording Airtel Warning SPAM_260323_113119.m4a] Auto-processing complete
+2026-03-23 13:06:38.562 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 13:06:38.576 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 13:06:38.585 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 13:06:38.587 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 13:06:41.748 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 13:06:41.797 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 13:06:41.829 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 13:06:41.830 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 13:06:46.695 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 13:06:46.697 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 13:06:46.701 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 13:06:46.705 [DEBUG] [PhoneStateReceiver] [main] Phone state: IN_CALL
+2026-03-23 13:06:46.797 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-5] Post-call scan triggered
+2026-03-23 13:06:46.798 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Immediate scan requested
+2026-03-23 13:06:46.799 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-5] OrderLensApp: Starting monitor service
+2026-03-23 13:06:47.100 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Immediate scan — waking up early (waited 21000ms of 60000ms)
+2026-03-23 13:07:06.256 [INFO ] [PhoneStateReceiver] [main] Call ended — scheduling immediate scan | delay=5000ms
+2026-03-23 13:07:06.265 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 13:07:06.270 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 13:07:06.271 [DEBUG] [PhoneStateReceiver] [main] Phone state: IDLE (no prior call)
+2026-03-23 13:07:11.262 [INFO ] [PhoneStateReceiver] [DefaultDispatcher-worker-5] Post-call scan triggered
+2026-03-23 13:07:11.263 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Immediate scan requested
+2026-03-23 13:07:11.264 [DEBUG] [Lifecycle] [DefaultDispatcher-worker-5] OrderLensApp: Starting monitor service
+2026-03-23 13:07:11.783 [INFO ] [RecordingMonitor] [DefaultDispatcher-worker-5] Immediate scan — waking up early (waited 23000ms of 60000ms)
+2026-03-23 13:12:21.132 [DEBUG] [Lifecycle] [main] MainActivity: onResume
+2026-03-23 13:12:21.135 [DEBUG] [Lifecycle] [main] OrderLensApp: Starting monitor service
+2026-03-23 13:12:22.465 [INFO ] [MainActivity] [main] Log export triggered by user
