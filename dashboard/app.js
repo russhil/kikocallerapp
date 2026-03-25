@@ -27,7 +27,63 @@ try {
 }
 
 // ---------------------------------------------------------
-// 2. LIFECYCLE / EVENT LISTENERS
+// 2. HELPERS
+// ---------------------------------------------------------
+
+/**
+ * Parse created_at which can be epoch ms (number/string) or ISO string.
+ * Returns a Date object.
+ */
+function parseDate(val) {
+    if (!val) return new Date(0);
+    // If it's a number or a numeric string (epoch ms)
+    if (typeof val === 'number') return new Date(val);
+    if (typeof val === 'string' && /^\d+$/.test(val.trim())) return new Date(parseInt(val, 10));
+    // Otherwise treat as ISO string
+    return new Date(val);
+}
+
+function formatDate(val) {
+    const d = parseDate(val);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) +
+        ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ---------------------------------------------------------
+// 3. TAB SWITCHING
+// ---------------------------------------------------------
+function switchTab(tabId) {
+    // Hide all tab content panes
+    document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.add('hidden');
+        el.classList.remove('block');
+    });
+    // Show the selected one
+    const target = document.getElementById(tabId);
+    if (target) {
+        target.classList.remove('hidden');
+        target.classList.add('block');
+    }
+    // Update tab button styling
+    document.querySelectorAll('.tab-link').forEach(btn => {
+        btn.classList.remove('text-brand-600', 'border-brand-600');
+        btn.classList.add('text-gray-500', 'border-transparent');
+    });
+    const activeBtn = document.getElementById('nav-' + tabId);
+    if (activeBtn) {
+        activeBtn.classList.remove('text-gray-500', 'border-transparent');
+        activeBtn.classList.add('text-brand-600', 'border-brand-600');
+    }
+}
+
+// ---------------------------------------------------------
+// 4. LIFECYCLE / EVENT LISTENERS
 // ---------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -67,26 +123,11 @@ function showDashboard() {
         
         // Fetch data once visible
         fetchDashboardData();
-
-        // Auto-refresh every 30 seconds
-        setInterval(() => {
-            fetchDashboardData();
-        }, 30000);
-
-        // Supabase real-time
-        if (supabaseClient) {
-            supabaseClient
-                .channel('orders-changes')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, payload => {
-                    fetchDashboardData();
-                })
-                .subscribe();
-        }
     }, 300);
 }
 
 // ---------------------------------------------------------
-// 3. DATA FETCHING (SUPABASE)
+// 5. DATA FETCHING (SUPABASE)
 // ---------------------------------------------------------
 async function fetchDashboardData() {
     if (!supabaseClient) {
@@ -113,11 +154,19 @@ async function fetchDashboardData() {
 
         const allOrders = await fetchAll('orders');
         const allRecordings = await fetchAll('recordings');
-        const allActivity = await fetchAll('activity_log');
+        
+        let allActivity = [];
+        try {
+            allActivity = await fetchAll('activity_log');
+        } catch(e) {
+            console.warn('activity_log fetch failed (may have RLS):', e);
+        }
 
         globalData.orders = allOrders || [];
         globalData.recordings = allRecordings || [];
         globalData.activity = allActivity || [];
+
+        console.log(`[Dashboard] Fetched: ${globalData.orders.length} orders, ${globalData.recordings.length} recordings, ${globalData.activity.length} activity logs`);
 
         let sellersCount = 0;
         try {
@@ -127,10 +176,6 @@ async function fetchDashboardData() {
         
         processMetrics(globalData.orders, sellersCount, globalData.recordings);
         renderCharts(globalData.orders);
-        
-        // Render Overview Tab
-        renderOverviewOrders(globalData.orders);
-        renderOverviewTranscripts(globalData.recordings);
 
         // Render Data Tabs
         renderFullOrders(globalData.orders);
@@ -143,7 +188,7 @@ async function fetchDashboardData() {
 }
 
 // ---------------------------------------------------------
-// 4. METRICS PROCESSING
+// 6. METRICS PROCESSING
 // ---------------------------------------------------------
 function processMetrics(orders, totalSellers, recordings = []) {
     const totalOrders = orders.length;
@@ -186,17 +231,21 @@ function processMetrics(orders, totalSellers, recordings = []) {
 }
 
 // ---------------------------------------------------------
-// 5. CHARTS (CHART.JS)
+// 7. CHARTS (CHART.JS)
 // ---------------------------------------------------------
 function renderCharts(orders) {
     if (!orders || orders.length === 0) return;
 
-    // 1. Order Status Distribution (Pie Chart)
+    // 1. Order Status Distribution (Doughnut)
     const statusCounts = { 'pending': 0, 'completed': 0, 'cancelled': 0 };
     orders.forEach(o => {
-        const status = (o.status || 'pending').toLowerCase();
-        if (statusCounts[status] !== undefined) statusCounts[status]++;
-        else statusCounts['pending']++; // fallback
+        if (o.is_cancelled) {
+            statusCounts['cancelled']++;
+        } else if (o.delivery_status === 'delivered' || o.payment_status === 'paid') {
+            statusCounts['completed']++;
+        } else {
+            statusCounts['pending']++;
+        }
     });
 
     document.getElementById('pie-center-total').innerText = orders.length;
@@ -210,7 +259,7 @@ function renderCharts(orders) {
             labels: ['Pending', 'Completed', 'Cancelled'],
             datasets: [{
                 data: [statusCounts.pending, statusCounts.completed, statusCounts.cancelled],
-                backgroundColor: ['#f59e0b', '#10b981', '#ef4444'], // Amber, Emerald, Red
+                backgroundColor: ['#f59e0b', '#10b981', '#ef4444'],
                 borderWidth: 0,
                 cutout: '75%',
                 hoverOffset: 4
@@ -225,8 +274,7 @@ function renderCharts(orders) {
         }
     });
 
-    // 2. Orders Over Time (Line Chart)
-    // Group orders by date (last 7-14 days ideally, or just raw dates)
+    // 2. Orders Over Time (Line Chart) — last 7 days
     const datesMap = {};
     const last7Days = Array.from({length: 7}, (_, i) => {
         const d = new Date();
@@ -238,10 +286,11 @@ function renderCharts(orders) {
 
     orders.forEach(o => {
         if (!o.created_at) return;
-        const dateStr = o.created_at.split('T')[0];
+        const dateObj = parseDate(o.created_at);
+        const dateStr = dateObj.toISOString().split('T')[0];
         if (datesMap[dateStr] !== undefined) {
             datesMap[dateStr]++;
-        } else if (new Date(dateStr) >= new Date(last7Days[0])) {
+        } else if (dateObj >= new Date(last7Days[0])) {
             datesMap[dateStr] = 1;
         }
     });
@@ -259,8 +308,8 @@ function renderCharts(orders) {
             datasets: [{
                 label: 'Orders',
                 data: Object.values(datesMap),
-                borderColor: '#4f46e5', // Brand 600
-                backgroundColor: 'rgba(79, 70, 229, 0.1)', // Brand transparent
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79, 70, 229, 0.1)',
                 borderWidth: 3,
                 tension: 0.4,
                 fill: true,
@@ -286,109 +335,230 @@ function renderCharts(orders) {
 }
 
 // ---------------------------------------------------------
-// 6. TABLE RENDERING
+// 8. FULL ORDERS TABLE
 // ---------------------------------------------------------
-function renderOverviewOrders(orders) {
-    const tbody = document.getElementById('orders-table-body');
+function renderFullOrders(orders) {
+    const tbody = document.getElementById('full-orders-table-body');
+    if (!tbody) return;
     tbody.innerHTML = '';
 
-    if (orders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No orders found.</td></tr>`;
+    if (!orders || orders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">No orders found in database.</td></tr>`;
         return;
     }
 
-    // Show top 10 recent orders
-    const recentOrders = orders.slice(0, 10);
-
-    recentOrders.forEach(o => {
-        const dateObj = new Date(o.created_at);
-        const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    orders.forEach(o => {
+        const dateStr = formatDate(o.created_at);
         
-        let statusColor = 'bg-gray-100 text-gray-800';
-        const st = (o.status || '').toLowerCase();
-        if (st === 'pending') statusColor = 'bg-amber-100 text-amber-800';
-        if (st === 'completed') statusColor = 'bg-emerald-100 text-emerald-800';
-        if (st === 'cancelled') statusColor = 'bg-red-100 text-red-800';
+        // Determine status
+        let statusLabel = 'Pending';
+        let statusColor = 'bg-amber-100 text-amber-800';
+        if (o.is_cancelled) {
+            statusLabel = 'Cancelled';
+            statusColor = 'bg-red-100 text-red-800';
+        } else if (o.delivery_status === 'delivered') {
+            statusLabel = 'Delivered';
+            statusColor = 'bg-emerald-100 text-emerald-800';
+        } else if (o.payment_status === 'paid') {
+            statusLabel = 'Paid';
+            statusColor = 'bg-blue-100 text-blue-800';
+        } else if (o.whatsapp_sent) {
+            statusLabel = 'WA Sent';
+            statusColor = 'bg-green-100 text-green-800';
+        }
+
+        // Products summary
+        let productsSummary = '';
+        if (o.products && Array.isArray(o.products)) {
+            productsSummary = o.products.map(p => `${p.name || 'Item'} ×${p.quantity || 1}`).join(', ');
+            if (productsSummary.length > 80) productsSummary = productsSummary.substring(0, 77) + '...';
+        }
 
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-gray-50/50 transition-colors group';
-        
-        // WhatsApp link
-        const phone = o.customer_phone ? o.customer_phone.replace(/[^0-9]/g, '') : '';
-        const waLink = phone ? `https://wa.me/${phone}?text=Hello%20regarding%20your%20order%20${o.order_id}` : '#';
-
+        tr.className = 'hover:bg-gray-50/50 transition-colors';
         tr.innerHTML = `
             <td class="px-6 py-4">
-                <div class="font-medium text-gray-900">#${(o.order_id || '----').substring(0, 8)}</div>
-                <div class="text-xs text-gray-400">Seller: ${o.shop_name || 'N/A'}</div>
+                <div class="font-semibold text-gray-900 text-sm">${escapeHtml(o.order_id || '—')}</div>
+                <div class="text-xs text-gray-400 mt-0.5">${dateStr}</div>
+                ${productsSummary ? `<div class="text-xs text-gray-500 mt-1 max-w-xs truncate" title="${escapeHtml(productsSummary)}">${escapeHtml(productsSummary)}</div>` : ''}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">${dateStr}</td>
             <td class="px-6 py-4">
-                <div class="font-medium text-gray-900">${o.customer_name || 'Unknown'}</div>
-                <div class="text-xs text-gray-500">${o.customer_phone || 'No phone'}</div>
+                <div class="font-medium text-gray-900 text-sm">${escapeHtml(o.customer_name || 'Unknown')}</div>
+                <div class="text-xs text-gray-500">${escapeHtml(o.customer_phone || 'No phone')}</div>
+                ${o.customer_address ? `<div class="text-xs text-gray-400 mt-0.5 max-w-xs truncate">${escapeHtml(o.customer_address)}</div>` : ''}
             </td>
-            <td class="px-6 py-4 font-semibold text-gray-900">₹${o.total_amount || '0'}</td>
+            <td class="px-6 py-4">
+                <div class="font-medium text-gray-900 text-sm">${escapeHtml(o.store_name || 'N/A')}</div>
+                <div class="text-xs text-gray-500">${escapeHtml(o.store_phone || o.store_number || '')}</div>
+            </td>
+            <td class="px-6 py-4">
+                <div class="font-bold text-gray-900">₹${parseFloat(o.total_amount || 0).toLocaleString('en-IN')}</div>
+                <div class="text-xs text-gray-400">${o.item_count || (o.products ? o.products.length : 0)} items</div>
+            </td>
             <td class="px-6 py-4 whitespace-nowrap">
-                <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${statusColor} capitalize">
-                    ${o.status || 'Pending'}
+                <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${statusColor}">
+                    ${statusLabel}
                 </span>
-            </td>
-            <td class="px-6 py-4 text-right whitespace-nowrap">
-                ${phone ? `
-                <a href="${waLink}" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 bg-[#25D366]/10 text-[#075E54] rounded-lg hover:bg-[#25D366]/20 transition-colors text-sm font-medium">
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.161.453-.834.815-1.161.882-.259.053-.578.114-1.61-.223-1.685-.548-2.775-2.261-2.859-2.373-.083-.112-.681-.906-.681-1.728 0-.822.428-1.226.582-1.391.155-.164.335-.205.449-.205.113 0 .227.001.325.005.112.006.262-.043.4.29.141.338.482 1.173.528 1.272.043.099.071.215.014.33-.057.114-.085.185-.17.29-.085.105-.181.23-.255.325-.085.105-.183.219-.066.421.117.202.523.864 1.121 1.398.773.688 1.417.899 1.62.999.202.099.32.085.44-.055.12-.14.512-.601.651-.806.14-.206.278-.172.46-.103.181.069 1.146.541 1.343.64.197.099.329.148.378.232.049.083.049.48-.112.933z"></path></svg>
-                    Chat
-                </a>
-                ` : '<span class="text-xs text-gray-400">No Contact</span>'}
             </td>
         `;
         tbody.appendChild(tr);
     });
 }
+
 // ---------------------------------------------------------
-// 7. TRANSCRIPTS RENDERING
+// 9. FULL TRANSCRIPTS TABLE
 // ---------------------------------------------------------
-function renderOverviewTranscripts(recordings) {
-    const tbody = document.getElementById('transcripts-table-body');
+function renderFullTranscripts(recordings) {
+    const tbody = document.getElementById('full-transcripts-table-body');
     if (!tbody) return;
     tbody.innerHTML = '';
 
     if (!recordings || recordings.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-500">No transcripts available.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">No recordings found in database.</td></tr>`;
         return;
     }
 
-    // Only show ones with actual transcripts
-    const textRecs = recordings.filter(r => r.transcript && r.transcript.length > 2).slice(0, 15);
-
-    if (textRecs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-500">No text transcripts available, only raw calls.</td></tr>`;
-        return;
-    }
-
-    textRecs.forEach(r => {
-        const dateObj = new Date(r.created_at || Date.now());
-        const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    recordings.forEach(r => {
+        const dateStr = formatDate(r.created_at || r.date_recorded);
+        const identifier = r.source_phone || r.contact_name || r.store_phone || r.filename || 'Unknown';
+        const classification = r.classification || '';
+        const duration = r.duration_ms ? `${Math.round(r.duration_ms / 1000)}s` : '';
         
+        let classificationBadge = '';
+        if (classification) {
+            const isOrder = classification.toUpperCase().includes('ORDER');
+            classificationBadge = `<span class="px-2 py-0.5 text-xs font-medium rounded-full ${isOrder ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">${escapeHtml(classification)}</span>`;
+        }
+
+        const transcript = r.transcript || '';
+        const hasTranscript = transcript.length > 2;
+
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50/50 transition-colors';
-        
-        // Grab either receiver_phone, store_phone, session_id, or phone
-        const identifier = r.receiver_phone || r.store_phone || r.phone_number || r.caller_phone || 'Unknown';
-        const shop = r.shop_number || r.shop_name || r.store_name || '';
-
-        let receiverInfo = `<div class="font-medium text-gray-900">${identifier}</div>`;
-        if (shop) receiverInfo += `<div class="text-xs text-gray-500">Shop: ${shop}</div>`;
-
         tr.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">${dateStr}</td>
-            <td class="px-6 py-4">${receiverInfo}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-700">${dateStr}</div>
+                ${duration ? `<div class="text-xs text-gray-400 mt-0.5">Duration: ${duration}</div>` : ''}
+            </td>
             <td class="px-6 py-4">
-                <div class="line-clamp-3 text-sm italic text-gray-700 font-serif border-l-2 border-indigo-200 pl-3">
-                    "${r.transcript.substring(0, 300)}${r.transcript.length > 300 ? '...' : ''}"
+                <div class="font-medium text-gray-900 text-sm">${escapeHtml(identifier)}</div>
+                <div class="flex items-center gap-2 mt-1">
+                    ${r.call_direction ? `<span class="text-xs text-gray-400">${escapeHtml(r.call_direction)}</span>` : ''}
+                    ${classificationBadge}
                 </div>
+            </td>
+            <td class="px-6 py-4">
+                ${hasTranscript 
+                    ? `<div class="line-clamp-3 text-sm italic text-gray-700 font-serif border-l-2 border-indigo-200 pl-3">"${escapeHtml(transcript.substring(0, 400))}${transcript.length > 400 ? '...' : ''}"</div>`
+                    : `<span class="text-xs text-gray-400 italic">No transcript available</span>`
+                }
             </td>
         `;
         tbody.appendChild(tr);
     });
+}
+
+// ---------------------------------------------------------
+// 10. FULL ACTIVITY LOG TABLE
+// ---------------------------------------------------------
+function renderFullActivity(activity) {
+    const tbody = document.getElementById('full-activity-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!activity || activity.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">No activity logs found.</td></tr>`;
+        return;
+    }
+
+    activity.forEach(a => {
+        const dateStr = formatDate(a.created_at);
+        const action = a.action || '—';
+        const userPhone = a.store_phone || a.user_phone || '—';
+        const entityInfo = [a.entity_type, a.entity_id].filter(Boolean).join(': ');
+        
+        // Color-code actions
+        let actionColor = 'bg-gray-100 text-gray-700';
+        if (action.includes('order')) actionColor = 'bg-blue-100 text-blue-700';
+        if (action.includes('auth')) actionColor = 'bg-purple-100 text-purple-700';
+        if (action.includes('recording')) actionColor = 'bg-teal-100 text-teal-700';
+        if (action.includes('error') || action.includes('fail')) actionColor = 'bg-red-100 text-red-700';
+
+        let metadataStr = '';
+        if (a.metadata && typeof a.metadata === 'object') {
+            const entries = Object.entries(a.metadata).slice(0, 4);
+            metadataStr = entries.map(([k, v]) => `${k}: ${typeof v === 'string' ? v.substring(0, 50) : v}`).join(' · ');
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50/50 transition-colors';
+        tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${dateStr}</td>
+            <td class="px-6 py-4">
+                <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${actionColor}">${escapeHtml(action)}</span>
+            </td>
+            <td class="px-6 py-4">
+                <div class="font-medium text-gray-900 text-sm">${escapeHtml(userPhone)}</div>
+                ${entityInfo ? `<div class="text-xs text-gray-500">${escapeHtml(entityInfo)}</div>` : ''}
+            </td>
+            <td class="px-6 py-4 text-xs text-gray-500 max-w-md truncate" title="${escapeHtml(metadataStr)}">${escapeHtml(metadataStr) || '—'}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// ---------------------------------------------------------
+// 11. CSV EXPORT
+// ---------------------------------------------------------
+function exportCSV(type) {
+    let data = [];
+    let filename = 'export.csv';
+    let headers = [];
+
+    if (type === 'orders') {
+        data = globalData.orders;
+        filename = `kiko_orders_${new Date().toISOString().split('T')[0]}.csv`;
+        headers = ['order_id', 'created_at', 'customer_name', 'customer_phone', 'customer_address', 'store_name', 'store_phone', 'total_amount', 'item_count', 'products', 'payment_status', 'delivery_status', 'whatsapp_sent', 'is_cancelled', 'notes', 'order_source', 'call_direction'];
+    } else if (type === 'recordings') {
+        data = globalData.recordings;
+        filename = `kiko_recordings_${new Date().toISOString().split('T')[0]}.csv`;
+        headers = ['id', 'created_at', 'filename', 'source_phone', 'contact_name', 'call_direction', 'classification', 'duration_ms', 'transcript', 'store_phone', 'is_processed'];
+    } else if (type === 'activity') {
+        data = globalData.activity;
+        filename = `kiko_activity_${new Date().toISOString().split('T')[0]}.csv`;
+        headers = ['created_at', 'action', 'store_phone', 'user_phone', 'entity_type', 'entity_id', 'ip_address'];
+    }
+
+    if (data.length === 0) {
+        alert('No data to export.');
+        return;
+    }
+
+    // Build CSV
+    const csvRows = [];
+    csvRows.push(headers.join(','));
+
+    data.forEach(row => {
+        const values = headers.map(h => {
+            let val = row[h];
+            if (val === null || val === undefined) return '';
+            if (typeof val === 'object') val = JSON.stringify(val);
+            // Escape quotes and wrap in quotes
+            val = String(val).replace(/"/g, '""');
+            return `"${val}"`;
+        });
+        csvRows.push(values.join(','));
+    });
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
