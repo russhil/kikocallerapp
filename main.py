@@ -25,6 +25,12 @@ print("[KikoCall] Starting up...", flush=True)
 
 app = FastAPI(title="KikoCall AI Proxy")
 
+# ---------- Serving Dashboard ----------
+from fastapi.staticfiles import StaticFiles
+dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard")
+if os.path.exists(dashboard_path):
+    app.mount("/dashboard", StaticFiles(directory=dashboard_path, html=True), name="dashboard")
+
 # ---------- CORS (production) ----------
 app.add_middleware(
     CORSMiddleware,
@@ -130,12 +136,19 @@ if SUPABASE_URL and SUPABASE_KEY:
         from supabase import create_client
         _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
         print("[KikoCall] Supabase configured ✓", flush=True)
+        # Startup health check — verify DB is reachable
+        try:
+            _health = _supabase_client.table("stores").select("phone", count="exact").limit(1).execute()
+            print(f"[KikoCall] ✓ Supabase health check passed — stores count: {_health.count}", flush=True)
+        except Exception as _he:
+            print(f"[KikoCall] ⚠ Supabase health check FAILED: {_he}", flush=True)
+            print("[KikoCall] ⚠ DB writes may silently fail! Check SUPABASE_URL/SUPABASE_KEY.", flush=True)
     except ImportError:
-        print("[KikoCall] supabase package not installed, sync disabled", flush=True)
+        print("[KikoCall] ✗ supabase package not installed, sync disabled", flush=True)
     except Exception as e:
-        print(f"[KikoCall] Supabase init failed: {e}", flush=True)
+        print(f"[KikoCall] ✗ Supabase init failed: {e}", flush=True)
 else:
-    print("[KikoCall] Supabase not configured (SUPABASE_URL/SUPABASE_KEY missing)", flush=True)
+    print("[KikoCall] ✗ Supabase NOT configured (SUPABASE_URL/SUPABASE_KEY missing) — all DB operations disabled!", flush=True)
 
 # ---------- Activity Logging to Supabase ----------
 
@@ -150,6 +163,7 @@ def _log_activity(
     """Fire-and-forget log to activity_log table in Supabase.
     Non-blocking: failures are silently logged to stdout."""
     if _supabase_client is None:
+        print(f"[ActivityLog] ✗ Supabase not configured — cannot log '{action}' for store_phone={store_phone}", flush=True)
         return
     try:
         row = {
@@ -317,6 +331,12 @@ class TranscribeRequest(BaseModel):
     language_code: str = "hi-IN"
     encoding: str = "LINEAR16"
     sample_rate_hertz: int = 16000
+
+
+class TranscribeRawRequest(BaseModel):
+    audio_base64: str
+    mime_type: str = "audio/mp3"
+    language_code: str = "hi-IN"
 
 
 class TranscribeGeminiRequest(BaseModel):
@@ -823,6 +843,47 @@ async def transcribe_gemini(req: TranscribeGeminiRequest, request: Request = Non
         raise HTTPException(status_code=500, detail=f"Gemini transcription failed: {e}")
 
 
+# ---------- Transcribe Raw Audio ----------
+
+@app.post("/api/transcribe-raw-audio")
+async def transcribe_raw(req: TranscribeRawRequest, request: Request = None, user: dict = Depends(get_current_user)):
+    if len(req.audio_base64) > AUDIO_BASE64_MAX_LENGTH:
+        raise HTTPException(status_code=413, detail="Audio payload too large")
+    
+    print(f"[Transcribe-Raw] Request: lang={req.language_code}, mime={req.mime_type}, audio_len={len(req.audio_base64)}", flush=True)
+    try:
+        lang_names = {"hi-IN": "Hindi", "en-IN": "English", "mr-IN": "Marathi", "gu-IN": "Gujarati"}
+        lang_name = lang_names.get(req.language_code, req.language_code)
+
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"inline_data": {"mime_type": req.mime_type, "data": req.audio_base64}},
+                    {"text": (
+                        f"Transcribe this audio recording accurately. "
+                        f"The primary language is {lang_name}. "
+                        f"Return ONLY the transcription text, nothing else. "
+                        f"If the audio is unclear or empty, return an empty string."
+                    )},
+                ]
+            }]
+        }
+
+        data = await _call_gemini(TRANSCRIBE_MODEL, payload)
+        text = _extract_gemini_text(data)
+        print(f"[Transcribe-Raw] ✓ Result: {(text or 'None')[:200]}", flush=True)
+        _log_activity("api.transcribe_raw", store_phone=user.get("phone"), entity_type="recording",
+                      metadata={"lang": req.language_code, "audio_len": len(req.audio_base64), "has_result": bool(text)}, request=request)
+        return {"transcript": text or None}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Transcribe-Raw] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Gemini transcription failed: {e}")
+
+
 # ---------- Classify ----------
 
 @app.post("/api/classify")
@@ -1068,6 +1129,7 @@ async def sync_recording(req: SyncRecordingRequest, request: Request = None, use
 # ---------- Sync Order to Supabase ----------
 
 @app.post("/api/sync-order")
+@app.post("/api/sync/order")
 async def sync_order(req: SyncOrderRequest, request: Request = None, user: dict = Depends(get_current_user)):
     print(f"[SyncOrder] Request: order_id={req.order_id}", flush=True)
     sb = _require_supabase()
@@ -1199,8 +1261,10 @@ async def list_orders(
 ):
     sb = _require_supabase()
     try:
+        phone = user["phone"]
         query = sb.table("orders").select("*").order("created_at", desc=True)
-        query = query.eq("user_phone", user["phone"])
+        # Query both store_phone (v2) and user_phone (v1 backward compat)
+        query = query.or_(f"store_phone.eq.{phone},user_phone.eq.{phone}")
         if store_name:
             query = query.eq("store_name", store_name)
         result = query.range(offset, offset + limit - 1).execute()
@@ -1215,7 +1279,8 @@ async def list_orders(
 async def get_order(order_id: str, user: dict = Depends(get_current_user)):
     sb = _require_supabase()
     try:
-        result = sb.table("orders").select("*").eq("order_id", order_id).eq("user_phone", user["phone"]).execute()
+        phone = user["phone"]
+        result = sb.table("orders").select("*").eq("order_id", order_id).or_(f"store_phone.eq.{phone},user_phone.eq.{phone}").execute()
         if not result.data:
             raise HTTPException(status_code=404, detail="Order not found")
         return {"order": result.data[0]}
@@ -1236,7 +1301,8 @@ async def update_order(order_id: str, req: UpdateOrderRequest, user: dict = Depe
         updates = {k: v for k, v in req.model_dump().items() if v is not None}
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")
-        result = sb.table("orders").update(updates).eq("order_id", order_id).eq("user_phone", user["phone"]).execute()
+        phone = user["phone"]
+        result = sb.table("orders").update(updates).eq("order_id", order_id).or_(f"store_phone.eq.{phone},user_phone.eq.{phone}").execute()
         if not result.data:
             raise HTTPException(status_code=404, detail="Order not found")
         return {"status": "ok", "order": result.data[0]}
@@ -1254,7 +1320,8 @@ async def update_order(order_id: str, req: UpdateOrderRequest, user: dict = Depe
 async def delete_order(order_id: str, request: Request = None, user: dict = Depends(get_current_user)):
     sb = _require_supabase()
     try:
-        sb.table("orders").delete().eq("order_id", order_id).eq("user_phone", user["phone"]).execute()
+        phone = user["phone"]
+        sb.table("orders").delete().eq("order_id", order_id).or_(f"store_phone.eq.{phone},user_phone.eq.{phone}").execute()
         _log_activity("order.deleted", store_phone=user.get("phone"), entity_type="order", entity_id=order_id, request=request)
         print(f"[DeleteOrder] ✓ Deleted order {order_id}", flush=True)
         return {"status": "ok", "order_id": order_id}
