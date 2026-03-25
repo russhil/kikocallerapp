@@ -11,6 +11,12 @@ let supabaseClient = null;
 let ordersChartInstance = null;
 let statusChartInstance = null;
 
+const globalData = {
+    orders: [],
+    recordings: [],
+    activity: []
+};
+
 // Initialize strictly inside a try-catch to prevent file:// protocol crashes
 try {
     if (window.supabase) {
@@ -67,26 +73,16 @@ function showDashboard() {
             fetchDashboardData();
         }, 30000);
 
-        // Supabase real-time subscription for instant updates
+        // Supabase real-time
         if (supabaseClient) {
-            try {
-                supabaseClient
-                    .channel('orders-changes')
-                    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-                        console.log('[Realtime] Orders table changed, refreshing...');
-                        fetchDashboardData();
-                    })
-                    .subscribe();
-            } catch (e) {
-                console.warn('Realtime subscription failed (non-critical):', e);
-            }
+            supabaseClient
+                .channel('orders-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, payload => {
+                    fetchDashboardData();
+                })
+                .subscribe();
         }
     }, 300);
-}
-
-function scrollToOrders() {
-    const el = document.getElementById('orders-section');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ---------------------------------------------------------
@@ -94,44 +90,62 @@ function scrollToOrders() {
 // ---------------------------------------------------------
 async function fetchDashboardData() {
     if (!supabaseClient) {
-        alert("Database connection is not available. Please ensure you are not running this via strict file:// or try a local server.");
+        alert("Database connection is not available.");
         return;
     }
     try {
-        // Update stamp
         const now = new Date();
         document.getElementById('last-updated').innerText = `Last updated: ${now.toLocaleTimeString()}`;
 
-        // Fetch Orders table
-        // We'll fetch all orders for the dashboard (or paginate/limit as needed)
-        const { data: orders, error: ordersError } = await supabaseClient
-            .from('orders')
-            .select('*')
-            .order('created_at', { ascending: false });
+        // Helper to fetch deeply paginated tables
+        const fetchAll = async (table) => {
+            try {
+                let res = [];
+                let from = 0; let step = 1000; let hasMore = true;
+                while (hasMore) {
+                    const { data, error } = await supabaseClient.from(table).select('*').order('created_at', { ascending: false }).range(from, from + step - 1);
+                    if (error) { console.error(`Error ${table}:`, error); break; }
+                    if (data && data.length > 0) { res = res.concat(data); from += step; if (data.length < step) hasMore = false; } else { hasMore = false; }
+                }
+                return res;
+            } catch(e) { console.error(e); return []; }
+        };
 
-        if (ordersError) throw ordersError;
+        const allOrders = await fetchAll('orders');
+        const allRecordings = await fetchAll('recordings');
+        const allActivity = await fetchAll('activity_log');
 
-        // Fetch Sellers (users table, assuming 'users' or 'profiles')
-        // We'll use the 'users' table if it exists
-        const { count: sellersCount, error: sellersError } = await supabaseClient
-            .from('users')
-            .select('*', { count: 'exact', head: true });
+        globalData.orders = allOrders || [];
+        globalData.recordings = allRecordings || [];
+        globalData.activity = allActivity || [];
+
+        let sellersCount = 0;
+        try {
+            const { count, error } = await supabaseClient.from('users').select('*', { count: 'exact', head: true });
+            if (!error) sellersCount = count || 0;
+        } catch(e) {}
         
-        // Process data
-        processMetrics(orders || [], sellersCount || 0);
-        renderCharts(orders || []);
-        renderTable(orders || []);
+        processMetrics(globalData.orders, sellersCount, globalData.recordings);
+        renderCharts(globalData.orders);
+        
+        // Render Overview Tab
+        renderOverviewOrders(globalData.orders);
+        renderOverviewTranscripts(globalData.recordings);
+
+        // Render Data Tabs
+        renderFullOrders(globalData.orders);
+        renderFullTranscripts(globalData.recordings);
+        renderFullActivity(globalData.activity);
 
     } catch (err) {
         console.error('Error fetching dashboard data:', err);
-        alert('Failed to sync data from backend.');
     }
 }
 
 // ---------------------------------------------------------
 // 4. METRICS PROCESSING
 // ---------------------------------------------------------
-function processMetrics(orders, totalSellers) {
+function processMetrics(orders, totalSellers, recordings = []) {
     const totalOrders = orders.length;
     
     // Calculate total sales
@@ -144,26 +158,30 @@ function processMetrics(orders, totalSellers) {
         totalSalesStr = `₹${totalSales.toLocaleString('en-IN')}`;
     } catch(e) {}
 
-    // Unique Customers by Phone Number
     const customerPhones = new Set();
-    orders.forEach(o => {
-        if (o.customer_phone) customerPhones.add(o.customer_phone);
-    });
+    orders.forEach(o => { if (o.customer_phone) customerPhones.add(o.customer_phone); });
     
-    // Animate numbers up (simple DOM update)
     document.getElementById('stat-orders').innerText = totalOrders;
     document.getElementById('stat-sales').innerText = totalSalesStr;
     document.getElementById('stat-customers').innerText = customerPhones.size;
     
-    // If sellers query failed/denied, fallback to unique shop_names from orders
     if (totalSellers > 0) {
         document.getElementById('stat-sellers').innerText = totalSellers;
     } else {
         const sellersSet = new Set();
-        orders.forEach(o => {
-            if (o.registered_phone) sellersSet.add(o.registered_phone);
-        });
+        orders.forEach(o => { if (o.store_phone || o.registered_phone) sellersSet.add(o.store_phone || o.registered_phone); });
         document.getElementById('stat-sellers').innerText = sellersSet.size > 0 ? sellersSet.size : totalOrders > 0 ? "1+" : "0";
+    }
+
+    // Call Recordings Data
+    const successTranscripts = recordings.filter(r => r.transcript && r.transcript.length > 4).length;
+    const totalCalls = recordings.length;
+    
+    if (document.getElementById('total-calls')) {
+        document.getElementById('total-calls').innerText = totalCalls;
+    }
+    if (document.getElementById('total-transcripts')) {
+        document.getElementById('total-transcripts').innerText = successTranscripts;
     }
 }
 
@@ -270,7 +288,7 @@ function renderCharts(orders) {
 // ---------------------------------------------------------
 // 6. TABLE RENDERING
 // ---------------------------------------------------------
-function renderTable(orders) {
+function renderOverviewOrders(orders) {
     const tbody = document.getElementById('orders-table-body');
     tbody.innerHTML = '';
 
@@ -279,8 +297,8 @@ function renderTable(orders) {
         return;
     }
 
-    // Show ALL orders (no limit)
-    const recentOrders = orders;
+    // Show top 10 recent orders
+    const recentOrders = orders.slice(0, 10);
 
     recentOrders.forEach(o => {
         const dateObj = new Date(o.created_at);
@@ -322,6 +340,53 @@ function renderTable(orders) {
                     Chat
                 </a>
                 ` : '<span class="text-xs text-gray-400">No Contact</span>'}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+// ---------------------------------------------------------
+// 7. TRANSCRIPTS RENDERING
+// ---------------------------------------------------------
+function renderOverviewTranscripts(recordings) {
+    const tbody = document.getElementById('transcripts-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!recordings || recordings.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-500">No transcripts available.</td></tr>`;
+        return;
+    }
+
+    // Only show ones with actual transcripts
+    const textRecs = recordings.filter(r => r.transcript && r.transcript.length > 2).slice(0, 15);
+
+    if (textRecs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-500">No text transcripts available, only raw calls.</td></tr>`;
+        return;
+    }
+
+    textRecs.forEach(r => {
+        const dateObj = new Date(r.created_at || Date.now());
+        const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50/50 transition-colors';
+        
+        // Grab either receiver_phone, store_phone, session_id, or phone
+        const identifier = r.receiver_phone || r.store_phone || r.phone_number || r.caller_phone || 'Unknown';
+        const shop = r.shop_number || r.shop_name || r.store_name || '';
+
+        let receiverInfo = `<div class="font-medium text-gray-900">${identifier}</div>`;
+        if (shop) receiverInfo += `<div class="text-xs text-gray-500">Shop: ${shop}</div>`;
+
+        tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">${dateStr}</td>
+            <td class="px-6 py-4">${receiverInfo}</td>
+            <td class="px-6 py-4">
+                <div class="line-clamp-3 text-sm italic text-gray-700 font-serif border-l-2 border-indigo-200 pl-3">
+                    "${r.transcript.substring(0, 300)}${r.transcript.length > 300 ? '...' : ''}"
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
