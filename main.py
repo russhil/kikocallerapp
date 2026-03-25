@@ -10,7 +10,8 @@ import traceback
 import time
 import urllib.parse
 
-from typing import Optional
+from typing import Optional, Union, Any
+from datetime import datetime
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Depends
@@ -370,14 +371,14 @@ class SyncOrderRequest(BaseModel):
     whatsapp_sent: bool = False
     is_read: bool = False
     is_cancelled: bool = False
-    cancelled_at: Optional[int] = None
+    cancelled_at: Optional[Union[int, str]] = None
     cancel_reason: Optional[str] = None
     order_source: str = "call"
     call_direction: str = "INCOMING"
     payment_status: str = "pending"
     payment_method: Optional[str] = None
     delivery_status: str = "pending"
-    delivered_at: Optional[int] = None
+    delivered_at: Optional[Union[int, str]] = None
     confidence_score: Optional[float] = None
     processing_time_ms: Optional[int] = None
     device_model: Optional[str] = None
@@ -386,7 +387,7 @@ class SyncOrderRequest(BaseModel):
     session_id: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    created_at: Optional[int] = None
+    created_at: Optional[Union[int, str]] = None
 
 
 class SyncRecordingRequest(BaseModel):
@@ -412,7 +413,7 @@ class SyncRecordingRequest(BaseModel):
     processing_time_ms: Optional[int] = None
     ai_model_used: Optional[str] = None
     transcript_confidence: Optional[float] = None
-    created_at: Optional[int] = None
+    created_at: Optional[Union[int, str]] = None
 
 
 class UpdateOrderRequest(BaseModel):
@@ -428,12 +429,12 @@ class UpdateOrderRequest(BaseModel):
     whatsapp_sent: Optional[bool] = None
     is_read: Optional[bool] = None
     is_cancelled: Optional[bool] = None
-    cancelled_at: Optional[int] = None
+    cancelled_at: Optional[Union[int, str]] = None
     cancel_reason: Optional[str] = None
     payment_status: Optional[str] = None
     payment_method: Optional[str] = None
     delivery_status: Optional[str] = None
-    delivered_at: Optional[int] = None
+    delivered_at: Optional[Union[int, str]] = None
 
 
 # ---------- Auth request models ----------
@@ -1082,12 +1083,32 @@ async def sync_recording(req: SyncRecordingRequest, request: Request = None, use
     sb = _require_supabase()
     try:
         store_phone = user["phone"]
+def parse_epoch_ms(val: Any) -> Optional[int]:
+    if val is None:
+        return None
+    if isinstance(val, int):
+        return val
+    if isinstance(val, float):
+        return int(val)
+    if isinstance(val, str):
+        try:
+            return int(val)
+        except ValueError:
+            pass
+        try:
+            val_clean = val.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(val_clean)
+            return int(dt.timestamp() * 1000)
+        except Exception:
+            pass
+    return None
+
         row = {
             "device_id": req.device_id,
             "filename": req.filename,
             "path": req.path,
             "duration_ms": req.duration_ms,
-            "date_recorded": req.date_recorded,
+            "date_recorded": parse_epoch_ms(req.date_recorded) or 0,
             "transcript": req.transcript,
             "classification": req.classification,
             "is_processed": req.is_processed,
@@ -1110,7 +1131,7 @@ async def sync_recording(req: SyncRecordingRequest, request: Request = None, use
             row["store_phone"] = store_phone
             row["user_phone"] = store_phone  # backward compat
         if req.created_at is not None:
-            row["created_at"] = req.created_at
+            row["created_at"] = parse_epoch_ms(req.created_at)
         result = sb.table("recordings").upsert(
             row, on_conflict="device_id,path"
         ).execute()
@@ -1150,14 +1171,14 @@ async def sync_order(req: SyncOrderRequest, request: Request = None, user: dict 
             "whatsapp_sent": req.whatsapp_sent,
             "is_read": req.is_read,
             "is_cancelled": req.is_cancelled,
-            "cancelled_at": req.cancelled_at,
+            "cancelled_at": parse_epoch_ms(req.cancelled_at),
             "cancel_reason": req.cancel_reason,
             "order_source": req.order_source,
             "call_direction": req.call_direction,
             "payment_status": req.payment_status,
             "payment_method": req.payment_method,
             "delivery_status": req.delivery_status,
-            "delivered_at": req.delivered_at,
+            "delivered_at": parse_epoch_ms(req.delivered_at),
             "confidence_score": req.confidence_score,
             "processing_time_ms": req.processing_time_ms,
             "device_model": req.device_model,
@@ -1187,7 +1208,7 @@ async def sync_order(req: SyncOrderRequest, request: Request = None, user: dict 
         # Don't include recording_id if we couldn't resolve it (avoid FK violation)
 
         if req.created_at is not None:
-            row["created_at"] = req.created_at
+            row["created_at"] = parse_epoch_ms(req.created_at)
         sb.table("orders").upsert(row, on_conflict="order_id").execute()
 
         # Normalize products into order_items table
@@ -1299,6 +1320,8 @@ async def update_order(order_id: str, req: UpdateOrderRequest, user: dict = Depe
     sb = _require_supabase()
     try:
         updates = {k: v for k, v in req.model_dump().items() if v is not None}
+        if "cancelled_at" in updates: updates["cancelled_at"] = parse_epoch_ms(updates["cancelled_at"])
+        if "delivered_at" in updates: updates["delivered_at"] = parse_epoch_ms(updates["delivered_at"])
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")
         phone = user["phone"]
