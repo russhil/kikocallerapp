@@ -110,9 +110,9 @@ GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 STT_URL = "https://speech.googleapis.com/v1/speech:recognize"
 
 # Models
-TRANSCRIBE_MODEL = "gemini-2.5-flash"
-CLASSIFY_MODEL = "gemini-2.5-flash"
-EXTRACT_MODEL = "gemini-2.5-flash"
+TRANSCRIBE_MODEL = "gemini-1.5-flash"
+CLASSIFY_MODEL = "gemini-1.5-flash"
+EXTRACT_MODEL = "gemini-1.5-flash"
 
 # Gupshup SMS config
 GUPSHUP_USERID = os.getenv("GUPSHUP_USERID", "2000202768")
@@ -1077,12 +1077,6 @@ CRITICAL RULES:
 
 # ---------- Sync Recording to Supabase ----------
 
-@app.post("/api/sync-recording")
-async def sync_recording(req: SyncRecordingRequest, request: Request = None, user: dict = Depends(get_current_user)):
-    print(f"[SyncRecording] Request: filename={req.filename}", flush=True)
-    sb = _require_supabase()
-    try:
-        store_phone = user["phone"]
 def parse_epoch_ms(val: Any) -> Optional[int]:
     if val is None:
         return None
@@ -1103,6 +1097,13 @@ def parse_epoch_ms(val: Any) -> Optional[int]:
             pass
     return None
 
+
+@app.post("/api/sync-recording")
+async def sync_recording(req: SyncRecordingRequest, request: Request = None, user: dict = Depends(get_current_user)):
+    print(f"[SyncRecording] Request: filename={req.filename}", flush=True)
+    sb = _require_supabase()
+    try:
+        store_phone = user["phone"]
         row = {
             "device_id": req.device_id,
             "filename": req.filename,
