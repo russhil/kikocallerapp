@@ -14,7 +14,7 @@ from typing import Optional, Union, Any
 from datetime import datetime
 
 import httpx
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, Depends, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -110,9 +110,10 @@ GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 STT_URL = "https://speech.googleapis.com/v1/speech:recognize"
 
 # Models
-TRANSCRIBE_MODEL = "gemini-1.5-flash"
-CLASSIFY_MODEL = "gemini-1.5-flash"
-EXTRACT_MODEL = "gemini-1.5-flash"
+# Models (configurable via env vars)
+TRANSCRIBE_MODEL = os.getenv("TRANSCRIBE_MODEL", "gemini-1.5-flash")
+CLASSIFY_MODEL = os.getenv("CLASSIFY_MODEL", "gemini-1.5-flash")
+EXTRACT_MODEL = os.getenv("EXTRACT_MODEL", "gemini-1.5-flash")
 
 # Gupshup SMS config
 GUPSHUP_USERID = os.getenv("GUPSHUP_USERID", "2000202768")
@@ -279,7 +280,8 @@ async def _call_gemini(model: str, payload: dict, timeout_seconds: int = 90) -> 
             if resp.status_code == 200:
                 print(f"[Gemini] ✓ API key auth succeeded", flush=True)
                 return resp.json()
-            err = f"API key: {resp.status_code} {resp.text[:300]}"
+            body = resp.text[:1000]
+            err = f"API key: {resp.status_code} {body}"
             print(f"[Gemini] ✗ {err}", flush=True)
             errors.append(err)
         except Exception as e:
@@ -300,7 +302,8 @@ async def _call_gemini(model: str, payload: dict, timeout_seconds: int = 90) -> 
             if resp.status_code == 200:
                 print(f"[Gemini] ✓ OAuth auth succeeded", flush=True)
                 return resp.json()
-            err = f"OAuth: {resp.status_code} {resp.text[:300]}"
+            body = resp.text[:1000]
+            err = f"OAuth: {resp.status_code} {body}"
             print(f"[Gemini] ✗ {err}", flush=True)
             errors.append(err)
         except Exception as e:
@@ -324,8 +327,8 @@ def _extract_gemini_text(response_data: dict) -> str | None:
 
 # ---------- Request models ----------
 
-# Max ~20MB of base64 (≈15MB raw audio), prevents OOM from massive payloads
-AUDIO_BASE64_MAX_LENGTH = 20_000_000
+# Max ~30MB of base64 (≈22MB raw audio), prevents OOM from massive payloads
+AUDIO_BASE64_MAX_LENGTH = 30_000_000
 
 class TranscribeRequest(BaseModel):
     audio_base64: str
@@ -344,6 +347,8 @@ class TranscribeGeminiRequest(BaseModel):
     audio_base64: str
     language_code: str = "hi-IN"
     sample_rate_hertz: int = 16000
+    mime_type: Optional[str] = None
+
 
 
 class ClassifyRequest(BaseModel):
@@ -798,25 +803,63 @@ async def transcribe(req: TranscribeRequest, request: Request = None, user: dict
 
 # ---------- Transcribe via Gemini (fallback) ----------
 
-@app.post("/api/transcribe-gemini")
-async def transcribe_gemini(req: TranscribeGeminiRequest, request: Request = None, user: dict = Depends(get_current_user)):
-    if len(req.audio_base64) > AUDIO_BASE64_MAX_LENGTH:
-        raise HTTPException(status_code=413, detail="Audio payload too large (max 20MB)")
-    """Fallback transcription: send audio to Gemini and ask for transcript."""
-    print(f"[Transcribe-Gemini] Request: lang={req.language_code}, audio_len={len(req.audio_base64)}", flush=True)
-    try:
-        pcm_bytes = base64.b64decode(req.audio_base64)
-        wav_bytes = _pcm_to_wav(pcm_bytes, req.sample_rate_hertz)
-        wav_b64 = base64.b64encode(wav_bytes).decode("utf-8")
-        print(f"[Transcribe-Gemini] PCM={len(pcm_bytes)}B -> WAV={len(wav_bytes)}B", flush=True)
+# ---------- Transcribe via Gemini (fallback/direct) ----------
 
-        lang_names = {"hi-IN": "Hindi", "en-IN": "English", "mr-IN": "Marathi", "gu-IN": "Gujarati"}
-        lang_name = lang_names.get(req.language_code, req.language_code)
+@app.post("/api/transcribe-gemini")
+async def transcribe_gemini(
+    request: Request,
+    audio_base64: Optional[str] = Body(None),
+    language_code: Optional[str] = Body("hi-IN"),
+    sample_rate_hertz: Optional[int] = Body(16000),
+    mime_type: Optional[str] = Body(None),
+    audio_file: Optional[UploadFile] = File(None),
+    user: dict = Depends(get_current_user)
+):
+    """Transcription via Gemini: supports JSON (base64) or Multipart (file)."""
+    try:
+        final_b64 = None
+        final_mime = "audio/wav"
+        lang_code = language_code
+
+        # Case 1: Multipart File Upload (Preferred for large files)
+        if audio_file:
+            print(f"[Transcribe-Gemini] Multipart upload: {audio_file.filename}", flush=True)
+            content = await audio_file.read()
+            final_b64 = base64.b64encode(content).decode("utf-8")
+            final_mime = audio_file.content_type or "audio/mp4"
+            
+            # Extract other params from form if they weren't in JSON
+            form = await request.form()
+            lang_code = form.get("language_code", lang_code)
+            print(f"[Transcribe-Gemini] Multipart success, size={len(content)//1024}KB, mime={final_mime}", flush=True)
+
+        # Case 2: JSON Base64 (Legacy/Standard)
+        elif audio_base64:
+            if len(audio_base64) > AUDIO_BASE64_MAX_LENGTH:
+                raise HTTPException(status_code=413, detail=f"Audio payload too large ({len(audio_base64)//1_000_000}MB)")
+            final_b64 = audio_base64
+            final_mime = mime_type or "audio/wav"
+            print(f"[Transcribe-Gemini] Base64 upload, size={len(audio_base64)//1024}KB, mime={final_mime}", flush=True)
+
+        if not final_b64:
+            raise HTTPException(status_code=400, detail="Missing audio_base64 or audio_file")
+
+        lang_names = {
+            "hi-IN": "Hindi", "en-IN": "English", "mr-IN": "Marathi",
+            "gu-IN": "Gujarati", "ta-IN": "Tamil", "te-IN": "Telugu",
+            "kn-IN": "Kannada", "pa-IN": "Punjabi", "bn-IN": "Bengali",
+            "ml-IN": "Malayalam", "ur-IN": "Urdu"
+        }
+        
+        if lang_code in (None, "auto", ""):
+            lang_name = "Hindi or English or any Indian regional language (detect automatically)"
+        else:
+            lang_name = lang_names.get(lang_code, lang_code)
 
         payload = {
             "contents": [{
                 "parts": [
-                    {"inline_data": {"mime_type": "audio/wav", "data": wav_b64}},
+                    {"inline_data": {"mime_type": final_mime, "data": final_b64}},
                     {"text": (
                         f"Transcribe this audio recording accurately. "
                         f"The primary language is {lang_name}. "
@@ -830,18 +873,16 @@ async def transcribe_gemini(req: TranscribeGeminiRequest, request: Request = Non
         data = await _call_gemini(TRANSCRIBE_MODEL, payload)
         text = _extract_gemini_text(data)
         print(f"[Transcribe-Gemini] ✓ Result: {(text or 'None')[:200]}", flush=True)
+        
         _log_activity("api.transcribe_gemini", store_phone=user.get("phone"), entity_type="recording",
-                      metadata={"lang": req.language_code, "audio_len": len(req.audio_base64), "has_result": bool(text)}, request=request)
+                      metadata={"lang": lang_code, "has_result": bool(text), "method": "multipart" if audio_file else "base64"}, request=request)
+        
         return {"transcript": text or None}
 
-    except HTTPException:
-        raise
     except Exception as e:
         print(f"[Transcribe-Gemini] ✗ Exception: {e}", flush=True)
         traceback.print_exc()
-        _log_activity("api.transcribe_gemini.error", store_phone=user.get("phone"), entity_type="recording",
-                      metadata={"error": str(e)[:200]}, request=request)
-        raise HTTPException(status_code=500, detail=f"Gemini transcription failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ---------- Transcribe Raw Audio ----------
@@ -894,21 +935,14 @@ async def classify(req: ClassifyRequest, request: Request = None, user: dict = D
         system_prompt = (
             "You are a call classifier for small Indian retail shopkeepers (kirana stores, general stores, etc.). "
             "Classify this call transcript as ORDER_CALL or PERSONAL_CALL, and provide a confidence score.\n\n"
-            "CRITICAL RULES:\n"
-            "- This is for SMALL INDIAN SHOPKEEPERS. Customers often call casually, chat about personal things, "
-            "and somewhere in the conversation informally mention they need something.\n"
-            "- If ANYWHERE in the call — even buried in 5 minutes of small talk — someone mentions needing, "
-            "wanting, ordering, or requesting ANY product or item (even just '1 Maggi' or 'thoda tel bhi dena'), "
-            "it is an ORDER_CALL. The informality does NOT matter.\n"
-            "- Even if 95% of the call is personal chitchat and only one line says 'aur haan, 2 packet doodh bhi rakh dena', "
-            "that is an ORDER_CALL.\n"
-            "- Product mentions, item names, quantities, prices, delivery requests, stock inquiries, "
-            "supply requests, 'bhej dena', 'rakh dena', 'chahiye', 'de dena', 'send karo' — ALL of these "
-            "mean ORDER_CALL regardless of the rest of the conversation.\n"
-            "- Only classify as PERSONAL_CALL if the ENTIRE call is purely personal with absolutely ZERO "
-            "mention of any product, item, or order.\n"
+            "CRITICAL RULES FOR INDIAN SHOPKEEPERS:\n"
+            "- Customers call casually! They chat about family, health, and then informally ask for items.\n"
+            "- If ANYWHERE in the call someone mentions needing, wanting, ordering, or requesting ANY product "
+            "(even just '1 Maggi', 'half kg sugar', or 'doodh rakh dena'), it is an ORDER_CALL.\n"
+            "- Product mentions (item names, quantities, brand names) ALWAYS mean ORDER_CALL regardless of the rest of the conversation.\n"
+            "- Only classify as PERSONAL_CALL if the ENTIRE call is purely personal with absolutely ZERO mention of products or item requests.\n"
             "- When in doubt, ALWAYS classify as ORDER_CALL.\n\n"
-            "Respond ONLY with valid JSON in this exact format (no markdown, no backticks):\n"
+            "Respond ONLY with valid JSON in this exact format:\n"
             '{\"classification\": \"ORDER_CALL\", \"confidence\": 0.85}\n\n'
             "Where confidence is a float from 0.0 to 1.0 indicating how confident you are in your classification."
         )
@@ -1007,32 +1041,31 @@ def _validate_extracted_order(order_json: str) -> str | None:
 async def extract_order(req: ExtractOrderRequest, request: Request = None, user: dict = Depends(get_current_user)):
     print(f"[ExtractOrder] Request: transcript_len={len(req.transcript)}", flush=True)
     try:
-        system_prompt = f"""You are an order extraction assistant for an Indian retail shop. Extract all order information from this call transcript and return ONLY a valid JSON object (no markdown, no explanation) in this exact schema:
+        system_prompt = f"""You are an order extraction assistant for an Indian retail shop. Extract all order information from this call transcript and return ONLY a valid JSON object in this exact schema:
 {{
   "customer_name": "string or null",
   "customer_phone": "string or null",
   "store_name": "string",
   "store_number": "string or null",
-  "order_id": "string (generate a unique 8-char alphanumeric if not mentioned)",
+  "order_id": "string (generate unique ID)",
   "products": [
     {{
-      "name": "string (the actual product name, NOT 'N/A' or 'unknown')",
-      "quantity": "string (include unit if mentioned, e.g. '2 kg', '5 liters', '3 boxes', '1 dozen', or just '2' if no unit specified)",
-      "price": number (use 0 if price not mentioned)
+      "name": "string (actual product name)",
+      "quantity": "string (include unit, e.g. '2 kg')",
+      "price": number
     }}
   ],
-  "total_amount": number (use 0 if total not mentioned),
+  "total_amount": number,
   "notes": "string or null",
-  "address": "string or null (delivery address if mentioned by the customer)"
+  "address": "string or null (delivery address if mentioned)"
 }}
 
 CRITICAL RULES:
-1. ONLY return products that are ACTUALLY mentioned as items to order in the transcript.
-2. If NO specific products/items are mentioned for ordering, return an EMPTY products array [].
-3. Do NOT invent or hallucinate products. Do NOT use placeholder names like "N/A" or "Unknown".
-4. ALL output text MUST be in English script (Roman/Latin alphabet) only. Transliterate from Hindi/Marathi/Gujarati etc.
-5. If any field cannot be determined, use null. Always generate an order_id.
-6. Use "{req.store_name}" as the store_name if not mentioned in the transcript."""
+1. ONLY return products actually ordered.
+2. If NO products are mentioned, return empty [].
+3. ALL output text must be in English script (transliterate if needed).
+4. IMPORTANT: Extract the full delivery address if mentioned by the customer and map it to the 'address' field.
+5. Use "{req.store_name}" as the store_name if not mentioned."""
 
         payload = {
             "contents": [
@@ -1076,27 +1109,6 @@ CRITICAL RULES:
 
 
 # ---------- Sync Recording to Supabase ----------
-
-def parse_epoch_ms(val: Any) -> Optional[int]:
-    if val is None:
-        return None
-    if isinstance(val, int):
-        return val
-    if isinstance(val, float):
-        return int(val)
-    if isinstance(val, str):
-        try:
-            return int(val)
-        except ValueError:
-            pass
-        try:
-            val_clean = val.replace("Z", "+00:00")
-            dt = datetime.fromisoformat(val_clean)
-            return int(dt.timestamp() * 1000)
-        except Exception:
-            pass
-    return None
-
 
 @app.post("/api/sync-recording")
 async def sync_recording(req: SyncRecordingRequest, request: Request = None, user: dict = Depends(get_current_user)):
@@ -1598,6 +1610,25 @@ async def gemini_live_token(user: dict = Depends(get_current_user)):
 
 
 # ---------- Helpers ----------
+
+def parse_epoch_ms(val: Any) -> Optional[int]:
+    """Parse various timestamp formats into epoch milliseconds."""
+    if val is None: return None
+    if isinstance(val, int): return val
+    if isinstance(val, float): return int(val)
+    if isinstance(val, str):
+        try:
+            return int(val)
+        except ValueError:
+            pass
+        try:
+            val_clean = val.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(val_clean)
+            return int(dt.timestamp() * 1000)
+        except Exception:
+            pass
+    return None
+
 
 def _pcm_to_wav(
     pcm_data: bytes,
