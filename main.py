@@ -106,7 +106,7 @@ GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
 GOOGLE_OAUTH_REFRESH_TOKEN = os.getenv("GOOGLE_OAUTH_REFRESH_TOKEN", "")
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+GEMINI_BASE = "https://generativelanguage.googleapis.com/v1/models"
 STT_URL = "https://speech.googleapis.com/v1/speech:recognize"
 
 # Models
@@ -809,9 +809,8 @@ async def transcribe(req: TranscribeRequest, request: Request = None, user: dict
 async def transcribe_gemini(
     request: Request,
     audio_base64: Optional[str] = Body(None),
-    language_code: Optional[str] = Body("hi-IN"),
-    sample_rate_hertz: Optional[int] = Body(16000),
-    mime_type: Optional[str] = Body(None),
+    language_code: Optional[str] = Form(None),
+    mime_type: Optional[str] = Form(None),
     audio_file: Optional[UploadFile] = File(None),
     user: dict = Depends(get_current_user)
 ):
@@ -819,7 +818,7 @@ async def transcribe_gemini(
     try:
         final_b64 = None
         final_mime = "audio/wav"
-        lang_code = language_code
+        lang_code = "en-IN" # Default per user request
 
         # Case 1: Multipart File Upload (Preferred for large files)
         if audio_file:
@@ -828,46 +827,43 @@ async def transcribe_gemini(
             final_b64 = base64.b64encode(content).decode("utf-8")
             final_mime = audio_file.content_type or "audio/mp4"
             
-            # Extract other params from form if they weren't in JSON
-            form = await request.form()
-            lang_code = form.get("language_code", lang_code)
-            print(f"[Transcribe-Gemini] Multipart success, size={len(content)//1024}KB, mime={final_mime}", flush=True)
+            # Extract other params from form
+            if language_code: lang_code = language_code
+            if mime_type: final_mime = mime_type
+            
+            print(f"[Transcribe-Gemini] Multipart success, size={len(content)} bytes, mime={final_mime}", flush=True)
 
         # Case 2: JSON Base64 (Legacy/Standard)
         elif audio_base64:
             if len(audio_base64) > AUDIO_BASE64_MAX_LENGTH:
                 raise HTTPException(status_code=413, detail=f"Audio payload too large ({len(audio_base64)//1_000_000}MB)")
             final_b64 = audio_base64
-            final_mime = mime_type or "audio/wav"
+            # For JSON, we might get mime_type from Body (but here it's Form, so we use Body fallback)
+            body = await request.json()
+            final_mime = body.get("mime_type") or "audio/wav"
+            lang_code = body.get("language_code") or "en-IN"
             print(f"[Transcribe-Gemini] Base64 upload, size={len(audio_base64)//1024}KB, mime={final_mime}", flush=True)
 
         if not final_b64:
-            raise HTTPException(status_code=400, detail="Missing audio_base64 or audio_file")
+            raise HTTPException(status_code=400, detail="Empty audio file or missing audio_base64")
 
-        lang_names = {
-            "hi-IN": "Hindi", "en-IN": "English", "mr-IN": "Marathi",
-            "gu-IN": "Gujarati", "ta-IN": "Tamil", "te-IN": "Telugu",
-            "kn-IN": "Kannada", "pa-IN": "Punjabi", "bn-IN": "Bengali",
-            "ml-IN": "Malayalam", "ur-IN": "Urdu"
-        }
-        
-        if lang_code in (None, "auto", ""):
-            lang_name = "Hindi or English or any Indian regional language (detect automatically)"
-        else:
-            lang_name = lang_names.get(lang_code, lang_code)
-
+        # 👉 Gemini request (User logic)
         payload = {
-            "contents": [{
-                "parts": [
-                    {"inline_data": {"mime_type": final_mime, "data": final_b64}},
-                    {"text": (
-                        f"Transcribe this audio recording accurately. "
-                        f"The primary language is {lang_name}. "
-                        f"Return ONLY the transcription text, nothing else. "
-                        f"If the audio is unclear or empty, return an empty string."
-                    )},
-                ]
-            }]
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "inlineData": {
+                                "mimeType": final_mime,
+                                "data": final_b64
+                            }
+                        },
+                        {
+                            "text": f"Transcribe this audio clearly into {lang_code}. Only return plain text. Do not add emojis or explanations."
+                        }
+                    ]
+                }
+            ]
         }
 
         data = await _call_gemini(TRANSCRIBE_MODEL, payload)
@@ -877,7 +873,10 @@ async def transcribe_gemini(
         _log_activity("api.transcribe_gemini", store_phone=user.get("phone"), entity_type="recording",
                       metadata={"lang": lang_code, "has_result": bool(text), "method": "multipart" if audio_file else "base64"}, request=request)
         
-        return {"transcript": text or None}
+        return {"text": text or "", "transcript": text or ""} # "text" for user request compatibility, "transcript" for legacy
+
+    except HTTPException as e:
+        raise e  # ✅ DO NOT MASK
 
     except Exception as e:
         print(f"[Transcribe-Gemini] ✗ Exception: {e}", flush=True)
