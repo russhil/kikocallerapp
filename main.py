@@ -801,87 +801,90 @@ async def transcribe(req: TranscribeRequest, request: Request = None, user: dict
         raise HTTPException(status_code=500, detail=f"STT failed: {e}")
 
 
-# ---------- Transcribe via Gemini (fallback) ----------
-
-# ---------- Transcribe via Gemini (fallback/direct) ----------
+# ---------- Transcribe via Gemini ----------
 
 @app.post("/api/transcribe-gemini")
-async def transcribe_gemini(
-    request: Request,
-    audio_base64: Optional[str] = Body(None),
-    language_code: Optional[str] = Form(None),
-    mime_type: Optional[str] = Form(None),
-    audio_file: Optional[UploadFile] = File(None),
-    user: dict = Depends(get_current_user)
-):
-    """Transcription via Gemini: supports JSON (base64) or Multipart (file)."""
+async def transcribe_gemini(req: TranscribeGeminiRequest, request: Request = None, user: dict = Depends(get_current_user)):
+    if len(req.audio_base64) > AUDIO_BASE64_MAX_LENGTH:
+        raise HTTPException(status_code=413, detail="Audio payload too large (max 20MB)")
+    """Transcription via Gemini with auto-detection of audio format.
+    Auto-detects if audio is PCM (needs WAV wrapping) or a container format (MP4/M4A/AMR)."""
+    print(f"[Transcribe-Gemini] Request: lang={req.language_code}, audio_len={len(req.audio_base64)}", flush=True)
     try:
-        final_b64 = None
-        final_mime = "audio/wav"
-        lang_code = "en-IN" # Default per user request
+        raw_bytes = base64.b64decode(req.audio_base64)
 
-        # Case 1: Multipart File Upload (Preferred for large files)
-        if audio_file:
-            print(f"[Transcribe-Gemini] Multipart upload: {audio_file.filename}", flush=True)
-            content = await audio_file.read()
-            final_b64 = base64.b64encode(content).decode("utf-8")
-            final_mime = audio_file.content_type or "audio/mp4"
-            
-            # Extract other params from form
-            if language_code: lang_code = language_code
-            if mime_type: final_mime = mime_type
-            
-            print(f"[Transcribe-Gemini] Multipart success, size={len(content)} bytes, mime={final_mime}", flush=True)
+        # Auto-detect audio format by checking magic bytes
+        mime_type = "audio/wav"
+        audio_b64 = None
 
-        # Case 2: JSON Base64 (Legacy/Standard)
-        elif audio_base64:
-            if len(audio_base64) > AUDIO_BASE64_MAX_LENGTH:
-                raise HTTPException(status_code=413, detail=f"Audio payload too large ({len(audio_base64)//1_000_000}MB)")
-            final_b64 = audio_base64
-            # For JSON, we might get mime_type from Body (but here it's Form, so we use Body fallback)
-            body = await request.json()
-            final_mime = body.get("mime_type") or "audio/wav"
-            lang_code = body.get("language_code") or "en-IN"
-            print(f"[Transcribe-Gemini] Base64 upload, size={len(audio_base64)//1024}KB, mime={final_mime}", flush=True)
+        if raw_bytes[:4] in (b'\x00\x00\x00\x18', b'\x00\x00\x00\x1c', b'\x00\x00\x00\x20', b'\x00\x00\x00\x24', b'\x00\x00\x00\x28'):
+            # MP4/M4A container (ftyp box)
+            mime_type = "audio/mp4"
+            audio_b64 = req.audio_base64
+            print(f"[Transcribe-Gemini] Detected MP4/M4A format ({len(raw_bytes)}B)", flush=True)
+        elif raw_bytes[:3] == b'ID3' or raw_bytes[:2] == b'\xff\xfb' or raw_bytes[:2] == b'\xff\xf3':
+            # MP3
+            mime_type = "audio/mp3"
+            audio_b64 = req.audio_base64
+            print(f"[Transcribe-Gemini] Detected MP3 format ({len(raw_bytes)}B)", flush=True)
+        elif raw_bytes[:4] == b'RIFF':
+            # Already WAV
+            mime_type = "audio/wav"
+            audio_b64 = req.audio_base64
+            print(f"[Transcribe-Gemini] Detected WAV format ({len(raw_bytes)}B)", flush=True)
+        elif raw_bytes[:1] == b'#' and b'AMR' in raw_bytes[:10]:
+            # AMR
+            mime_type = "audio/amr"
+            audio_b64 = req.audio_base64
+            print(f"[Transcribe-Gemini] Detected AMR format ({len(raw_bytes)}B)", flush=True)
+        elif raw_bytes[:4] == b'OggS':
+            # OGG/Opus
+            mime_type = "audio/ogg"
+            audio_b64 = req.audio_base64
+            print(f"[Transcribe-Gemini] Detected OGG format ({len(raw_bytes)}B)", flush=True)
+        elif len(raw_bytes) > 8 and raw_bytes[4:8] == b'ftyp':
+            # MP4/M4A with different box size
+            mime_type = "audio/mp4"
+            audio_b64 = req.audio_base64
+            print(f"[Transcribe-Gemini] Detected MP4/M4A format via ftyp ({len(raw_bytes)}B)", flush=True)
+        else:
+            # Assume raw PCM, wrap in WAV
+            wav_bytes = _pcm_to_wav(raw_bytes, req.sample_rate_hertz)
+            audio_b64 = base64.b64encode(wav_bytes).decode("utf-8")
+            print(f"[Transcribe-Gemini] Assuming PCM, wrapped as WAV: {len(raw_bytes)}B -> {len(wav_bytes)}B", flush=True)
 
-        if not final_b64:
-            raise HTTPException(status_code=400, detail="Empty audio file or missing audio_base64")
+        lang_names = {"hi-IN": "Hindi", "en-IN": "English", "mr-IN": "Marathi", "gu-IN": "Gujarati", "auto": "Hindi or English"}
+        lang_name = lang_names.get(req.language_code, req.language_code)
 
-        # 👉 Gemini request (User logic)
         payload = {
-            "contents": [
-                {
-                    "parts": [
-                        {
-                            "inlineData": {
-                                "mimeType": final_mime,
-                                "data": final_b64
-                            }
-                        },
-                        {
-                            "text": f"Transcribe this audio clearly into {lang_code}. Only return plain text. Do not add emojis or explanations."
-                        }
-                    ]
-                }
-            ]
+            "contents": [{
+                "parts": [
+                    {"inline_data": {"mime_type": mime_type, "data": audio_b64}},
+                    {"text": (
+                        f"Transcribe this audio recording accurately. "
+                        f"The primary language is {lang_name}. "
+                        f"Return ONLY the transcription text, nothing else. "
+                        f"If the audio is unclear or empty, return an empty string."
+                    )},
+                ]
+            }]
         }
 
         data = await _call_gemini(TRANSCRIBE_MODEL, payload)
         text = _extract_gemini_text(data)
         print(f"[Transcribe-Gemini] ✓ Result: {(text or 'None')[:200]}", flush=True)
-        
         _log_activity("api.transcribe_gemini", store_phone=user.get("phone"), entity_type="recording",
-                      metadata={"lang": lang_code, "has_result": bool(text), "method": "multipart" if audio_file else "base64"}, request=request)
-        
-        return {"text": text or "", "transcript": text or ""} # "text" for user request compatibility, "transcript" for legacy
+                      metadata={"lang": req.language_code, "audio_len": len(req.audio_base64), "mime": mime_type, "has_result": bool(text)}, request=request)
+        return {"transcript": text or None, "text": text or ""}
 
-    except HTTPException as e:
-        raise e  # ✅ DO NOT MASK
-
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Transcribe-Gemini] ✗ Exception: {e}", flush=True)
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        _log_activity("api.transcribe_gemini.error", store_phone=user.get("phone"), entity_type="recording",
+                      metadata={"error": str(e)[:200]}, request=request)
+        raise HTTPException(status_code=500, detail=f"Gemini transcription failed: {e}")
 
 
 # ---------- Transcribe Raw Audio ----------
@@ -893,7 +896,7 @@ async def transcribe_raw(req: TranscribeRawRequest, request: Request = None, use
     
     print(f"[Transcribe-Raw] Request: lang={req.language_code}, mime={req.mime_type}, audio_len={len(req.audio_base64)}", flush=True)
     try:
-        lang_names = {"hi-IN": "Hindi", "en-IN": "English", "mr-IN": "Marathi", "gu-IN": "Gujarati"}
+        lang_names = {"hi-IN": "Hindi", "en-IN": "English", "mr-IN": "Marathi", "gu-IN": "Gujarati", "auto": "Hindi or English"}
         lang_name = lang_names.get(req.language_code, req.language_code)
 
         payload = {
@@ -923,6 +926,85 @@ async def transcribe_raw(req: TranscribeRawRequest, request: Request = None, use
         print(f"[Transcribe-Raw] ✗ Exception: {e}", flush=True)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Gemini transcription failed: {e}")
+
+
+# ---------- Transcribe Multipart (File Upload) ----------
+
+@app.post("/api/transcribe-gemini-multipart")
+async def transcribe_gemini_multipart(
+    audio_file: UploadFile = File(...),
+    language_code: str = Form("hi-IN"),
+    request: Request = None,
+    user: dict = Depends(get_current_user),
+):
+    """Accept multipart file upload and transcribe via Gemini.
+    This avoids base64 encoding overhead on the client."""
+    file_bytes = await audio_file.read()
+    if len(file_bytes) > 15_000_000:  # 15MB raw limit
+        raise HTTPException(status_code=413, detail="Audio file too large (max 15MB)")
+
+    content_type = audio_file.content_type or "audio/mp4"
+    filename = audio_file.filename or "audio.m4a"
+    print(f"[Transcribe-Multipart] file={filename}, size={len(file_bytes)}B, type={content_type}, lang={language_code}", flush=True)
+
+    # Determine mime type for Gemini
+    mime_map = {
+        "audio/mp4": "audio/mp4",
+        "audio/m4a": "audio/mp4",
+        "audio/x-m4a": "audio/mp4",
+        "audio/aac": "audio/aac",
+        "audio/mpeg": "audio/mp3",
+        "audio/mp3": "audio/mp3",
+        "audio/amr": "audio/amr",
+        "audio/wav": "audio/wav",
+        "audio/x-wav": "audio/wav",
+        "audio/ogg": "audio/ogg",
+        "audio/webm": "audio/webm",
+    }
+    mime_type = mime_map.get(content_type, "audio/mp4")
+
+    # Extension-based fallback
+    if mime_type == "audio/mp4":
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        ext_map = {"mp3": "audio/mp3", "amr": "audio/amr", "wav": "audio/wav", "ogg": "audio/ogg", "webm": "audio/webm", "aac": "audio/aac"}
+        if ext in ext_map:
+            mime_type = ext_map[ext]
+
+    audio_b64 = base64.b64encode(file_bytes).decode("utf-8")
+
+    lang_names = {"hi-IN": "Hindi", "en-IN": "English", "mr-IN": "Marathi", "gu-IN": "Gujarati", "auto": "Hindi or English"}
+    lang_name = lang_names.get(language_code, language_code)
+
+    try:
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"inline_data": {"mime_type": mime_type, "data": audio_b64}},
+                    {"text": (
+                        f"Transcribe this audio recording accurately. "
+                        f"The primary language is {lang_name}. "
+                        f"Return ONLY the transcription text, nothing else. "
+                        f"If the audio is unclear or empty, return an empty string."
+                    )},
+                ]
+            }]
+        }
+
+        data = await _call_gemini(TRANSCRIBE_MODEL, payload)
+        text = _extract_gemini_text(data)
+        print(f"[Transcribe-Multipart] ✓ Result: {(text or 'None')[:200]}", flush=True)
+        _log_activity("api.transcribe_multipart", store_phone=user.get("phone"), entity_type="recording",
+                      metadata={"lang": language_code, "file_size": len(file_bytes), "mime": mime_type, "has_result": bool(text)}, request=request)
+        return {"transcript": text or None, "text": text or ""}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Transcribe-Multipart] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        _log_activity("api.transcribe_multipart.error", store_phone=user.get("phone"), entity_type="recording",
+                      metadata={"error": str(e)[:200]}, request=request)
+        raise HTTPException(status_code=500, detail=f"Multipart transcription failed: {e}")
 
 
 # ---------- Classify ----------
