@@ -1303,7 +1303,37 @@ async def sync_order(req: SyncOrderRequest, request: Request = None, user: dict 
 
         if req.created_at is not None:
             row["created_at"] = parse_epoch_ms(req.created_at)
+        
+        # Check if new to log correctly
+        existing = None
+        try:
+            res = sb.table("orders").select("id").eq("order_id", req.order_id).execute()
+            existing = res.data[0] if res.data else None
+        except: pass
+
         sb.table("orders").upsert(row, on_conflict="order_id").execute()
+
+        # Log Activity
+        try:
+            action_type = "ORDER_CREATE" if not existing else "ORDER_UPDATE"
+            notes = f"Order saved with {len(req.products) if req.products else 0} items for ₹{req.total_amount}."
+            
+            if req.is_cancelled:
+                action_type = "ORDER_CANCELLED"
+                notes = f"Order cancelled."
+            elif req.delivery_status and req.delivery_status.lower() == 'delivered':
+                action_type = "ORDER_DELIVERED"
+                notes = "Order marked as delivered."
+
+            sb.table("activity_log").insert({
+                "action_type": action_type,
+                "user_phone": store_phone,
+                "store_phone": store_phone,
+                "notes": notes,
+                "order_id": req.order_id
+            }).execute()
+        except Exception as e:
+            print(f"[SyncOrder] Failed to log activity: {e}", flush=True)
 
         # Normalize products into order_items table
         if store_phone and req.products:
