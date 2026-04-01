@@ -51,14 +51,12 @@ export default function EditOrderScreen() {
   const removeProduct = (i) => {
     const updated = products.filter((_, idx) => idx !== i);
     setProducts(updated);
-    recalcTotal(updated);
   };
 
   const updateProduct = (i, field, value) => {
     const updated = [...products];
     updated[i] = {...updated[i], [field]: value};
     setProducts(updated);
-    if (field === 'price' || field === 'quantity') recalcTotal(updated);
   };
 
   const recalcTotal = (prods) => {

@@ -5,6 +5,7 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Colors, FontSizes, FontWeights, BorderRadius, Spacing} from '../theme';
 import {BASE_URL} from '../config';
+import {syncOrder, syncRecording} from '../api/syncApi';
 import CustomPopup from '../components/CustomPopup';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -322,6 +323,27 @@ export default function RecordingsScreen() {
           await AsyncStorage.setItem('orders', JSON.stringify(orders));
           await saveRecordingState(recording.path, {isProcessed: true, classification: 'ORDER_CALL', transcript, orderId: newOrder.orderId});
           setRecordings(prev => prev.map(r => r.path === recording.path ? {...r, isProcessed: true, classification: 'ORDER_CALL', transcript, orderId: newOrder.orderId, processingStep: null} : r));
+          
+          updateStep('Syncing...');
+          try {
+            const recSyncObj = {
+                filename: recording.filename,
+                path: recording.path,
+                durationMs: recording.duration ? Math.floor(recording.duration * 1000) : 0,
+                dateRecorded: recording.lastModified,
+                transcript: transcript,
+                classification: 'ORDER_CALL',
+                isProcessed: true,
+                sourcePhone: callPhone,
+                contactName: callName,
+                createdAt: Date.now()
+            };
+            await syncRecording(recSyncObj, "manual-process", token);
+            await syncOrder(newOrder, recording.filename, token);
+          } catch(syncErr) {
+            nativeLog(TAG, 'Sync error: ' + syncErr.message);
+          }
+
           updateStep('Done!');
           try { await RecordingMonitorModule.showNotification('Order Created!', `Order #${newOrder.orderId} from ${customerName}`, notifId); } catch(e){}
           showPopup('Order Created', `Order #${newOrder.orderId} created successfully!\n\nGo to Home screen to view and share via WhatsApp.`, 'check');

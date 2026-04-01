@@ -31,7 +31,7 @@ export async function syncOrder(order, recordingFilename, token) {
     if (recordingFilename) {
       body.recording_filename = recordingFilename;
     }
-    const res = await fetch(`${BASE_URL}/api/sync-order`, {
+    const res = await fetch(`${BASE_URL}/api/sync/order`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ export async function syncRecording(recording, deviceId, token) {
       call_direction: 'INCOMING',
       created_at: recording.createdAt,
     };
-    const res = await fetch(`${BASE_URL}/api/sync-recording`, {
+    const res = await fetch(`${BASE_URL}/api/sync/recording`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
