@@ -7,6 +7,7 @@ import {Colors, FontSizes, FontWeights, BorderRadius, Spacing} from '../theme';
 import {sendWhatsApp, shareOrderViaWhatsApp, composeMessage, formatPrice, formatProductPrice} from '../utils/whatsappHelper';
 import CustomPopup from '../components/CustomPopup';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {syncOrder} from '../api/syncApi';
 
 export default function OrderDetailScreen() {
   const route = useRoute();
@@ -42,6 +43,14 @@ export default function OrderDetailScreen() {
     await AsyncStorage.setItem('orders', JSON.stringify(updated));
     const found = updated.find(o => o.orderId === orderId);
     setOrder(found);
+
+    // Sync to backend if token is available
+    if (found) {
+        try {
+            const tk = await AsyncStorage.getItem('auth_token');
+            if (tk) await syncOrder(found, null, tk);
+        } catch(e) { console.warn('Sync failed', e); }
+    }
   };
 
   const cancelOrder = () => {
@@ -49,13 +58,23 @@ export default function OrderDetailScreen() {
       {text: 'No', style: 'outline', onPress: hidePopup},
       {text: 'Cancel Order', style: 'destructive', onPress: () => {
         hidePopup();
-        saveOrders(list => list.map(o => o.orderId === orderId ? {...o, isCancelled: true, cancelledAt: Date.now()} : o));
+        saveOrders(list => list.map(o => o.orderId === orderId ? {...o, isCancelled: true, cancelledAt: Date.now(), deliveryStatus: 'cancelled'} : o));
+      }},
+    ]);
+  };
+
+  const markDelivered = () => {
+    showPopup('Mark Delivered', 'Confirm this order is delivered?', 'info', [
+      {text: 'No', style: 'outline', onPress: hidePopup},
+      {text: 'Yes, Delivered', style: 'primary', onPress: () => {
+        hidePopup();
+        saveOrders(list => list.map(o => o.orderId === orderId ? {...o, deliveryStatus: 'delivered', isCancelled: false, cancelledAt: null} : o));
       }},
     ]);
   };
 
   const restoreOrder = () => {
-    saveOrders(list => list.map(o => o.orderId === orderId ? {...o, isCancelled: false, cancelledAt: null} : o));
+    saveOrders(list => list.map(o => o.orderId === orderId ? {...o, isCancelled: false, cancelledAt: null, deliveryStatus: 'pending'} : o));
   };
 
   const whatsAppSend = async () => {
@@ -178,6 +197,24 @@ export default function OrderDetailScreen() {
             {order.isCancelled ? 'Restore Order' : 'Cancel Order'}
           </Text>
         </TouchableOpacity>
+
+        {(!order.isCancelled && order.deliveryStatus !== 'delivered') && (
+          <TouchableOpacity
+            style={[s.actionBtn, {backgroundColor: Colors.success, borderColor: Colors.success, marginTop: Spacing.sm}]}
+            onPress={markDelivered}
+            activeOpacity={0.7}
+          >
+            <Text style={[s.actionBtnText, {color: '#fff'}]}>
+              Mark as Delivered
+            </Text>
+          </TouchableOpacity>
+        )}
+        
+        {order.deliveryStatus === 'delivered' && (
+           <View style={{marginTop: Spacing.md, padding: Spacing.sm, backgroundColor: Colors.success+'20', borderRadius: BorderRadius.md, alignItems: 'center'}}>
+              <Text style={{color: Colors.success, fontWeight: FontWeights.bold}}>Order Delivered</Text>
+           </View>
+        )}
       </ScrollView>
 
       <CustomPopup {...popup} onClose={hidePopup}/>
