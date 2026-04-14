@@ -1,5 +1,5 @@
 import React, {useState, useContext, useRef, useEffect} from 'react';
-import {View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, DeviceEventEmitter} from 'react-native';
+import {View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, DeviceEventEmitter, NativeModules} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Colors, FontSizes, FontWeights, BorderRadius, Spacing} from '../theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -22,8 +22,23 @@ export default function LoginScreen() {
   const [popup, setPopup] = useState({visible: false, title: '', message: '', icon: 'info', buttons: []});
   const scrollRef = useRef(null);
   
-  // v30: Ref to track OTP for auto-verification to bypass state batching
+  // v42: Ref to track OTP for auto-verification to bypass state batching
   const pendingOtpRef = useRef(null);
+  const showOtpRef = useRef(false);
+  const currentPhoneRef = useRef('');
+
+  // Keep refs in sync with state
+  useEffect(() => { showOtpRef.current = showOtp; }, [showOtp]);
+  useEffect(() => { currentPhoneRef.current = currentPhone; }, [currentPhone]);
+
+  useEffect(() => {
+    // v42: Start SMS Retriever when OTP screen is shown
+    if (showOtp && NativeModules.RecordingMonitorModule?.startSmsRetriever) {
+      NativeModules.RecordingMonitorModule.startSmsRetriever()
+        .then(() => console.log('SMS Retriever started'))
+        .catch(e => console.warn('SMS Retriever start failed:', e));
+    }
+  }, [showOtp]);
 
   useEffect(() => {
     // Listen for native OTP event
@@ -32,14 +47,15 @@ export default function LoginScreen() {
       setOtp(newOtp);
       pendingOtpRef.current = newOtp;
       
-      // Auto-trigger verification if we are on the OTP screen
-      if (showOtp) {
-        onVerifyOtp();
+      // v42: Auto-trigger verification using ref (avoids stale closure)
+      if (showOtpRef.current && newOtp?.length === 6) {
+        // Small delay to let state settle
+        setTimeout(() => autoVerifyOtp(newOtp), 300);
       }
     });
 
     return () => subscription.remove();
-  }, [showOtp]);
+  }, []);
 
   // Scroll down when OTP or signup section appears so keyboard doesn't overlap
   useEffect(() => {
@@ -56,6 +72,14 @@ export default function LoginScreen() {
   const onSendOtp = async () => {
     if (phone.length !== 10) { setStatus('Enter a valid 10-digit phone number'); return; }
     setCurrentPhone(phone);
+    
+    // Playstore review bypass
+    if (phone === '9619363677') {
+      setStatus('');
+      setShowOtp(true);
+      return;
+    }
+
     setLoading(true);
     setStatus('Sending OTP...');
     try {
@@ -70,10 +94,18 @@ export default function LoginScreen() {
   };
 
   const onVerifyOtp = async () => {
-    // v30: Check both state and ref for the OTP value
+    // v42: Check both state and ref for the OTP value
     const otpToVerify = pendingOtpRef.current || otp;
     if (otpToVerify.length !== 6) { setStatus('Enter the 6-digit OTP'); return; }
     
+    // Playstore review bypass
+    if (currentPhone === '9619363677' && otpToVerify === '123456') {
+      const testToken = 'review_token_9619363677_x3a';
+      setCurrentToken(testToken);
+      await login(testToken, currentPhone, 'Test Shop', 'Test User');
+      return;
+    }
+
     setLoading(true);
     setStatus('Verifying OTP...');
     try {
@@ -86,6 +118,28 @@ export default function LoginScreen() {
       setCurrentToken(data.token || '');
       if (data.is_new_user) { setStatus('Welcome! Please complete your profile.'); setShowSignup(true); }
       else { const user = data.user || {}; await login(data.token, user.phone || currentPhone, user.shop_name || '', user.shopkeeper_name || ''); }
+    } catch (e) { setStatus('Network error. Please try again.'); }
+    setLoading(false);
+  };
+
+  // v42: Auto-verify OTP - uses parameter directly to avoid stale closure
+  const autoVerifyOtp = async (otpValue) => {
+    if (!otpValue || otpValue.length !== 6) return;
+    const phoneToVerify = currentPhoneRef.current;
+    if (!phoneToVerify || phoneToVerify.length !== 10) return;
+    
+    setLoading(true);
+    setStatus('Auto-verifying OTP...');
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({phone: phoneToVerify, otp: otpValue}),
+      });
+      if (!res.ok) { setStatus('Invalid OTP. Please try again.'); setLoading(false); return; }
+      const data = await res.json();
+      setCurrentToken(data.token || '');
+      if (data.is_new_user) { setStatus('Welcome! Please complete your profile.'); setShowSignup(true); }
+      else { const user = data.user || {}; await login(data.token, user.phone || phoneToVerify, user.shop_name || '', user.shopkeeper_name || ''); }
     } catch (e) { setStatus('Network error. Please try again.'); }
     setLoading(false);
   };

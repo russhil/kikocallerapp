@@ -69,8 +69,15 @@ yarn-error.log
 .env.*
 .env.render
 .env.local
-*.json
 credentials*.json
+models.json
+orders*.json
+recordings*.json
 __pycache__/
 *.pyc
 .venv/
+*.apk
+*.aab
+*.log
+*.pem
+*.txt

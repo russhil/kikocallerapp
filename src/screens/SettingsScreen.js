@@ -132,7 +132,13 @@ export default function SettingsScreen() {
             Use the Browse button to select your call recording folder, or paste a path manually below.
           </Text>
           <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-            <TextInput style={[s.input, {flex: 1}]} value={customPath} onChangeText={setCustomPath} placeholder="e.g. /storage/emulated/0/MyRecordings/" placeholderTextColor={Colors.textMuted} maxFontSizeMultiplier={1.2}/>
+            {customPath ? (
+              <View style={[s.input, {flex: 1, justifyContent: 'center'}]}>
+                <Text style={{fontSize: FontSizes.body, color: Colors.textPrimary}} numberOfLines={1} ellipsizeMode="middle">{customPath}</Text>
+              </View>
+            ) : (
+              <TextInput style={[s.input, {flex: 1}]} value={customPath} onChangeText={setCustomPath} placeholder="e.g. /storage/emulated/0/MyRecordings/" placeholderTextColor={Colors.textMuted} maxFontSizeMultiplier={1.2}/>
+            )}
             <TouchableOpacity style={s.browseBtn} onPress={browseFolderPicker} activeOpacity={0.7}>
               <Icon name="folder-open-outline" size={20} color={Colors.white} />
             </TouchableOpacity>

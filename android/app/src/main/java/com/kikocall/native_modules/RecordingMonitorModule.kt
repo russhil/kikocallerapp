@@ -4,7 +4,6 @@ import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.os.Build
-import android.os.Environment
 import android.provider.CallLog
 import android.provider.MediaStore
 import android.util.Base64
@@ -23,6 +22,13 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.FileOutputStream
 import android.app.PendingIntent
+import android.net.Uri
+import android.provider.DocumentsContract
+import androidx.documentfile.provider.DocumentFile
+import com.google.android.gms.auth.api.phone.SmsRetriever
+import android.content.pm.PackageManager
+import java.security.MessageDigest
+import java.util.Arrays
 
 class RecordingMonitorModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
@@ -38,6 +44,14 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
         var pendingFolderPickerPromise: Promise? = null
 
         val SUPPORTED_EXTENSIONS = setOf("mp3", "m4a", "m4b", "aac", "amr", "awb", "wav", "ogg", "opus", "flac", "3gp", "3gpp", "mp4", "webm", "qcp", "caf", "wma", "enc", "dat", "tmp", "spx", "au", "aiff")
+
+        // MIME types for MediaStore.Files scanning (catches files MediaStore.Audio misses)
+        val AUDIO_MIME_TYPES = arrayOf(
+            "audio/amr-wb", "audio/amr", "audio/mp4", "audio/mpeg",
+            "audio/aac", "audio/ogg", "audio/wav", "audio/flac",
+            "audio/3gpp", "audio/x-wav", "audio/webm", "audio/opus",
+            "application/octet-stream" // Some recorders save AWB with generic type
+        )
 
         private val BRAND_DIRS: Map<String, List<String>> = mapOf(
             "samsung" to listOf("/storage/emulated/0/Call Recordings", "/storage/emulated/0/Recordings/Call Recordings"),
@@ -148,8 +162,7 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
     private fun getAllDirectories(): List<String> {
         val dirs = mutableSetOf<String>()
         
-        // v30 Optimization: If user has a custom path, ONLY scan that.
-        // Don't waste time on 40+ generic/brand directories.
+        // v42 Optimization: If user has a custom path, ONLY scan that.
         if (!userCustomPath.isNullOrBlank()) {
             dirs.add(userCustomPath!!)
             return dirs.toList()
@@ -164,6 +177,67 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
         return dirs.toList()
     }
 
+    // ── Get persisted SAF URIs for folder picker ──
+
+    private fun getPersistedSafUris(): List<Uri> {
+        return try {
+            reactContext.contentResolver.persistedUriPermissions
+                .filter { it.isReadPermission }
+                .map { it.uri }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to get persisted URI permissions", e)
+            emptyList()
+        }
+    }
+
+    // ── SAF-based scanning using DocumentFile ──
+
+    private fun scanViaSAF(): List<AudioFile> {
+        val recordings = mutableListOf<AudioFile>()
+        val safUris = getPersistedSafUris()
+        
+        if (safUris.isEmpty()) {
+            Log.d(TAG, "No persisted SAF URIs found")
+            return recordings
+        }
+
+        for (treeUri in safUris) {
+            try {
+                val docFile = DocumentFile.fromTreeUri(reactContext, treeUri) ?: continue
+                if (!docFile.exists() || !docFile.isDirectory) continue
+                
+                Log.d(TAG, "SAF scanning tree: ${treeUri}")
+                scanDocumentFileRecursive(docFile, recordings)
+            } catch (e: Exception) {
+                Log.w(TAG, "SAF scan failed for $treeUri", e)
+            }
+        }
+        
+        Log.d(TAG, "SAF scan found ${recordings.size} files")
+        return recordings
+    }
+
+    private fun scanDocumentFileRecursive(dir: DocumentFile, results: MutableList<AudioFile>) {
+        try {
+            for (file in dir.listFiles()) {
+                if (file.isDirectory) {
+                    scanDocumentFileRecursive(file, results)
+                } else if (file.isFile) {
+                    val name = file.name ?: continue
+                    val ext = name.substringAfterLast('.', "").lowercase()
+                    if (ext !in SUPPORTED_EXTENSIONS) continue
+                    val size = file.length()
+                    if (size == 0L) continue
+                    val lastModified = file.lastModified()
+                    val uri = file.uri.toString()
+                    results.add(AudioFile(name, uri, lastModified, size, file.uri))
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error scanning document dir: ${dir.uri}", e)
+        }
+    }
+
     // ── SCAN RECORDINGS ──
 
     @ReactMethod
@@ -175,31 +249,53 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
                 0L
             }
 
-            // v30: Prioritize MediaStore, fallback to directory scan only if MediaStore is empty
-            val recordings = scanViaMediaStore() ?: scanViaDirectories()
+            // v42: Multi-strategy scanning
+            // 1. MediaStore Audio (standard)
+            var recordings = scanViaMediaStore() ?: emptyList()
+            
+            // 2. MediaStore Files (catches AWB and other files not indexed as audio)
+            val filesRecordings = scanViaMediaStoreFiles()
+            recordings = (recordings + filesRecordings).distinctBy { "${it.name}_${it.size}" }
+            
+            // 3. SAF-based scanning (user-selected folders - works on all API levels)
+            val safRecordings = scanViaSAF()
+            recordings = (recordings + safRecordings).distinctBy { "${it.name}_${it.size}" }
+            
+            // 4. Direct directory scan (works on API < 30, or if MANAGE_EXTERNAL_STORAGE granted)
+            val dirRecordings = scanViaDirectories()
+            recordings = (recordings + dirRecordings).distinctBy { "${it.name}_${it.size}" }
+            
+            // Sort by newest first
+            recordings = recordings.sortedByDescending { it.lastModified }
+            
+            Log.d(TAG, "Total recordings found: ${recordings.size} (MediaStore: mixed, SAF: ${safRecordings.size}, Dirs: ${dirRecordings.size})")
+
             val result = Arguments.createArray()
             
             for (r in recordings) {
-                // Skip recordings that were created before the app was installed
-                if (r.lastModified < installTime) continue
-
                 val map = Arguments.createMap()
                 map.putString("filename", r.name)
                 map.putString("path", r.path)
                 map.putDouble("size", r.size.toDouble())
                 map.putDouble("lastModified", r.lastModified.toDouble())
+                map.putBoolean("isOld", r.lastModified < installTime)
                 
-                // v30 optimized: Avoid heavy duration check during bulk scan
+                // v42: Store content URI if available for SAF files
+                if (r.contentUri != null) {
+                    map.putString("contentUri", r.contentUri.toString())
+                }
+                
                 map.putDouble("durationMs", 0.0) 
                 result.pushMap(map)
             }
             promise.resolve(result)
         } catch (e: Exception) {
+            Log.e(TAG, "scanRecordings failed", e)
             promise.reject("SCAN_ERROR", e.message)
         }
     }
 
-    data class AudioFile(val name: String, val path: String, val lastModified: Long, val size: Long)
+    data class AudioFile(val name: String, val path: String, val lastModified: Long, val size: Long, val contentUri: Uri? = null)
 
     private fun scanViaMediaStore(): List<AudioFile>? {
         try {
@@ -225,10 +321,14 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
                     val path = it.getString(pathCol) ?: continue
                     val ext = name.substringAfterLast('.', "").lowercase()
                     if (ext !in SUPPORTED_EXTENSIONS) continue
-                    val file = File(path)
-                    if (!file.exists() || file.length() == 0L) continue
+                    // v42: Don't check file.exists() on API 30+ — MediaStore says it exists
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                        val file = File(path)
+                        if (!file.exists() || file.length() == 0L) continue
+                    }
                     val dateModified = it.getLong(dateCol) * 1000
                     val size = it.getLong(sizeCol)
+                    if (size == 0L) continue
                     if (seenPaths.add(path)) {
                         recordings.add(AudioFile(name, path, dateModified, size))
                     }
@@ -242,6 +342,54 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
         }
     }
 
+    // v42: Additional scan via MediaStore.Files to catch AWB and other non-standard audio files
+    private fun scanViaMediaStoreFiles(): List<AudioFile> {
+        val recordings = mutableListOf<AudioFile>()
+        try {
+            val projection = arrayOf(
+                MediaStore.Files.FileColumns.DISPLAY_NAME,
+                MediaStore.Files.FileColumns.DATA,
+                MediaStore.Files.FileColumns.DATE_MODIFIED,
+                MediaStore.Files.FileColumns.SIZE,
+                MediaStore.Files.FileColumns.MIME_TYPE
+            )
+            
+            // Build selection for supported extensions
+            val extPatterns = SUPPORTED_EXTENSIONS.map { "%.${it}" }
+            val selection = extPatterns.joinToString(" OR ") { "${MediaStore.Files.FileColumns.DATA} LIKE ?" }
+            val selectionArgs = extPatterns.toTypedArray()
+
+            val cursor = reactContext.contentResolver.query(
+                MediaStore.Files.getContentUri("external"),
+                projection,
+                selection,
+                selectionArgs,
+                "${MediaStore.Files.FileColumns.DATE_MODIFIED} DESC"
+            )
+            
+            cursor?.use {
+                val nameCol = it.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
+                val pathCol = it.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATA)
+                val dateCol = it.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DATE_MODIFIED)
+                val sizeCol = it.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
+                while (it.moveToNext()) {
+                    val name = it.getString(nameCol) ?: continue
+                    val path = it.getString(pathCol) ?: continue
+                    val ext = name.substringAfterLast('.', "").lowercase()
+                    if (ext !in SUPPORTED_EXTENSIONS) continue
+                    val size = it.getLong(sizeCol)
+                    if (size == 0L) continue
+                    val dateModified = it.getLong(dateCol) * 1000
+                    recordings.add(AudioFile(name, path, dateModified, size))
+                }
+            }
+            Log.d(TAG, "MediaStore.Files scan found ${recordings.size} audio files")
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaStore.Files scan failed", e)
+        }
+        return recordings
+    }
+
     private fun scanViaDirectories(): List<AudioFile> {
         val recordings = mutableListOf<AudioFile>()
         val scannedPaths = mutableSetOf<String>()
@@ -250,8 +398,8 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
                 val dir = File(dirPath)
                 if (dir.exists() && dir.isDirectory) {
                     dir.walkTopDown()
-                        .onEnter { it.canRead() } // Only enter readable directories
-                        .onFail { _, _ -> }       // Ignore sequence errors (e.g. permission denied)
+                        .onEnter { it.canRead() }
+                        .onFail { _, _ -> }
                         .filter { it.isFile && it.extension.lowercase() in SUPPORTED_EXTENSIONS }
                         .forEach { file ->
                             if (scannedPaths.add(file.absolutePath)) {
@@ -261,7 +409,6 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed scanning directory $dirPath", e)
-                // Continue to next directory
             }
         }
         return recordings.sortedByDescending { it.lastModified }
@@ -269,52 +416,104 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
 
     // ── AUDIO CONVERSION ──
 
+    // v42: Try to open a file, falling back to ContentResolver for SAF URIs
+    private fun openFileBytes(filePath: String): ByteArray? {
+        // First try direct File access
+        try {
+            val file = File(filePath)
+            if (file.exists() && file.length() > 0L && file.length() <= MAX_PCM_BYTES) {
+                return file.readBytes()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Direct file read failed for $filePath, trying ContentResolver", e)
+        }
+
+        // Try as content:// URI
+        try {
+            val uri = if (filePath.startsWith("content://")) {
+                Uri.parse(filePath)
+            } else {
+                // Try to find in MediaStore by path
+                findMediaStoreUri(filePath)
+            }
+            
+            if (uri != null) {
+                val stream = reactContext.contentResolver.openInputStream(uri)
+                if (stream != null) {
+                    val bytes = stream.readBytes()
+                    stream.close()
+                    if (bytes.isNotEmpty() && bytes.size <= MAX_PCM_BYTES) {
+                        return bytes
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "ContentResolver read failed for $filePath", e)
+        }
+
+        return null
+    }
+
+    // v42: Find MediaStore content URI for a file path
+    private fun findMediaStoreUri(filePath: String): Uri? {
+        try {
+            val projection = arrayOf(MediaStore.Audio.Media._ID)
+            val selection = "${MediaStore.Audio.Media.DATA} = ?"
+            val selectionArgs = arrayOf(filePath)
+            val cursor = reactContext.contentResolver.query(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection, selection, selectionArgs, null
+            )
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val id = it.getLong(it.getColumnIndexOrThrow(MediaStore.Audio.Media._ID))
+                    return Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id.toString())
+                }
+            }
+            
+            // Also try MediaStore.Files
+            val projection2 = arrayOf(MediaStore.Files.FileColumns._ID)
+            val selection2 = "${MediaStore.Files.FileColumns.DATA} = ?"
+            val cursor2 = reactContext.contentResolver.query(
+                MediaStore.Files.getContentUri("external"),
+                projection2, selection2, selectionArgs, null
+            )
+            cursor2?.use {
+                if (it.moveToFirst()) {
+                    val id = it.getLong(it.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID))
+                    return Uri.withAppendedPath(MediaStore.Files.getContentUri("external"), id.toString())
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "findMediaStoreUri failed for $filePath", e)
+        }
+        return null
+    }
+
     @ReactMethod
     fun decodeToBase64(filePath: String, promise: Promise) {
         Thread {
             try {
                 val pcmBytes = decodeToPcmBytes(filePath)
                 if (pcmBytes != null && pcmBytes.isNotEmpty()) {
-                    val base64 = if (pcmBytes.size <= 768 * 1024) {
-                        Base64.encodeToString(pcmBytes, Base64.NO_WRAP)
-                    } else {
-                        val chunkSize = 768 * 1024
-                        val sb = StringBuilder((pcmBytes.size * 4 / 3) + 4)
-                        var offset = 0
-                        while (offset < pcmBytes.size) {
-                            val end = minOf(offset + chunkSize, pcmBytes.size)
-                            sb.append(Base64.encodeToString(pcmBytes.copyOfRange(offset, end), Base64.NO_WRAP))
-                            offset = end
-                        }
-                        sb.toString()
-                    }
+                    val base64 = encodeBase64Chunked(pcmBytes)
                     promise.resolve(base64)
                     return@Thread
                 }
-                // Fallback: if PCM decode fails (e.g. unsupported codec on some devices),
-                // send raw file bytes - the Gemini API can handle various audio formats
+                // Fallback: send raw file bytes
                 Log.w(TAG, "PCM decode failed for $filePath, falling back to raw file base64")
-                val file = File(filePath)
-                if (!file.exists() || file.length() == 0L) {
-                    promise.reject("DECODE_ERROR", "File does not exist or is empty")
-                    return@Thread
+                val bytes = openFileBytes(filePath)
+                if (bytes != null && bytes.isNotEmpty()) {
+                    promise.resolve(Base64.encodeToString(bytes, Base64.NO_WRAP))
+                } else {
+                    promise.reject("DECODE_ERROR", "File does not exist or is empty: $filePath")
                 }
-                if (file.length() > MAX_PCM_BYTES) {
-                    promise.reject("DECODE_ERROR", "File too large")
-                    return@Thread
-                }
-                val bytes = file.readBytes()
-                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                promise.resolve(base64)
             } catch (e: Exception) {
-                // Final fallback: try raw file
                 try {
                     Log.w(TAG, "Decode exception for $filePath, trying raw file fallback", e)
-                    val file = File(filePath)
-                    if (file.exists() && file.length() > 0L && file.length() <= MAX_PCM_BYTES) {
-                        val bytes = file.readBytes()
-                        val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                        promise.resolve(base64)
+                    val bytes = openFileBytes(filePath)
+                    if (bytes != null && bytes.isNotEmpty()) {
+                        promise.resolve(Base64.encodeToString(bytes, Base64.NO_WRAP))
                     } else {
                         promise.reject("DECODE_ERROR", "Failed to decode audio: ${e.message}", e)
                     }
@@ -325,22 +524,33 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
         }.start()
     }
 
+    private fun encodeBase64Chunked(bytes: ByteArray): String {
+        return if (bytes.size <= 768 * 1024) {
+            Base64.encodeToString(bytes, Base64.NO_WRAP)
+        } else {
+            val chunkSize = 768 * 1024
+            val sb = StringBuilder((bytes.size * 4 / 3) + 4)
+            var offset = 0
+            while (offset < bytes.size) {
+                val end = minOf(offset + chunkSize, bytes.size)
+                sb.append(Base64.encodeToString(bytes.copyOfRange(offset, end), Base64.NO_WRAP))
+                offset = end
+            }
+            sb.toString()
+        }
+    }
+
     @ReactMethod
     fun getFileBase64(filePath: String, promise: Promise) {
         Thread {
             try {
-                val file = File(filePath)
-                if (!file.exists() || file.length() == 0L) {
-                    promise.reject("FILE_ERROR", "File does not exist")
-                    return@Thread
+                val bytes = openFileBytes(filePath)
+                if (bytes != null && bytes.isNotEmpty()) {
+                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    promise.resolve(base64)
+                } else {
+                    promise.reject("FILE_ERROR", "File does not exist or cannot be read: $filePath")
                 }
-                if (file.length() > MAX_PCM_BYTES) {
-                    promise.reject("FILE_ERROR", "File too large")
-                    return@Thread
-                }
-                val bytes = file.readBytes()
-                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                promise.resolve(base64)
             } catch (e: Exception) {
                 promise.reject("FILE_ERROR", e.message, e)
             }
@@ -348,16 +558,38 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
     }
 
     private fun decodeToPcmBytes(filePath: String): ByteArray? {
-        val file = File(filePath)
-        if (!file.exists() || file.length() == 0L) return null
+        // v42: Try direct path first, then ContentResolver
         val extractor = MediaExtractor()
         try {
-            extractor.setDataSource(filePath)
+            // Try direct file path
+            try {
+                val file = File(filePath)
+                if (file.exists() && file.length() > 0L) {
+                    extractor.setDataSource(filePath)
+                } else {
+                    throw Exception("File not accessible via path")
+                }
+            } catch (e: Exception) {
+                // Try via ContentResolver
+                val uri = if (filePath.startsWith("content://")) {
+                    Uri.parse(filePath)
+                } else {
+                    findMediaStoreUri(filePath)
+                }
+                if (uri != null) {
+                    extractor.setDataSource(reactContext, uri, null)
+                } else {
+                    Log.w(TAG, "MediaExtractor: Cannot open $filePath via any method")
+                    extractor.release()
+                    return null
+                }
+            }
         } catch (e: Exception) {
             Log.w(TAG, "MediaExtractor failed to instantiate for $filePath: ${e.message}")
             extractor.release()
             return null
         }
+        
         var audioTrackIndex = -1
         for (i in 0 until extractor.trackCount) {
             val format = extractor.getTrackFormat(i)
@@ -531,18 +763,39 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
     @ReactMethod
     fun startMonitorService(promise: Promise) {
         try {
-            val observer = CallLogObserver(reactApplicationContext)
-            reactApplicationContext.contentResolver.registerContentObserver(
-                android.provider.CallLog.Calls.CONTENT_URI,
-                true,
-                observer
-            )
-            Log.d(TAG, "CallLogObserver registered successfully")
+            Log.d(TAG, "Starting BackgroundMonitorService...")
+            BackgroundMonitorService.start(reactApplicationContext)
+            
+            reactApplicationContext.getSharedPreferences("kikocall_prefs", android.content.Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean("monitoring_enabled", true)
+                .apply()
+            
+            Log.d(TAG, "BackgroundMonitorService started successfully")
             promise.resolve(true)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to register CallLogObserver", e)
+            Log.e(TAG, "Failed to start BackgroundMonitorService", e)
             promise.reject("MONITOR_ERROR", e.message)
         }
+    }
+
+    @ReactMethod
+    fun stopMonitorService(promise: Promise) {
+        try {
+            BackgroundMonitorService.stop(reactApplicationContext)
+            reactApplicationContext.getSharedPreferences("kikocall_prefs", android.content.Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean("monitoring_enabled", false)
+                .apply()
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("MONITOR_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun isMonitorRunning(promise: Promise) {
+        promise.resolve(BackgroundMonitorService.isRunning)
     }
 
     @ReactMethod
@@ -556,7 +809,6 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
                 notificationManager.createNotificationChannel(channel)
             }
             
-            // Note: res/mipmap/ic_launcher must exist usually, using standard React Native icon name
             val iconResId = reactApplicationContext.resources.getIdentifier("ic_launcher", "mipmap", reactApplicationContext.packageName)
             
             val intent = reactApplicationContext.packageManager.getLaunchIntentForPackage(reactApplicationContext.packageName)?.apply {
@@ -588,21 +840,105 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
 
     @ReactMethod
     fun hasAllFilesAccess(promise: Promise) {
-        // v30: Play Store Compliance - always return true to the UI since we use Scoped Storage
+        // v42: Play Store Compliance - always return true since we use Scoped Storage
+        // (SAF folder picker + MediaStore + READ_MEDIA_AUDIO)
         promise.resolve(true)
     }
 
     @ReactMethod
     fun requestAllFilesAccess(promise: Promise) {
-        // v30: No longer needed for Scoped Storage
+        // v42: No longer needed - we use SAF + MediaStore instead of MANAGE_EXTERNAL_STORAGE
         promise.resolve(true)
     }
+
+    // ── SMS Retriever for Auto-Read OTP ──
+
+    @ReactMethod
+    fun startSmsRetriever(promise: Promise) {
+        try {
+            val client = SmsRetriever.getClient(reactApplicationContext)
+            val task = client.startSmsRetriever()
+            task.addOnSuccessListener {
+                Log.d(TAG, "SMS Retriever started successfully")
+                promise.resolve(true)
+            }
+            task.addOnFailureListener { e ->
+                Log.e(TAG, "SMS Retriever failed to start", e)
+                promise.reject("SMS_ERROR", "Failed to start SMS Retriever: ${e.message}", e)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "SMS Retriever exception", e)
+            promise.reject("SMS_ERROR", e.message, e)
+        }
+    }
+
+    @ReactMethod
+    fun getAppSignatureHash(promise: Promise) {
+        try {
+            val hash = getAppSignatures()
+            promise.resolve(hash)
+        } catch (e: Exception) {
+            promise.reject("HASH_ERROR", e.message, e)
+        }
+    }
+
+    private fun getAppSignatures(): String {
+        try {
+            val packageName = reactApplicationContext.packageName
+            val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val signingInfo = reactApplicationContext.packageManager.getPackageInfo(
+                    packageName, PackageManager.GET_SIGNING_CERTIFICATES
+                ).signingInfo
+                if (signingInfo != null) {
+                    if (signingInfo.hasMultipleSigners()) {
+                        signingInfo.apkContentsSigners
+                    } else {
+                        signingInfo.signingCertificateHistory
+                    }
+                } else {
+                    emptyArray<android.content.pm.Signature>()
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                reactApplicationContext.packageManager.getPackageInfo(
+                    packageName, PackageManager.GET_SIGNATURES
+                ).signatures
+            }
+            
+            if (signatures != null) {
+                for (sig in signatures) {
+                    val hash = hash(packageName, sig.toByteArray())
+                    if (hash != null) return hash
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getAppSignatures failed", e)
+        }
+        return ""
+    }
+
+    private fun hash(packageName: String, signature: ByteArray): String? {
+        val appInfo = "$packageName ${String(Base64.encode(signature, Base64.DEFAULT))}"
+        try {
+            val messageDigest = MessageDigest.getInstance("SHA-256")
+            messageDigest.update(appInfo.toByteArray(Charsets.UTF_8))
+            var hashSignature = messageDigest.digest()
+            hashSignature = Arrays.copyOfRange(hashSignature, 0, 9)
+            var base64Hash = Base64.encodeToString(hashSignature, Base64.NO_PADDING or Base64.NO_WRAP)
+            base64Hash = base64Hash.substring(0, 11)
+            return base64Hash
+        } catch (e: Exception) {
+            Log.e(TAG, "hash:NoSuchAlgorithm", e)
+        }
+        return null
+    }
+
+    // ── LOG EXPORT ──
 
     @ReactMethod
     fun exportAndShareLogs(promise: Promise) {
         Thread {
             try {
-                // 1. Get Logcat
                 val process = Runtime.getRuntime().exec("logcat -d")
                 val bufferedReader = BufferedReader(InputStreamReader(process.inputStream))
                 val logBuilder = StringBuilder()
@@ -611,7 +947,6 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
                     logBuilder.append(line).append("\n")
                 }
                 
-                // 2. Save to Cache Dir
                 val cacheDir = File(reactApplicationContext.cacheDir, "logs")
                 cacheDir.mkdirs()
                 val logFile = File(cacheDir, "KikoCall_Logs.txt")
@@ -619,7 +954,6 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
                     fos.write(logBuilder.toString().toByteArray())
                 }
                 
-                // 3. Share via FileProvider
                 val authority = "${reactApplicationContext.packageName}.provider"
                 val uri = FileProvider.getUriForFile(reactApplicationContext, authority, logFile)
                 

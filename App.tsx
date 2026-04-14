@@ -1,5 +1,5 @@
-import React, {useContext, useState} from 'react';
-import {ActivityIndicator, View, StatusBar, Text} from 'react-native';
+import React, {useContext, useState, useEffect} from 'react';
+import {ActivityIndicator, View, StatusBar, Text, NativeModules, PermissionsAndroid, Platform} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
@@ -16,12 +16,76 @@ import ProcessingStatusScreen from './src/screens/ProcessingStatusScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
+const {RecordingMonitorModule} = NativeModules;
 
 function AppNavigator() {
   const {isLoggedIn, loading} = useContext(AuthContext);
   const [permGranted, setPermGranted] = useState(false);
+  const [permChecked, setPermChecked] = useState(false);
 
-  if (loading) {
+  // Auto-check if permissions are already granted on startup
+  // This prevents requiring the user to go through PermissionScreen on every app restart
+  useEffect(() => {
+    if (isLoggedIn && !permChecked) {
+      const checkExistingPermissions = async () => {
+        try {
+          const corePerms = [
+            PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
+            PermissionsAndroid.PERMISSIONS.READ_CALL_LOG,
+          ];
+          if (Platform.Version >= 33) {
+            corePerms.push(PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO);
+          } else {
+            corePerms.push(PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE);
+          }
+          
+          const results = await Promise.all(corePerms.map(p => PermissionsAndroid.check(p)));
+          const allGranted = results.every(r => r === true);
+          
+          if (allGranted) {
+            console.log('[App] All permissions already granted, skipping permission screen');
+            setPermGranted(true);
+          }
+        } catch (e) {
+          console.warn('[App] Permission check failed:', e);
+        }
+        setPermChecked(true);
+      };
+      checkExistingPermissions();
+    }
+  }, [isLoggedIn, permChecked]);
+
+  // Start background monitoring service once logged in AND permissions granted
+  useEffect(() => {
+    if (isLoggedIn && permGranted) {
+      const startMonitoring = async () => {
+        try {
+          const running = await RecordingMonitorModule.isMonitorRunning();
+          if (!running) {
+            console.log('[App] Starting background monitor service...');
+            await RecordingMonitorModule.startMonitorService();
+            console.log('[App] Background monitor service started successfully');
+          } else {
+            console.log('[App] Background monitor service already running');
+          }
+        } catch (e) {
+          console.error('[App] Failed to start monitor service:', e);
+          // Retry once after a short delay
+          setTimeout(async () => {
+            try {
+              await RecordingMonitorModule.startMonitorService();
+              console.log('[App] Background monitor service started on retry');
+            } catch (retryErr) {
+              console.error('[App] Monitor service retry also failed:', retryErr);
+            }
+          }, 3000);
+        }
+      };
+      startMonitoring();
+    }
+  }, [isLoggedIn, permGranted]);
+
+  if (loading || (isLoggedIn && !permChecked)) {
     return (
       <View style={{flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center'}}>
         <View style={{width: 80, height: 80, borderRadius: 20, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center'}}>

@@ -60,9 +60,10 @@ export async function syncBackgroundRecordings(taskData) {
         }
 
         // 2. Scan for new recordings
-        const recordings = await RecordingMonitorModule.scanRecordings();
-        if (!recordings || recordings.length === 0) {
-            console.log('No recordings found during background scan.');
+        const allRecordings = await RecordingMonitorModule.scanRecordings();
+        const recordings = (allRecordings || []).filter(r => !r.isOld);
+        if (recordings.length === 0) {
+            console.log('No new (post-installation) recordings found during background scan.');
             return;
         }
 

@@ -8,7 +8,6 @@ import {Colors, FontSizes, FontWeights, BorderRadius, Spacing} from '../theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const PERMISSIONS = [
-  {key: 'READ_PHONE_STATE', label: 'Phone Access', desc: 'Detect call recordings'},
   {key: 'RECORD_AUDIO', label: 'Microphone', desc: 'Audio processing'},
   {key: 'READ_CONTACTS', label: 'Contacts', desc: 'Match caller names'},
   {key: 'READ_CALL_LOG', label: 'Call Log', desc: 'Match call details'},

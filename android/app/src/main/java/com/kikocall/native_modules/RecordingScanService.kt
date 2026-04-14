@@ -22,7 +22,7 @@ class RecordingScanService : HeadlessJsTaskService() {
             HeadlessJsTaskConfig(
                 "RecordingScanTask", // Must match the name registered in JavaScript
                 Arguments.fromBundle(extras),
-                120000, // Timeout for the task in ms (120 seconds) - needed for AI transcription
+                300000, // Timeout for the task in ms (300 seconds) - needed for AI transcription + network delays
                 true // Allowed in foreground (required for our service)
             )
         } else {

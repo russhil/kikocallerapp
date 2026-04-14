@@ -53,6 +53,7 @@ export default function RecordingsScreen() {
         return {
           filename: f.filename, path: f.path, size: f.size,
           lastModified: f.lastModified, durationMs: f.durationMs || 0,
+          isOld: f.isOld || false,
           isProcessed: prev.isProcessed || false,
           classification: prev.classification || null,
           transcript: prev.transcript || null,
@@ -60,9 +61,9 @@ export default function RecordingsScreen() {
         };
       });
       setRecordings(list);
-      // Auto-process unprocessed recordings one at a time
-      const unprocessed = list.filter(r => !r.isProcessed);
-      for (const r of unprocessed) {
+      // Auto-process unprocessed NEW recordings one at a time
+      const unprocessedNew = list.filter(r => !r.isProcessed && !r.isOld);
+      for (const r of unprocessedNew) {
         await processRecording(r, false, true);
       }
     } catch (e) {
@@ -372,11 +373,11 @@ export default function RecordingsScreen() {
   };
 
   const processAll = () => {
-    const unprocessed = recordings.filter(r => !r.isProcessed);
-    if (unprocessed.length === 0) { showPopup('Info', 'All recordings are already processed', 'info'); return; }
-    showPopup('Process All', `Process ${unprocessed.length} recording${unprocessed.length > 1 ? 's' : ''}?\n\nThis may take several minutes.`, 'question', [
+    const unprocessedNew = recordings.filter(r => !r.isProcessed && !r.isOld);
+    if (unprocessedNew.length === 0) { showPopup('Info', 'No new recordings available to process.', 'info'); return; }
+    showPopup('Process All', `Process ${unprocessedNew.length} new recording${unprocessedNew.length > 1 ? 's' : ''}?\n\nThis may take several minutes.`, 'question', [
       {text: 'Cancel', style: 'outline', onPress: hidePopup},
-      {text: 'Process', onPress: async () => { hidePopup(); for (const r of unprocessed) { await processRecording(r); } }},
+      {text: 'Process', onPress: async () => { hidePopup(); for (const r of unprocessedNew) { await processRecording(r); } }},
     ]);
   };
 
@@ -451,6 +452,7 @@ export default function RecordingsScreen() {
 
   const processed = recordings.filter(r => r.isProcessed).length;
   const unprocessed = recordings.length - processed;
+  const unprocessedNew = recordings.filter(r => !r.isProcessed && !r.isOld).length;
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -475,9 +477,9 @@ export default function RecordingsScreen() {
         <View style={s.statItem}><Text style={[s.statNum, {color: Colors.primary}]}>{unprocessed}</Text><Text style={s.statLabel}>Pending</Text></View>
       </View>
 
-      {unprocessed > 0 && (
+      {unprocessedNew > 0 && (
         <TouchableOpacity style={s.processAllBtn} onPress={processAll} activeOpacity={0.7}>
-          <Text style={s.processAllText}>Process All ({unprocessed})</Text>
+          <Text style={s.processAllText}>Process All New ({unprocessedNew})</Text>
         </TouchableOpacity>
       )}
 
