@@ -3,31 +3,30 @@ package com.kikocall.native_modules
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Handler
-import android.os.Looper
 import android.telephony.TelephonyManager
 import android.util.Log
 
 /**
- * Receives PHONE_STATE broadcasts to detect when a call ends.
- * When a call finishes (state transitions from OFFHOOK -> IDLE),
- * waits a short delay for the recording file to be finalized on disk,
- * then triggers RecordingScanService to process it via HeadlessJS.
+ * Manifest-declared PHONE_STATE receiver. Acts as a safety net on aggressive OEMs
+ * (Xiaomi, Oppo, Vivo, etc.) where the BackgroundMonitorService's KikoCallStateTracker
+ * may be killed.
+ *
+ * Primary lifecycle tracking is owned by KikoCallStateTracker (inside BackgroundMonitorService).
+ * This receiver only feeds CallEventStore as a backup when the foreground service is down.
+ *
+ * On Android ≤11 (API ≤30) the broadcast carries EXTRA_INCOMING_NUMBER; on Android 12+
+ * the value is redacted and we rely on KikoCallScreeningService instead.
  */
 class CallStateReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "CallStateReceiver"
-        // Delay after call ends to allow the recording file to be fully written
-        private const val POST_CALL_DELAY_MS = 12_000L
-        // Track previous state to detect OFFHOOK -> IDLE transition
         @Volatile
         @JvmField
         var lastState: Int = TelephonyManager.CALL_STATE_IDLE
-        @Volatile
-        private var pendingScan = false
     }
 
+    @Suppress("DEPRECATION")
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != TelephonyManager.ACTION_PHONE_STATE_CHANGED) return
 
@@ -41,21 +40,30 @@ class CallStateReceiver : BroadcastReceiver() {
 
         Log.d(TAG, "Phone state changed: $stateStr (lastState=$lastState, newState=$newState)")
 
-        // Detect call ending: was in a call (OFFHOOK) and now IDLE
-        if (lastState == TelephonyManager.CALL_STATE_OFFHOOK && newState == TelephonyManager.CALL_STATE_IDLE) {
-            if (!pendingScan) {
-                pendingScan = true
-                Log.d(TAG, "Call ended. Scheduling recording scan in ${POST_CALL_DELAY_MS}ms...")
-                Handler(Looper.getMainLooper()).postDelayed({
-                    try {
-                        Log.d(TAG, "Triggering RecordingScanService after call ended")
-                        RecordingScanService.enqueueWork(context.applicationContext)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to enqueue scan work after call ended", e)
-                    } finally {
-                        pendingScan = false
+        // Only feed the store if the foreground service isn't running (otherwise
+        // KikoCallStateTracker is already handling this).
+        if (!BackgroundMonitorService.isRunning) {
+            val appCtx = context.applicationContext
+            val now = System.currentTimeMillis()
+            when (newState) {
+                TelephonyManager.CALL_STATE_RINGING -> {
+                    val legacyNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
+                    if (!legacyNumber.isNullOrBlank()) {
+                        CallEventStore.beginIncoming(appCtx, legacyNumber, now, "PHONE_STATE_RECEIVER")
+                    } else {
+                        CallEventStore.beginIncoming(appCtx, null, now, "PHONE_STATE_RECEIVER")
                     }
-                }, POST_CALL_DELAY_MS)
+                }
+                TelephonyManager.CALL_STATE_OFFHOOK -> {
+                    CallEventStore.markAnswered(appCtx, now)
+                }
+                TelephonyManager.CALL_STATE_IDLE -> {
+                    if (lastState == TelephonyManager.CALL_STATE_OFFHOOK ||
+                        lastState == TelephonyManager.CALL_STATE_RINGING
+                    ) {
+                        CallEventStore.markEnded(appCtx, now)
+                    }
+                }
             }
         }
 

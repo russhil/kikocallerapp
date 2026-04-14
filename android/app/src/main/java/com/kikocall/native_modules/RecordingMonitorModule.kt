@@ -4,7 +4,6 @@ import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.os.Build
-import android.provider.CallLog
 import android.provider.MediaStore
 import android.util.Base64
 import android.util.Log
@@ -684,62 +683,82 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
         } catch (e: Exception) { 0L }
     }
 
-    // ── CALL LOG ──
+    // ── CALL EVENTS (real-time capture; no call log access) ──
 
     @ReactMethod
     fun findCallInfoForTimestamp(timestampMs: Double, promise: Promise) {
         try {
-            val ts = timestampMs.toLong()
-            val tolerance = 180_000L
-            val cursor = reactContext.contentResolver.query(
-                CallLog.Calls.CONTENT_URI,
-                arrayOf(CallLog.Calls.NUMBER, CallLog.Calls.DATE, CallLog.Calls.TYPE),
-                "${CallLog.Calls.DATE} BETWEEN ? AND ?",
-                arrayOf((ts - tolerance).toString(), (ts + tolerance).toString()),
-                "${CallLog.Calls.DATE} DESC"
-            )
-            if (cursor == null) { promise.resolve(null); return }
-            cursor.use {
-                if (it.moveToFirst()) {
-                    val number = it.getString(it.getColumnIndexOrThrow(CallLog.Calls.NUMBER))
-                    val type = it.getInt(it.getColumnIndexOrThrow(CallLog.Calls.TYPE))
-                    
-                    var contactName: String? = null
-                    val nameIdx = it.getColumnIndex(CallLog.Calls.CACHED_NAME)
-                    if (nameIdx >= 0) {
-                        contactName = it.getString(nameIdx)
-                    }
-                    
-                    val direction = when (type) {
-                        CallLog.Calls.INCOMING_TYPE -> "INCOMING"
-                        CallLog.Calls.OUTGOING_TYPE -> "OUTGOING"
-                        CallLog.Calls.MISSED_TYPE -> "MISSED"
-                        else -> "UNKNOWN"
-                    }
-                    val result = Arguments.createMap()
-                    result.putString("phone", normalizePhone(number))
-                    result.putString("direction", direction)
-                    if (contactName != null) {
-                        result.putString("contactName", contactName)
-                    }
-                    promise.resolve(result)
-                } else {
-                    promise.resolve(null)
-                }
+            CallEventStore.init(reactApplicationContext)
+            val event = CallEventStore.findNearest(timestampMs.toLong())
+            if (event == null) {
+                promise.resolve(null)
+                return
             }
+            val result = Arguments.createMap().apply {
+                putString("phone", event.phone)
+                putString("direction", event.direction)
+                val name = event.phone?.let { PhoneUtil.lookupContactName(reactApplicationContext, it) }
+                if (name != null) putString("contactName", name)
+            }
+            promise.resolve(result)
         } catch (e: Exception) {
+            Log.w(TAG, "findCallInfoForTimestamp failed", e)
             promise.resolve(null)
         }
     }
 
-    private fun normalizePhone(raw: String?): String? {
-        if (raw.isNullOrBlank()) return null
-        val digits = raw.replace(Regex("[^0-9]"), "")
-        return when {
-            digits.length == 10 -> digits
-            digits.length == 12 && digits.startsWith("91") -> digits.substring(2)
-            digits.length == 13 && digits.startsWith("091") -> digits.substring(3)
-            else -> digits.takeIf { it.isNotEmpty() }
+    @ReactMethod
+    fun hasCallScreeningRole(promise: Promise) {
+        try {
+            promise.resolve(RoleUtil.hasScreeningRole(reactApplicationContext))
+        } catch (e: Exception) {
+            promise.resolve(false)
+        }
+    }
+
+    @ReactMethod
+    fun isCallScreeningRoleAvailable(promise: Promise) {
+        try {
+            promise.resolve(RoleUtil.isScreeningRoleAvailable(reactApplicationContext))
+        } catch (e: Exception) {
+            promise.resolve(false)
+        }
+    }
+
+    @ReactMethod
+    fun requestCallScreeningRole(promise: Promise) {
+        try {
+            val activity = currentActivity
+            if (activity == null) {
+                promise.reject("NO_ACTIVITY", "No current activity to request role from")
+                return
+            }
+            val started = RoleUtil.requestScreeningRole(activity)
+            promise.resolve(started)
+        } catch (e: Exception) {
+            promise.reject("ROLE_REQUEST_FAILED", e.message, e)
+        }
+    }
+
+    @ReactMethod
+    fun getRecentCallEvents(promise: Promise) {
+        try {
+            CallEventStore.init(reactApplicationContext)
+            val arr = Arguments.createArray()
+            CallEventStore.snapshot().forEach { ev ->
+                arr.pushMap(Arguments.createMap().apply {
+                    if (ev.phone != null) putString("phone", ev.phone) else putNull("phone")
+                    putString("direction", ev.direction)
+                    putDouble("callStartMs", ev.callStartMs.toDouble())
+                    if (ev.callAnsweredMs != null) putDouble("callAnsweredMs", ev.callAnsweredMs!!.toDouble()) else putNull("callAnsweredMs")
+                    if (ev.callEndMs != null) putDouble("callEndMs", ev.callEndMs!!.toDouble()) else putNull("callEndMs")
+                    putString("source", ev.source)
+                    putBoolean("finalized", ev.finalized)
+                })
+            }
+            promise.resolve(arr)
+        } catch (e: Exception) {
+            promise.reject("GET_EVENTS_FAILED", e.message, e)
         }
     }
 

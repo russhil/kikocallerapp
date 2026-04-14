@@ -8,14 +8,11 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.database.ContentObserver
-import android.net.Uri
 import android.os.Build
 import android.os.FileObserver
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.provider.CallLog
 import android.telephony.TelephonyManager
 import android.util.Log
 import android.content.pm.ServiceInfo
@@ -25,12 +22,13 @@ import java.io.File
  * Persistent foreground service that keeps the app alive in the background
  * and monitors for new call recordings via multiple detection mechanisms:
  *
- * 1. CallLogObserver - watches call log database for new entries
- * 2. CallStateReceiver - detects phone state changes (call end)
- * 3. FileObserver - watches recording directories for new files
+ * 1. KikoCallStateTracker - TelephonyCallback (API 31+) or PhoneStateListener (API 24-30)
+ *    captures call state transitions and feeds CallEventStore.
+ * 2. CallStateReceiver - manifest-declared PHONE_STATE safety net for aggressive OEMs.
+ * 3. FileObserver - watches recording directories for new files.
  *
- * This service is the core of the background monitoring system.
- * It runs as a foreground service with a persistent notification.
+ * NOTE: The call log is never read; call metadata is captured in real time via
+ * KikoCallScreeningService + KikoCallStateTracker.
  */
 class BackgroundMonitorService : Service() {
 
@@ -59,8 +57,8 @@ class BackgroundMonitorService : Service() {
         }
     }
 
-    private var callLogObserver: ContentObserver? = null
     private var callStateReceiver: CallStateReceiver? = null
+    private var callStateTracker: KikoCallStateTracker? = null
     private var fileObservers: MutableList<FileObserver> = mutableListOf()
     private val handler = Handler(Looper.getMainLooper())
 
@@ -84,7 +82,8 @@ class BackgroundMonitorService : Service() {
         }
 
         // Register all monitoring mechanisms
-        registerCallLogObserver()
+        CallEventStore.init(applicationContext)
+        registerCallStateTracker()
         registerCallStateReceiver()
         registerFileObservers()
 
@@ -105,14 +104,12 @@ class BackgroundMonitorService : Service() {
         Log.d(TAG, "BackgroundMonitorService destroyed")
         isRunning = false
 
-        // Unregister call log observer
+        // Unregister call state tracker
         try {
-            callLogObserver?.let {
-                contentResolver.unregisterContentObserver(it)
-            }
-            callLogObserver = null
+            callStateTracker?.unregister()
+            callStateTracker = null
         } catch (e: Exception) {
-            Log.w(TAG, "Error unregistering call log observer", e)
+            Log.w(TAG, "Error unregistering call state tracker", e)
         }
 
         // Unregister call state receiver
@@ -177,48 +174,19 @@ class BackgroundMonitorService : Service() {
             .build()
     }
 
-    // ── MONITOR 1: Call Log Observer ──
+    // ── MONITOR 1: Call State Tracker (TelephonyCallback / PhoneStateListener) ──
 
-    private fun registerCallLogObserver() {
+    private fun registerCallStateTracker() {
         try {
-            callLogObserver?.let {
-                contentResolver.unregisterContentObserver(it)
-            }
-
-            callLogObserver = object : ContentObserver(handler) {
-                private var isProcessing = false
-
-                override fun onChange(selfChange: Boolean, uri: Uri?) {
-                    super.onChange(selfChange, uri)
-                    if (uri?.toString()?.contains("calls") == true && !isProcessing) {
-                        isProcessing = true
-                        Log.d(TAG, "Call log change detected via ContentObserver")
-
-                        handler.postDelayed({
-                            try {
-                                RecordingScanService.enqueueWork(applicationContext)
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Failed to trigger scan from call log observer", e)
-                            } finally {
-                                handler.postDelayed({ isProcessing = false }, 5000)
-                            }
-                        }, 5000) // 5s delay for call log + file to be ready
-                    }
-                }
-            }
-
-            contentResolver.registerContentObserver(
-                CallLog.Calls.CONTENT_URI,
-                true,
-                callLogObserver!!
-            )
-            Log.d(TAG, "CallLogObserver registered successfully")
+            callStateTracker?.unregister()
+            callStateTracker = KikoCallStateTracker(applicationContext).also { it.register() }
+            Log.d(TAG, "KikoCallStateTracker registered successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to register CallLogObserver", e)
+            Log.e(TAG, "Failed to register KikoCallStateTracker", e)
         }
     }
 
-    // ── MONITOR 2: Phone State Receiver ──
+    // ── MONITOR 2: Phone State Receiver (manifest-declared safety net) ──
 
     private fun registerCallStateReceiver() {
         try {

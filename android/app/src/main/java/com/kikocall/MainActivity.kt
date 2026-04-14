@@ -8,7 +8,9 @@ import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
+import com.facebook.react.modules.core.DeviceEventManagerModule
 import com.kikocall.native_modules.RecordingMonitorModule
+import com.kikocall.native_modules.RoleUtil
 
 class MainActivity : ReactActivity() {
 
@@ -57,6 +59,15 @@ class MainActivity : ReactActivity() {
       } else {
         RecordingMonitorModule.pendingFolderPickerPromise?.reject("PICKER_CANCELLED", "Folder picker cancelled")
         RecordingMonitorModule.pendingFolderPickerPromise = null
+      }
+    } else if (requestCode == RoleUtil.ROLE_REQUEST_CODE) {
+      val granted = resultCode == Activity.RESULT_OK
+      try {
+        reactInstanceManager?.currentReactContext
+          ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+          ?.emit("kikoScreeningRoleResult", granted)
+      } catch (e: Exception) {
+        // React context may not be ready; JS-side polling of hasCallScreeningRole() will catch up.
       }
     }
   }
