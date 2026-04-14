@@ -431,7 +431,11 @@ export default function RecordingsScreen() {
               if (!p || p.length < 2) return false;
               if (/^\d+$/.test(p)) return false; // pure digits = phone/date
               if (/^\d{4}(0[1-9]|1[0-2])/.test(p)) return false; // date pattern
-              if (/^(in|out|incoming|outgoing|missed|am|pm)$/i.test(p))
+              if (
+                /^(in|out|incoming|outgoing|missed|am|pm|call|recording|record|rec)$/i.test(
+                  p,
+                )
+              )
                 return false;
               return /^[a-zA-Z\u0900-\u097F\u0980-\u09FF]/.test(p); // starts with letter (latin or devanagari)
             });

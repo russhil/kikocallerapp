@@ -728,7 +728,7 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
     @ReactMethod
     fun requestCallScreeningRole(promise: Promise) {
         try {
-            val activity = currentActivity
+            val activity = reactApplicationContext.currentActivity
             if (activity == null) {
                 promise.reject("NO_ACTIVITY", "No current activity to request role from")
                 return

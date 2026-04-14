@@ -24,7 +24,6 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const PERMISSIONS = [
-  { key: 'RECORD_AUDIO', label: 'Microphone', desc: 'Audio processing' },
   { key: 'READ_CONTACTS', label: 'Contacts', desc: 'Match caller names' },
   {
     key: 'READ_PHONE_STATE',
@@ -66,7 +65,6 @@ const ROLE_SUPPORTED = Platform.OS === 'android' && Platform.Version >= 29;
 
 export default function PermissionScreen({ onAllGranted }) {
   const [statuses, setStatuses] = useState({});
-  const [allFilesAccess, setAllFilesAccess] = useState(Platform.Version < 30);
   const [hasRole, setHasRole] = useState(!ROLE_SUPPORTED);
   const [roleAvailable, setRoleAvailable] = useState(ROLE_SUPPORTED);
   const [checking, setChecking] = useState(true);
@@ -77,15 +75,6 @@ export default function PermissionScreen({ onAllGranted }) {
     for (const p of perms) {
       const granted = await PermissionsAndroid.check(p.perm);
       result[p.key] = granted;
-    }
-
-    let allFiles = true;
-    if (Platform.Version >= 30) {
-      try {
-        allFiles = await RecordingMonitorModule.hasAllFilesAccess();
-      } catch (e) {
-        allFiles = false;
-      }
     }
 
     let roleHeld = !ROLE_SUPPORTED;
@@ -104,14 +93,13 @@ export default function PermissionScreen({ onAllGranted }) {
     }
 
     setStatuses(result);
-    setAllFilesAccess(allFiles);
     setHasRole(roleHeld);
     setRoleAvailable(roleAvail);
     setChecking(false);
 
     const runtimeGranted = Object.values(result).every(v => v);
     const roleGate = !ROLE_SUPPORTED || !roleAvail || roleHeld;
-    if (runtimeGranted && allFiles && roleGate) {
+    if (runtimeGranted && roleGate) {
       onAllGranted?.();
     }
   }, [onAllGranted]);
@@ -122,15 +110,6 @@ export default function PermissionScreen({ onAllGranted }) {
       const permsToRequest = perms.map(p => p.perm);
       await PermissionsAndroid.requestMultiple(permsToRequest);
     } catch (e) {}
-
-    if (Platform.Version >= 30) {
-      try {
-        const hasAccess = await RecordingMonitorModule.hasAllFilesAccess();
-        if (!hasAccess) {
-          await RecordingMonitorModule.requestAllFilesAccess();
-        }
-      } catch (e) {}
-    }
 
     await checkAll();
   };
@@ -165,16 +144,14 @@ export default function PermissionScreen({ onAllGranted }) {
   const runtimeGranted =
     Object.keys(statuses).length > 0 && Object.values(statuses).every(v => v);
   const roleGate = !ROLE_SUPPORTED || !roleAvailable || hasRole;
-  const allGranted = runtimeGranted && allFilesAccess && roleGate;
+  const allGranted = runtimeGranted && roleGate;
   if (allGranted) return null;
 
   const showRoleRow = ROLE_SUPPORTED && roleAvailable;
   let totalPerms = perms.length;
-  if (Platform.Version >= 30) totalPerms += 1;
   if (showRoleRow) totalPerms += 1;
 
   let grantedCount = Object.values(statuses).filter(v => v).length;
-  if (Platform.Version >= 30 && allFilesAccess) grantedCount += 1;
   if (showRoleRow && hasRole) grantedCount += 1;
 
   return (
@@ -236,33 +213,6 @@ export default function PermissionScreen({ onAllGranted }) {
             </View>
           ))}
 
-          {Platform.Version >= 30 && (
-            <View style={s.permRow}>
-              <View
-                style={[
-                  s.permDot,
-                  {
-                    backgroundColor: allFilesAccess
-                      ? Colors.success
-                      : Colors.error,
-                  },
-                ]}
-              />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={s.permLabel}>All Files Access</Text>
-                <Text style={s.permDesc}>Needed on newer devices</Text>
-              </View>
-              <Text
-                style={[
-                  s.permStatus,
-                  { color: allFilesAccess ? Colors.success : Colors.error },
-                ]}
-              >
-                {allFilesAccess ? 'Granted' : 'Required'}
-              </Text>
-            </View>
-          )}
-
           {showRoleRow && (
             <TouchableOpacity
               style={s.permRow}
@@ -273,7 +223,7 @@ export default function PermissionScreen({ onAllGranted }) {
                 style={[
                   s.permDot,
                   {
-                    backgroundColor: hasRole ? Colors.success : Colors.primary,
+                    backgroundColor: hasRole ? Colors.success : Colors.error,
                   },
                 ]}
               />
@@ -286,21 +236,14 @@ export default function PermissionScreen({ onAllGranted }) {
               <Text
                 style={[
                   s.permStatus,
-                  { color: hasRole ? Colors.success : Colors.primary },
+                  { color: hasRole ? Colors.success : Colors.error },
                 ]}
               >
-                {hasRole ? 'Granted' : 'Enable'}
+                {hasRole ? 'Granted' : 'Required'}
               </Text>
             </TouchableOpacity>
           )}
         </View>
-
-        {showRoleRow && !hasRole && (
-          <Text style={s.helperText}>
-            Without Caller ID access, new orders may be saved as "Unknown" until
-            you edit them manually.
-          </Text>
-        )}
 
         {/* Buttons */}
         <TouchableOpacity
@@ -329,19 +272,6 @@ export default function PermissionScreen({ onAllGranted }) {
         >
           <Text style={s.settingsBtnText}>Open App Settings</Text>
         </TouchableOpacity>
-        {showRoleRow &&
-          !hasRole &&
-          !checking &&
-          runtimeGranted &&
-          allFilesAccess && (
-            <TouchableOpacity
-              style={s.skipBtn}
-              onPress={() => onAllGranted?.()}
-              activeOpacity={0.7}
-            >
-              <Text style={s.skipBtnText}>Continue without Caller ID</Text>
-            </TouchableOpacity>
-          )}
       </View>
     </SafeAreaView>
   );
@@ -415,15 +345,6 @@ const s = StyleSheet.create({
   permDesc: { fontSize: FontSizes.xs, color: Colors.textMuted, marginTop: 1 },
   permStatus: { fontSize: FontSizes.sm, fontWeight: FontWeights.semiBold },
 
-  helperText: {
-    fontSize: FontSizes.xs,
-    color: Colors.textMuted,
-    marginTop: Spacing.md,
-    textAlign: 'center',
-    lineHeight: 18,
-    paddingHorizontal: Spacing.sm,
-  },
-
   grantBtn: {
     width: '100%',
     height: 52,
@@ -452,18 +373,5 @@ const s = StyleSheet.create({
     color: Colors.primary,
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.semiBold,
-  },
-  skipBtn: {
-    width: '100%',
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-  },
-  skipBtnText: {
-    color: Colors.textMuted,
-    fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
-    textDecorationLine: 'underline',
   },
 });
