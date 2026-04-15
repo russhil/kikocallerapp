@@ -204,6 +204,17 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if not credentials:
         raise HTTPException(status_code=401, detail="Authorization header missing")
     token = credentials.credentials
+
+    # Playstore review bypass — matches hardcoded token in app LoginScreen.js
+    if token == "review_token_9619363677_x3a":
+        return {
+            "id": 0,
+            "phone": "919619363677",
+            "shop_name": "Test Shop",
+            "shopkeeper_name": "Test User",
+            "auth_token": token,
+        }
+
     sb = _require_supabase()
     try:
         result = sb.table("users").select("*").eq("auth_token", token).execute()
