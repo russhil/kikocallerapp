@@ -457,6 +457,10 @@ class UpdateOrderRequest(BaseModel):
 
 class SendOtpRequest(BaseModel):
     phone: str
+    device_id: Optional[str] = None
+    device_model: Optional[str] = None
+    device_os: Optional[str] = None
+    app_version: Optional[str] = None
 
 
 class VerifyOtpRequest(BaseModel):
@@ -502,7 +506,8 @@ async def send_otp(req: SendOtpRequest, request: Request = None):
     try:
         # Step 1: Ensure a store row exists for this phone (FK requirement)
         # Check if store already exists
-        store_check = sb.table("stores").select("phone").eq("phone", phone).execute()
+        store_check = sb.table("stores").select("phone, store_name").eq("phone", phone).execute()
+        is_new_user = True
         if not store_check.data:
             # Insert new store row
             print(f"[Auth] Creating store row for {phone}", flush=True)
@@ -510,6 +515,8 @@ async def send_otp(req: SendOtpRequest, request: Request = None):
             print(f"[Auth] ✓ Store row created for {phone}", flush=True)
         else:
             print(f"[Auth] Store row already exists for {phone}", flush=True)
+            if store_check.data[0].get("store_name"):
+                is_new_user = False
 
         # Step 2: Upsert user row with OTP (creates if not exists)
         sb.table("users").upsert(
@@ -554,6 +561,19 @@ async def send_otp(req: SendOtpRequest, request: Request = None):
 
         if response_text.startswith("success"):
             _log_activity("auth.otp_sent", store_phone=phone, entity_type="user", entity_id=phone, request=request)
+            
+            # Log auth.first_otp if this is a new user and hasn't requested OTP before
+            if is_new_user:
+                first_otp_check = sb.table("activity_log").select("id").eq("action", "auth.first_otp").eq("store_phone", phone).execute()
+                if not first_otp_check.data:
+                    _log_activity("auth.first_otp", store_phone=phone, entity_type="user", entity_id=phone, metadata={
+                        "device_id": req.device_id,
+                        "device_model": req.device_model,
+                        "device_os": req.device_os,
+                        "app_version": req.app_version,
+                        "is_first_otp_request": True
+                    }, request=request)
+                    
             return {"status": "ok", "message": "OTP sent successfully"}
         else:
             print(f"[Gupshup] ✗ SMS send failed: {response_text}", flush=True)

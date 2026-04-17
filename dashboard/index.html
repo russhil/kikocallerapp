@@ -114,6 +114,9 @@
                     <button onclick="switchTab('tab-activity')" id="nav-tab-activity" class="tab-link text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
                         Activity Logs
                     </button>
+                    <button onclick="switchTab('tab-first-otp')" id="nav-tab-first-otp" class="tab-link text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
+                        First OTP Request
+                    </button>
                 </nav>
             </div>
 
@@ -311,6 +314,44 @@
                                 </thead>
                                 <tbody id="full-activity-table-body" class="divide-y divide-gray-100">
                                     <tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">Loading activity...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FIRST OTP REQUESTS TAB -->
+                <div id="tab-first-otp" class="tab-content hidden space-y-6">
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                            <h3 class="text-lg font-bold text-gray-900 tracking-tight">Onboarding: First OTP Requests</h3>
+                            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                                <input type="text" id="first-otp-search" placeholder="Search phone or shop..." class="px-4 py-2 border border-gray-200 rounded-lg text-sm w-full md:w-56 outline-none focus:border-brand-500 transition-colors">
+                                <select id="first-otp-status" class="px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-brand-500 transition-colors">
+                                    <option value="all">All Statuses</option>
+                                    <option value="success">Success</option>
+                                    <option value="failed">Failed</option>
+                                </select>
+                                <button onclick="exportCSV('first_otp')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition flex items-center gap-2 shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    Export CSV
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-gray-600">
+                                <thead class="bg-gray-50/50 text-gray-500 font-semibold border-b border-gray-100">
+                                    <tr>
+                                        <th class="px-6 py-4">Timestamp</th>
+                                        <th class="px-6 py-4">Phone Number</th>
+                                        <th class="px-6 py-4">Shop Name</th>
+                                        <th class="px-6 py-4">Device ID</th>
+                                        <th class="px-6 py-4">Device Details</th>
+                                        <th class="px-6 py-4">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="full-first-otp-table-body" class="divide-y divide-gray-100">
+                                    <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">Loading requests...</td></tr>
                                 </tbody>
                             </table>
                         </div>

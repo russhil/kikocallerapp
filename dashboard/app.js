@@ -14,7 +14,9 @@ let statusChartInstance = null;
 const globalData = {
     orders: [],
     recordings: [],
-    activity: []
+    activity: [],
+    users: [],
+    firstOtpTransformed: []
 };
 
 // Initialize strictly inside a try-catch to prevent file:// protocol crashes
@@ -142,9 +144,16 @@ async function fetchDashboardData() {
         const allRecordings = await fetchAll('recordings');
         const allActivity = await fetchAll('activity_log');
 
+        let allUsers = [];
+        try {
+            const { data } = await supabaseClient.from('users').select('phone, shop_name');
+            if(data) allUsers = data;
+        } catch(e) { console.error('Error fetching users:', e); }
+
         globalData.orders = allOrders || [];
         globalData.recordings = allRecordings || [];
         globalData.activity = allActivity || [];
+        globalData.users = allUsers || [];
 
         let sellersCount = 0;
         try {
@@ -163,6 +172,7 @@ async function fetchDashboardData() {
         renderFullOrders(globalData.orders);
         renderFullTranscripts(globalData.recordings);
         renderFullActivity(globalData.activity);
+        renderFirstOtp(globalData.activity, globalData.users);
 
     } catch (err) {
         console.error('Error fetching dashboard data:', err);
@@ -528,6 +538,106 @@ function renderFullActivity(activity) {
     });
 }
 
+function renderFirstOtp(activity, users) {
+    const tbody = document.getElementById('full-first-otp-table-body');
+    if(!tbody) return;
+    
+    // Create a map for fast lookup
+    const usersMap = {};
+    users.forEach(u => { usersMap[u.phone] = u.shop_name; });
+
+    let firstOtpLogs = activity.filter(a => a.action === 'auth.first_otp' || a.action_type === 'auth.first_otp');
+    
+    // Helper to render
+    const renderTable = (logs) => {
+        tbody.innerHTML = '';
+        if(!logs || logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No onboarding requests found.</td></tr>`;
+            return;
+        }
+        logs.forEach(a => {
+            const dateObj = new Date(a.created_at || Date.now());
+            const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            const phone = a.user_phone || a.store_phone || 'Unknown';
+            const meta = a.metadata || {};
+            const deviceId = meta.device_id || 'Unknown';
+            const deviceDetails = `${meta.device_model || 'Unknown Model'} - ${meta.device_os || 'Unknown OS'}`;
+            
+            let shopName = usersMap[phone] || '';
+            let status = shopName ? 'Success' : 'Failed';
+            
+            let statusColor = status === 'Success' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800';
+
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50/50 transition-colors';
+            tr.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">${dateStr}</td>
+                <td class="px-6 py-4 font-medium text-gray-900">${phone}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">${shopName || '<span class="text-gray-400 italic">None</span>'}</td>
+                <td class="px-6 py-4 text-sm text-gray-500 font-mono break-all">${deviceId}</td>
+                <td class="px-6 py-4 text-xs text-gray-600 break-all">${deviceDetails}</td>
+                <td class="px-6 py-4">
+                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${statusColor}">${status}</span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+
+    // Filter Logic
+    const searchInput = document.getElementById('first-otp-search');
+    const statusFilter = document.getElementById('first-otp-status');
+    
+    const applyFilters = () => {
+        const query = (searchInput ? searchInput.value : '').toLowerCase();
+        const stat = (statusFilter ? statusFilter.value : 'all').toLowerCase();
+        
+        let filtered = firstOtpLogs.filter(a => {
+            const phone = a.user_phone || a.store_phone || '';
+            const shop = usersMap[phone] || '';
+            const status = shop ? 'success' : 'failed';
+            
+            const matchesSearch = phone.toLowerCase().includes(query) || shop.toLowerCase().includes(query);
+            const matchesStatus = stat === 'all' || status === stat;
+            return matchesSearch && matchesStatus;
+        });
+        renderTable(filtered);
+    };
+
+    // Store the logs globally so exportCSV can access them easily
+    globalData.firstOtpTransformed = firstOtpLogs.map(a => {
+        const phone = a.user_phone || a.store_phone || '';
+        const meta = a.metadata || {};
+        const shop = usersMap[phone] || '';
+        const status = shop ? 'Success' : 'Failed';
+        return {
+            created_at: new Date(a.created_at).toISOString(),
+            phone: phone,
+            shop_name: shop,
+            device_id: meta.device_id || '',
+            device_model: meta.device_model || '',
+            device_os: meta.device_os || '',
+            app_version: meta.app_version || '',
+            status: status
+        };
+    });
+
+    if(searchInput) {
+        // remove existing listener to avoid duplicates if re-rendered
+        const newSearchInput = searchInput.cloneNode(true);
+        searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+        newSearchInput.addEventListener('input', applyFilters);
+    }
+    if(statusFilter) {
+        const newStatusFilter = statusFilter.cloneNode(true);
+        statusFilter.parentNode.replaceChild(newStatusFilter, statusFilter);
+        newStatusFilter.addEventListener('change', applyFilters);
+    }
+
+    applyFilters();
+}
+
 // ---------------------------------------------------------
 // 9. EXPORTS
 // ---------------------------------------------------------
@@ -542,7 +652,10 @@ function exportCSV(type) {
         headers = ['id', 'created_at', 'store_phone', 'caller_phone', 'duration_ms', 'transcript'];
     } else if (type === 'activity') {
         data = globalData.activity;
-        headers = ['id', 'created_at', 'action_type', 'user_phone', 'notes'];
+        headers = ['id', 'created_at', 'action', 'store_phone', 'notes'];
+    } else if (type === 'first_otp') {
+        data = globalData.firstOtpTransformed || [];
+        headers = ['created_at', 'phone', 'shop_name', 'device_id', 'device_model', 'device_os', 'app_version', 'status'];
     }
 
     if(data.length === 0) {
