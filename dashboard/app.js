@@ -595,12 +595,14 @@ function renderFullOrders(orders) {
     const items = paginate(filtered, page);
     renderPagination('pagination-orders', filtered.length, page, 'orders', () => renderFullOrders(orders));
 
-    items.forEach(o => {
+    items.forEach((o, index) => {
+        const srNo = (page - 1) * PER_PAGE + index + 1;
         const st = getOrderStatus(o);
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50/50 transition-colors cursor-pointer';
         tr.onclick = () => showOrderDetail(o);
         tr.innerHTML = `
+            <td class="px-6 py-3.5 whitespace-nowrap text-xs text-gray-500">${srNo}</td>
             <td class="px-6 py-3.5"><div class="font-semibold text-brand-600 text-sm">#${(o.order_id || '----')}</div><div class="text-xs text-gray-400">${fmtDate(o.created_at)}</div></td>
             <td class="px-6 py-3.5"><div class="font-medium text-gray-900 text-sm">${o.customer_name || 'Unknown'}</div><div class="text-xs text-gray-500">${o.customer_phone || ''}</div></td>
             <td class="px-6 py-3.5"><div class="text-sm text-gray-700">${o.store_name || o.shop_name || '—'}</div><div class="text-xs text-gray-400">${o.store_phone || ''}</div></td>
