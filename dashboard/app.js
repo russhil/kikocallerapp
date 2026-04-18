@@ -539,12 +539,12 @@ function renderRecentLogins() {
     tbody.innerHTML = '';
 
     if (!users.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 py-8">No users found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-8">No users found.</td></tr>';
         return;
     }
 
     const recent = users.filter(u => u.last_login_at).slice(0, 10);
-    recent.forEach(u => {
+    recent.forEach((u, index) => {
         const lt = parseTs(u.last_login_at);
         const online = lt && (Date.now() - lt) < 3600000;
         const dot = online
@@ -554,6 +554,7 @@ function renderRecentLogins() {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50/50 transition-colors';
         tr.innerHTML = `
+            <td class="px-6 py-3.5 whitespace-nowrap text-xs text-gray-500">${index + 1}</td>
             <td class="px-6 py-3.5 font-medium text-gray-900 font-mono text-sm">${u.phone || '—'}</td>
             <td class="px-6 py-3.5 text-gray-700 text-sm">${u.shop_name || '<span class="text-gray-400 italic">Not setup</span>'}</td>
             <td class="px-6 py-3.5"><div class="text-sm text-gray-900">${fmtDate(lt)}</div><div class="text-xs text-gray-400">${timeAgo(lt)}</div></td>
@@ -585,7 +586,7 @@ function renderFullOrders(orders) {
 
     tbody.innerHTML = '';
     if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 py-8">No orders found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-8">No orders found.</td></tr>';
         document.getElementById('pagination-orders')?.classList.add('hidden');
         return;
     }
@@ -680,7 +681,7 @@ function renderFullTranscripts(recordings) {
     tbody.innerHTML = '';
 
     if (!recordings.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-400 py-8">No recordings found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 py-8">No recordings found.</td></tr>';
         document.getElementById('pagination-transcripts')?.classList.add('hidden');
         return;
     }
@@ -689,7 +690,8 @@ function renderFullTranscripts(recordings) {
     const items = paginate(recordings, page);
     renderPagination('pagination-transcripts', recordings.length, page, 'transcripts', () => renderFullTranscripts(recordings));
 
-    items.forEach(r => {
+    items.forEach((r, index) => {
+        const srNo = (page - 1) * PER_PAGE + index + 1;
         const ts = parseTs(r.created_at);
         const identifier = r.source_phone || r.store_phone || r.contact_name || 'Unknown';
         const storeName = r.store_phone || '';
@@ -698,6 +700,7 @@ function renderFullTranscripts(recordings) {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50/50 transition-colors';
         tr.innerHTML = `
+            <td class="px-6 py-3.5 whitespace-nowrap text-xs text-gray-500">${srNo}</td>
             <td class="px-6 py-3.5 whitespace-nowrap text-xs text-gray-500">${fmtDate(ts)}</td>
             <td class="px-6 py-3.5"><div class="font-medium text-sm text-gray-900">${identifier}</div>${storeName ? `<div class="text-xs text-gray-400">${storeName}</div>` : ''}</td>
             <td class="px-6 py-3.5 text-sm text-gray-600 font-mono">${fmtDuration(r.duration_ms)}</td>
@@ -717,8 +720,10 @@ function renderFullUsers(users, orders) {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    if (!users.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-400 py-8">No users found.</td></tr>';
+    let filteredUsers = users.filter(u => u.shop_name && u.shop_name.trim() !== '');
+
+    if (!filteredUsers.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-400 py-8">No users found.</td></tr>';
         document.getElementById('pagination-users')?.classList.add('hidden');
         return;
     }
@@ -732,7 +737,7 @@ function renderFullUsers(users, orders) {
 
     // Stats
     const totalUsers = users.length;
-    const onboarded = users.filter(u => u.shop_name && u.shop_name.length > 0).length;
+    const onboarded = filteredUsers.length;
     const now24 = Date.now() - 86400000;
     const active24 = users.filter(u => { const t = parseTs(u.last_login_at); return t && t >= now24; }).length;
 
@@ -745,10 +750,11 @@ function renderFullUsers(users, orders) {
 
     // Pagination — THIS IS THE FIX for the curItems bug
     const page = state.pages.users;
-    const curItems = paginate(users, page);
-    renderPagination('pagination-users', users.length, page, 'users', () => renderFullUsers(users, orders));
+    const curItems = paginate(filteredUsers, page);
+    renderPagination('pagination-users', filteredUsers.length, page, 'users', () => renderFullUsers(users, orders));
 
-    curItems.forEach(u => {
+    curItems.forEach((u, index) => {
+        const srNo = (page - 1) * PER_PAGE + index + 1;
         const lt = parseTs(u.last_login_at);
         const isActive = lt && (Date.now() - lt) < 86400000;
         const statusBadge = isActive
@@ -761,6 +767,7 @@ function renderFullUsers(users, orders) {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50/50 transition-colors';
         tr.innerHTML = `
+            <td class="px-6 py-3.5 whitespace-nowrap text-xs text-gray-500">${srNo}</td>
             <td class="px-6 py-3.5 font-medium text-gray-900 font-mono text-sm">${u.phone || '—'}</td>
             <td class="px-6 py-3.5 text-gray-700 text-sm">${u.shop_name || '<span class="text-gray-400 italic">—</span>'}</td>
             <td class="px-6 py-3.5 text-gray-700 text-sm">${u.shopkeeper_name || '<span class="text-gray-400 italic">—</span>'}</td>
@@ -809,7 +816,7 @@ function renderFullActivity(activity) {
     }
 
     if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 py-8">No activity logs found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-8">No activity logs found.</td></tr>';
         document.getElementById('pagination-activity')?.classList.add('hidden');
         return;
     }
@@ -818,7 +825,8 @@ function renderFullActivity(activity) {
     const items = paginate(filtered, page);
     renderPagination('pagination-activity', filtered.length, page, 'activity', () => renderFullActivity(activity));
 
-    items.forEach(a => {
+    items.forEach((a, index) => {
+        const srNo = (page - 1) * PER_PAGE + index + 1;
         const ts = parseTs(a.created_at);
         const act = getActionLabel(a);
         const meta = a.metadata ? (typeof a.metadata === 'string' ? a.metadata : JSON.stringify(a.metadata).substring(0, 120)) : '';
@@ -828,6 +836,7 @@ function renderFullActivity(activity) {
         tr.className = 'hover:bg-gray-50/50 transition-colors cursor-pointer';
         tr.onclick = () => showActivityDetail(a);
         tr.innerHTML = `
+            <td class="px-6 py-3.5 whitespace-nowrap text-xs text-gray-500">${srNo}</td>
             <td class="px-6 py-3.5 whitespace-nowrap text-xs text-gray-500">${fmtDate(ts)}</td>
             <td class="px-6 py-3.5"><span class="badge ${actionBadgeColor(act)}">${act}</span></td>
             <td class="px-6 py-3.5 text-sm text-gray-700 font-mono">${a.user_phone || a.store_phone || 'System'}</td>
@@ -914,7 +923,7 @@ function renderFirstOtp(activity, users) {
 
     tbody.innerHTML = '';
     if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-8">No onboarding requests found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-400 py-8">No onboarding requests found.</td></tr>';
         document.getElementById('pagination-first-otp')?.classList.add('hidden');
         return;
     }
@@ -923,7 +932,8 @@ function renderFirstOtp(activity, users) {
     const items = paginate(filtered, page);
     renderPagination('pagination-first-otp', filtered.length, page, 'firstOtp', () => renderFirstOtp(activity, users));
 
-    items.forEach(a => {
+    items.forEach((a, index) => {
+        const srNo = (page - 1) * PER_PAGE + index + 1;
         let metaObj = {};
         try { metaObj = typeof a.metadata === 'string' ? JSON.parse(a.metadata) : (a.metadata || {}); } catch (e) {}
         const ts = parseTs(a.created_at);
@@ -935,6 +945,7 @@ function renderFirstOtp(activity, users) {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50/50 transition-colors';
         tr.innerHTML = `
+            <td class="px-6 py-3.5 whitespace-nowrap text-xs text-gray-500">${srNo}</td>
             <td class="px-6 py-3.5 whitespace-nowrap text-xs text-gray-500">${fmtDate(ts)}</td>
             <td class="px-6 py-3.5 font-medium text-gray-900 font-mono text-sm">${phone}</td>
             <td class="px-6 py-3.5 text-sm text-gray-700">${shopName || '<span class="text-gray-400 italic">None</span>'}</td>
