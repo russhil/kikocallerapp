@@ -3,48 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kiko AI Order Dashboard</title>
-    
-    <!-- Tailwind CSS (Play CDN for rapid prototyping) -->
+    <title>Kiko AI — Super Dashboard</title>
+    <meta name="description" content="Kiko AI Order Taker — Real-time analytics dashboard for orders, calls, transcriptions, and user activity.">
+
+    <!-- Tailwind CSS (Play CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            50: '#eef2ff',
-                            100: '#e0e7ff',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            900: '#312e81',
-                        }
+                        brand: { 50:'#eef2ff', 100:'#e0e7ff', 200:'#c7d2fe', 500:'#6366f1', 600:'#4f46e5', 700:'#4338ca', 800:'#3730a3', 900:'#312e81' }
                     }
                 }
             }
         }
     </script>
-    
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <!-- Custom Styles -->
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
+<body class="bg-gray-50 text-gray-800 min-h-screen">
 
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen" class="fixed inset-0 bg-gray-50 flex items-center justify-center z-50 transition-opacity duration-300">
-        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full mx-4">
-            <div class="w-16 h-16 bg-brand-500 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-brand-500/30">
+    <!-- ============================================================ -->
+    <!-- LOGIN SCREEN                                                 -->
+    <!-- ============================================================ -->
+    <div id="login-screen" class="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center z-50 transition-opacity duration-300">
+        <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full mx-4 border border-gray-100">
+            <div class="w-16 h-16 bg-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-brand-600/30">
                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
             </div>
-            <h2 class="text-2xl font-bold text-center text-gray-900 mb-2">OrderTaker Dashboard</h2>
+            <h2 class="text-2xl font-bold text-center text-gray-900 mb-2">Kiko AI Dashboard</h2>
             <p class="text-center text-gray-500 mb-8 text-sm">Enter the dashboard password to continue</p>
-            
             <form id="login-form">
                 <div class="mb-5">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
@@ -58,308 +52,426 @@
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD -->
-    <div id="dashboard" class="hidden min-h-screen flex flex-col md:flex-row">
-        
+    <!-- ============================================================ -->
+    <!-- MAIN DASHBOARD                                               -->
+    <!-- ============================================================ -->
+    <div id="dashboard" class="hidden min-h-screen">
+        <div class="flex flex-col md:flex-row min-h-screen">
+
+        <!-- Sidebar Overlay (mobile) -->
+        <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+
         <!-- Sidebar -->
-        <aside class="w-full md:w-64 bg-white border-r border-gray-200 shrink-0 shadow-sm z-10 hidden md:block">
-            <div class="p-6 flex items-center gap-3">
-                <div class="w-10 h-10 bg-brand-500 rounded-lg flex items-center justify-center shadow-md">
+        <aside id="sidebar" class="sidebar w-64 bg-white border-r border-gray-200 shrink-0 shadow-sm hidden md:block">
+            <div class="p-6 flex items-center gap-3 border-b border-gray-100">
+                <div class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center shadow-md">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                 </div>
-                <span class="text-xl font-bold text-gray-900 tracking-tight">Kiko AI</span>
+                <div>
+                    <span class="text-lg font-bold text-gray-900 tracking-tight block leading-tight">Kiko AI</span>
+                    <span class="text-[10px] font-semibold text-brand-600 uppercase tracking-widest">Super Dashboard</span>
+                </div>
             </div>
-            <nav class="p-4 space-y-1">
-                <a href="#" class="flex items-center gap-3 px-4 py-3 bg-brand-50 text-brand-700 rounded-xl font-medium transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+            <nav class="p-3 space-y-1" id="sidebar-nav">
+                <button onclick="switchTab('tab-overview')" data-tab="tab-overview" class="sidebar-link active w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                     Overview
-                </a>
+                </button>
+                <button onclick="switchTab('tab-orders')" data-tab="tab-orders" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                    Orders
+                </button>
+                <button onclick="switchTab('tab-transcripts')" data-tab="tab-transcripts" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Transcriptions
+                </button>
+                <button onclick="switchTab('tab-users')" data-tab="tab-users" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Users &amp; Logins
+                </button>
+                <button onclick="switchTab('tab-activity')" data-tab="tab-activity" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Activity Logs
+                </button>
+                <button onclick="switchTab('tab-first-otp')" data-tab="tab-first-otp" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                    First OTP
+                </button>
             </nav>
+            <!-- Realtime Indicator -->
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
+                <div id="rt-status" class="rt-indicator rt-disconnected">
+                    <span class="rt-dot"></span>
+                    <span>Connecting...</span>
+                </div>
+            </div>
         </aside>
 
         <!-- Main Content -->
         <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50/50 relative">
             <!-- Header -->
-            <header class="bg-white/90 backdrop-blur-md border-b border-gray-200 sticky top-0 z-30">
-                <div class="px-6 py-4 flex items-center justify-between">
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900 leading-tight">Dashboard Overview</h1>
-                        <p id="last-updated" class="text-sm text-gray-500">Retrieving intelligence...</p>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <div class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-1.5 shadow-sm">
-                            <input type="date" id="date-start" class="bg-transparent text-sm text-gray-700 outline-none px-2 py-1 cursor-pointer">
-                            <span class="text-gray-400 text-sm">to</span>
-                            <input type="date" id="date-end" class="bg-transparent text-sm text-gray-700 outline-none px-2 py-1 cursor-pointer">
+            <header class="bg-white/95 backdrop-blur-md border-b border-gray-200 sticky top-0 z-30">
+                <div class="px-4 md:px-6 py-3 flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <!-- Mobile menu button -->
+                        <button id="mobile-menu-btn" class="mobile-menu-btn p-2 rounded-lg hover:bg-gray-100 transition-colors" onclick="openSidebar()">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                        </button>
+                        <div>
+                            <h1 id="page-title" class="text-xl md:text-2xl font-bold text-gray-900 leading-tight">Dashboard Overview</h1>
+                            <p id="last-updated" class="text-xs text-gray-400 mt-0.5">Connecting...</p>
                         </div>
-                        <button id="refresh-btn" class="p-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors shadow-sm" title="Refresh Data">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="refresh-btn" class="p-2 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors shadow-sm" title="Refresh Data">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                         </button>
                     </div>
                 </div>
+                <!-- Date Filter Chips -->
+                <div class="px-4 md:px-6 pb-3 flex items-center gap-2 overflow-x-auto hide-scrollbar date-chips-row">
+                    <button onclick="setDateFilter('today')" class="date-chip" data-filter="today">Today</button>
+                    <button onclick="setDateFilter('yesterday')" class="date-chip" data-filter="yesterday">Yesterday</button>
+                    <button onclick="setDateFilter('3days')" class="date-chip" data-filter="3days">Last 3 Days</button>
+                    <button onclick="setDateFilter('7days')" class="date-chip active" data-filter="7days">Last 7 Days</button>
+                    <button onclick="setDateFilter('15days')" class="date-chip" data-filter="15days">Last 15 Days</button>
+                    <button onclick="setDateFilter('all')" class="date-chip" data-filter="all">All Time</button>
+                    <div class="flex items-center gap-1.5 ml-1">
+                        <input type="date" id="date-start" class="date-chip px-2 py-1 text-xs w-[110px]" title="Custom Start">
+                        <span class="text-gray-300 text-xs">→</span>
+                        <input type="date" id="date-end" class="date-chip px-2 py-1 text-xs w-[110px]" title="Custom End">
+                    </div>
+                </div>
             </header>
 
-            <!-- Tabs -->
-            <div class="bg-white/90 backdrop-blur-md border-b border-gray-200 px-6 sticky top-[76px] z-20 shadow-sm">
-                <nav class="flex space-x-8 overflow-x-auto hide-scrollbar" aria-label="Tabs">
-                    <button onclick="switchTab('tab-overview')" id="nav-tab-overview" class="tab-link text-brand-600 border-brand-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                        Overview
-                    </button>
-                    <button onclick="switchTab('tab-orders')" id="nav-tab-orders" class="tab-link text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                        Orders Data
-                    </button>
-                    <button onclick="switchTab('tab-transcripts')" id="nav-tab-transcripts" class="tab-link text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                        Call Transcripts
-                    </button>
-                    <button onclick="switchTab('tab-activity')" id="nav-tab-activity" class="tab-link text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                        Activity Logs
-                    </button>
-                    <button onclick="switchTab('tab-first-otp')" id="nav-tab-first-otp" class="tab-link text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors">
-                        First OTP Request
-                    </button>
-                </nav>
-            </div>
+            <div class="p-4 md:p-6 max-w-[1440px] mx-auto">
 
-            <div class="p-6 max-w-7xl mx-auto">
-                <!-- OVERVIEW TAB -->
+                <!-- ============================================================ -->
+                <!-- OVERVIEW TAB                                                  -->
+                <!-- ============================================================ -->
                 <div id="tab-overview" class="tab-content block space-y-6">
-                    <!-- Metrics -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <!-- Orders Card -->
-                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/5 rounded-bl-[100px] -z-0"></div>
-                            <div class="flex items-center gap-4 relative z-10">
-                                <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                    <!-- Row 1: Core Metric Cards -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" id="kpi-cards">
+                        <!-- Total Installs -->
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 w-20 h-20 bg-violet-500/5 rounded-bl-[80px]"></div>
+                            <div class="relative z-10">
+                                <div class="p-2.5 bg-violet-50 text-violet-600 rounded-xl w-fit mb-3">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                                 </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-500 mb-1">Total Orders</p>
-                                    <h3 id="stat-orders" class="text-3xl font-bold text-gray-900 tracking-tight">-</h3>
-                                </div>
+                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Installs</p>
+                                <h3 id="stat-installs" class="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">—</h3>
                             </div>
                         </div>
-                        
-                        <!-- Sales Card -->
-                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 w-24 h-24 bg-green-500/5 rounded-bl-[100px] -z-0"></div>
-                            <div class="flex items-center gap-4 relative z-10">
-                                <div class="p-3 bg-green-50 text-green-600 rounded-xl">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <!-- Total Orders -->
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 w-20 h-20 bg-blue-500/5 rounded-bl-[80px]"></div>
+                            <div class="relative z-10">
+                                <div class="p-2.5 bg-blue-50 text-blue-600 rounded-xl w-fit mb-3">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                                 </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-500 mb-1">Total Sales</p>
-                                    <h3 id="stat-sales" class="text-3xl font-bold text-gray-900 tracking-tight">-</h3>
-                                </div>
+                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Orders</p>
+                                <h3 id="stat-orders" class="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">—</h3>
                             </div>
                         </div>
-
-                        <!-- Customers Card -->
-                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 w-24 h-24 bg-purple-500/5 rounded-bl-[100px] -z-0"></div>
-                            <div class="flex items-center gap-4 relative z-10">
-                                <div class="p-3 bg-purple-50 text-purple-600 rounded-xl">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        <!-- Total Sales -->
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 w-20 h-20 bg-emerald-500/5 rounded-bl-[80px]"></div>
+                            <div class="relative z-10">
+                                <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl w-fit mb-3">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-500 mb-1">Unique Customers</p>
-                                    <h3 id="stat-customers" class="text-3xl font-bold text-gray-900 tracking-tight">-</h3>
-                                </div>
+                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Sales</p>
+                                <h3 id="stat-sales" class="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">—</h3>
                             </div>
                         </div>
-
-                        <!-- Sellers Card -->
-                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                            <div class="absolute right-0 top-0 w-24 h-24 bg-orange-500/5 rounded-bl-[100px] -z-0"></div>
-                            <div class="flex items-center gap-4 relative z-10">
-                                <div class="p-3 bg-orange-50 text-orange-600 rounded-xl">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                        <!-- Unique Customers -->
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 w-20 h-20 bg-purple-500/5 rounded-bl-[80px]"></div>
+                            <div class="relative z-10">
+                                <div class="p-2.5 bg-purple-50 text-purple-600 rounded-xl w-fit mb-3">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                 </div>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-500 mb-1">Registered Sellers</p>
-                                    <h3 id="stat-sellers" class="text-3xl font-bold text-gray-900 tracking-tight">-</h3>
-                                </div>
+                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Unique Customers</p>
+                                <h3 id="stat-customers" class="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">—</h3>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Call Transcripts Stats Row -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div class="p-6 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl border border-indigo-100 shadow-sm relative overflow-hidden group lg:col-span-2">
-                            <div class="flex items-center gap-4 relative z-10">
-                                <div class="p-3 bg-white text-indigo-600 rounded-xl shadow-sm">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-indigo-800/70 mb-1 uppercase tracking-wider font-bold">Total Calls Logged</p>
-                                    <h3 id="total-calls" class="text-3xl font-black text-indigo-900 tracking-tight">-</h3>
-                                </div>
-                            </div>
+                    <!-- Row 2: KPI Cards -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                        <div class="p-5 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl border border-indigo-100 shadow-sm">
+                            <p class="text-xs font-bold text-indigo-800/70 uppercase tracking-wider mb-1">Total Calls</p>
+                            <h3 id="total-calls" class="text-2xl md:text-3xl font-black text-indigo-900 tracking-tight">—</h3>
                         </div>
-                        
-                        <div class="p-6 bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl border border-teal-100 shadow-sm relative overflow-hidden group lg:col-span-2">
-                            <div class="flex items-center gap-4 relative z-10">
-                                <div class="p-3 bg-white text-teal-600 rounded-xl shadow-sm">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-teal-800/70 mb-1 uppercase tracking-wider font-bold">Successful AI Transcripts</p>
-                                    <h3 id="total-transcripts" class="text-3xl font-black text-teal-900 tracking-tight">-</h3>
-                                </div>
-                            </div>
+                        <div class="p-5 bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl border border-teal-100 shadow-sm">
+                            <p class="text-xs font-bold text-teal-800/70 uppercase tracking-wider mb-1">AI Transcripts</p>
+                            <h3 id="total-transcripts" class="text-2xl md:text-3xl font-black text-teal-900 tracking-tight">—</h3>
+                            <p id="kpi-transcript-rate" class="text-xs font-semibold text-teal-600 mt-1">—</p>
+                        </div>
+                        <div class="p-5 bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl border border-orange-100 shadow-sm">
+                            <p class="text-xs font-bold text-orange-800/70 uppercase tracking-wider mb-1">Registered Sellers</p>
+                            <h3 id="stat-sellers" class="text-2xl md:text-3xl font-black text-orange-900 tracking-tight">—</h3>
+                        </div>
+                        <div class="p-5 bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-100 shadow-sm">
+                            <p class="text-xs font-bold text-rose-800/70 uppercase tracking-wider mb-1">Avg Order Value</p>
+                            <h3 id="stat-aov" class="text-2xl md:text-3xl font-black text-rose-900 tracking-tight">—</h3>
                         </div>
                     </div>
 
                     <!-- Charts Row -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm col-span-2">
-                            <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-lg font-bold text-gray-900 tracking-tight">Orders Over Time</h3>
-                            </div>
-                            <div class="h-72 w-full">
-                                <canvas id="ordersChart"></canvas>
-                            </div>
+                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm lg:col-span-2">
+                            <h3 class="text-base font-bold text-gray-900 mb-4">Orders &amp; Calls Over Time</h3>
+                            <div class="h-72 w-full"><canvas id="ordersChart"></canvas></div>
                         </div>
-                        
-                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                            <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-lg font-bold text-gray-900 tracking-tight">Order Status</h3>
-                            </div>
+                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative">
+                            <h3 class="text-base font-bold text-gray-900 mb-4">Order Status</h3>
                             <div class="h-64 w-full flex items-center justify-center relative">
                                 <canvas id="statusChart"></canvas>
-                                <!-- Center total in pie chart -->
                                 <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-2">
-                                    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total</span>
+                                    <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Total</span>
                                     <span id="pie-center-total" class="text-2xl font-bold text-gray-800">0</span>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Recent Logins Card -->
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+                            <h3 class="text-base font-bold text-gray-900">Recent User Logins</h3>
+                            <span id="login-count-badge" class="px-3 py-1 text-xs font-bold bg-brand-100 text-brand-700 rounded-full">0 logins</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Phone</th><th>Shop Name</th><th>Last Login</th><th>Logins</th><th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-logins-body">
+                                    <tr><td colspan="5" class="text-center text-gray-400 py-8">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- ORDERS TAB -->
+                <!-- ============================================================ -->
+                <!-- ORDERS TAB                                                    -->
+                <!-- ============================================================ -->
                 <div id="tab-orders" class="tab-content hidden space-y-6">
                     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <h3 class="text-lg font-bold text-gray-900 tracking-tight">Detailed Orders List</h3>
-                            <button onclick="exportCSV('orders')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                Export CSV
-                            </button>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm text-gray-600">
-                                <thead class="bg-gray-50/50 text-gray-500 font-semibold border-b border-gray-100">
-                                    <tr>
-                                        <th class="px-6 py-4">Order ID / Date</th>
-                                        <th class="px-6 py-4">Customer Details</th>
-                                        <th class="px-6 py-4">Seller Details</th>
-                                        <th class="px-6 py-4">Amount</th>
-                                        <th class="px-6 py-4">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="full-orders-table-body" class="divide-y divide-gray-100">
-                                    <tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">Loading orders...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TRANSCRIPTS TAB -->
-                <div id="tab-transcripts" class="tab-content hidden space-y-6">
-                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <h3 class="text-lg font-bold text-gray-900 tracking-tight">Call Recordings & Transcripts</h3>
-                            <button onclick="exportCSV('recordings')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                Export CSV
-                            </button>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm text-gray-600">
-                                <thead class="bg-gray-50/50 text-gray-500 font-semibold border-b border-gray-100">
-                                    <tr>
-                                        <th class="px-6 py-4">Time Logged</th>
-                                        <th class="px-6 py-4">Identifier / Phone</th>
-                                        <th class="px-6 py-4 w-1/2">Transcript Text</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="full-transcripts-table-body" class="divide-y divide-gray-100">
-                                    <tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">Loading transcripts...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ACTIVITY LOGS TAB -->
-                <div id="tab-activity" class="tab-content hidden space-y-6">
-                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <h3 class="text-lg font-bold text-gray-900 tracking-tight">System Activity Logs</h3>
-                            <button onclick="exportCSV('activity')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                Export CSV
-                            </button>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm text-gray-600">
-                                <thead class="bg-gray-50/50 text-gray-500 font-semibold border-b border-gray-100">
-                                    <tr>
-                                        <th class="px-6 py-4">Timestamp</th>
-                                        <th class="px-6 py-4">Action Type</th>
-                                        <th class="px-6 py-4">User Details</th>
-                                        <th class="px-6 py-4">Log Notes</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="full-activity-table-body" class="divide-y divide-gray-100">
-                                    <tr><td colspan="4" class="px-6 py-8 text-center text-gray-400">Loading activity...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FIRST OTP REQUESTS TAB -->
-                <div id="tab-first-otp" class="tab-content hidden space-y-6">
-                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div class="p-6 border-b border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                            <h3 class="text-lg font-bold text-gray-900 tracking-tight">Onboarding: First OTP Requests</h3>
-                            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                                <input type="text" id="first-otp-search" placeholder="Search phone or shop..." class="px-4 py-2 border border-gray-200 rounded-lg text-sm w-full md:w-56 outline-none focus:border-brand-500 transition-colors">
-                                <select id="first-otp-status" class="px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-brand-500 transition-colors">
-                                    <option value="all">All Statuses</option>
-                                    <option value="success">Success</option>
-                                    <option value="failed">Failed</option>
+                        <div class="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                            <h3 class="text-base font-bold text-gray-900">All Orders</h3>
+                            <div class="flex items-center gap-3">
+                                <input type="text" id="order-search" placeholder="Search order/customer..." class="px-3 py-2 border border-gray-200 rounded-lg text-sm w-52 outline-none focus:border-brand-500 transition-colors">
+                                <select id="order-status-filter" class="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-brand-500">
+                                    <option value="all">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="delivered">Delivered</option>
+                                    <option value="cancelled">Cancelled</option>
                                 </select>
-                                <button onclick="exportCSV('first_otp')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition flex items-center gap-2 shrink-0">
+                                <button onclick="exportCSV('orders')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition flex items-center gap-2 shrink-0">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                    Export CSV
+                                    Export
                                 </button>
                             </div>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm text-gray-600">
-                                <thead class="bg-gray-50/50 text-gray-500 font-semibold border-b border-gray-100">
-                                    <tr>
-                                        <th class="px-6 py-4">Timestamp</th>
-                                        <th class="px-6 py-4">Phone Number</th>
-                                        <th class="px-6 py-4">Shop Name</th>
-                                        <th class="px-6 py-4">Device ID</th>
-                                        <th class="px-6 py-4">Device Details</th>
-                                        <th class="px-6 py-4">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="full-first-otp-table-body" class="divide-y divide-gray-100">
-                                    <tr><td colspan="6" class="px-6 py-8 text-center text-gray-400">Loading requests...</td></tr>
-                                </tbody>
+                            <table class="data-table">
+                                <thead><tr><th>Order ID / Date</th><th>Customer</th><th>Seller</th><th>Amount</th><th>Status</th></tr></thead>
+                                <tbody id="full-orders-table-body"><tr><td colspan="5" class="text-center text-gray-400 py-8">Loading...</td></tr></tbody>
                             </table>
                         </div>
+                        <div id="pagination-orders" class="p-4 border-t border-gray-100 flex items-center justify-between bg-white hidden"></div>
                     </div>
                 </div>
 
-            </div>
+                <!-- ============================================================ -->
+                <!-- TRANSCRIPTS TAB                                              -->
+                <!-- ============================================================ -->
+                <div id="tab-transcripts" class="tab-content hidden space-y-6">
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h3 class="text-base font-bold text-gray-900">Call Recordings &amp; Transcripts</h3>
+                                <p id="transcripts-last-updated" class="text-xs text-gray-400 mt-0.5">—</p>
+                            </div>
+                            <button onclick="exportCSV('recordings')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition flex items-center gap-2 shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Export
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="data-table">
+                                <thead><tr><th>Time</th><th>Phone / Store</th><th>Duration</th><th class="w-1/2">Transcript</th></tr></thead>
+                                <tbody id="full-transcripts-table-body"><tr><td colspan="4" class="text-center text-gray-400 py-8">Loading...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div id="pagination-transcripts" class="p-4 border-t border-gray-100 flex items-center justify-between bg-white hidden"></div>
+                    </div>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- USERS & LOGINS TAB                                            -->
+                <!-- ============================================================ -->
+                <div id="tab-users" class="tab-content hidden space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Users</p>
+                            <h3 id="user-stat-total" class="text-3xl font-black text-gray-900">—</h3>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Onboarded</p>
+                            <h3 id="user-stat-onboarded" class="text-3xl font-black text-emerald-600">—</h3>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Active Last 24h</p>
+                            <h3 id="user-stat-active24" class="text-3xl font-black text-blue-600">—</h3>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+                            <h3 class="text-base font-bold text-gray-900">All Users &amp; Login Details</h3>
+                            <button onclick="exportCSV('users')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition flex items-center gap-2 shrink-0">Export</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="data-table">
+                                <thead><tr><th>Phone</th><th>Shop Name</th><th>Owner</th><th>Last Login</th><th>Logins</th><th>Orders</th><th>Status</th></tr></thead>
+                                <tbody id="full-users-table-body"><tr><td colspan="7" class="text-center text-gray-400 py-8">Loading...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div id="pagination-users" class="p-4 border-t border-gray-100 flex items-center justify-between bg-white hidden"></div>
+                    </div>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- ACTIVITY LOGS TAB                                             -->
+                <!-- ============================================================ -->
+                <div id="tab-activity" class="tab-content hidden space-y-6">
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                            <h3 class="text-base font-bold text-gray-900">System Activity Logs</h3>
+                            <div class="flex items-center gap-3">
+                                <select id="activity-type-filter" class="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-brand-500">
+                                    <option value="all">All Types</option>
+                                    <option value="auth">Auth</option>
+                                    <option value="order">Orders</option>
+                                    <option value="recording">Recordings</option>
+                                    <option value="transcribe">Transcriptions</option>
+                                </select>
+                                <button onclick="exportCSV('activity')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition flex items-center gap-2 shrink-0">Export</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="data-table">
+                                <thead><tr><th>Timestamp</th><th>Action</th><th>User</th><th>Entity</th><th>Details</th></tr></thead>
+                                <tbody id="full-activity-table-body"><tr><td colspan="5" class="text-center text-gray-400 py-8">Loading...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div id="pagination-activity" class="p-4 border-t border-gray-100 flex items-center justify-between bg-white hidden"></div>
+                    </div>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- FIRST OTP TAB                                                 -->
+                <!-- ============================================================ -->
+                <div id="tab-first-otp" class="tab-content hidden space-y-6">
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                            <h3 class="text-base font-bold text-gray-900">Onboarding: First OTP Requests</h3>
+                            <div class="flex items-center gap-3">
+                                <input type="text" id="first-otp-search" placeholder="Search phone..." class="px-3 py-2 border border-gray-200 rounded-lg text-sm w-48 outline-none focus:border-brand-500">
+                                <select id="first-otp-status" class="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-brand-500">
+                                    <option value="all">All</option><option value="success">Success</option><option value="failed">Failed</option>
+                                </select>
+                                <button onclick="exportCSV('first_otp')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition flex items-center gap-2 shrink-0">Export</button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="data-table">
+                                <thead><tr><th>Timestamp</th><th>Phone</th><th>Shop Name</th><th>Device</th><th>Details</th><th>Status</th></tr></thead>
+                                <tbody id="full-first-otp-table-body"><tr><td colspan="6" class="text-center text-gray-400 py-8">Loading...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div id="pagination-first-otp" class="p-4 border-t border-gray-100 flex items-center justify-between bg-white hidden"></div>
+                    </div>
+                </div>
+
+            </div><!-- /max-w wrapper -->
         </main>
+
+        </div><!-- /flex row -->
+    </div><!-- /dashboard -->
+
+    <!-- ============================================================ -->
+    <!-- ACTIVITY DETAIL SLIDE PANEL                                   -->
+    <!-- ============================================================ -->
+    <div id="activity-backdrop" class="modal-backdrop" onclick="closeActivityDetail()"></div>
+    <div id="activity-panel" class="slide-panel">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+            <h3 class="text-lg font-bold text-gray-900">Activity Detail</h3>
+            <button onclick="closeActivityDetail()" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div id="activity-detail-content" class="p-6 space-y-6">
+            <!-- Filled by JS -->
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ORDER DETAIL MODAL                                            -->
+    <!-- ============================================================ -->
+    <div id="order-modal-backdrop" class="modal-backdrop" onclick="closeOrderModal()"></div>
+    <div id="order-modal" class="modal-center">
+        <div id="order-modal-content" class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10 rounded-t-2xl">
+                <div>
+                    <h3 id="modal-order-id" class="text-lg font-bold text-gray-900">#----</h3>
+                    <p id="modal-order-date" class="text-xs text-gray-400">—</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="modal-order-status" class="px-3 py-1 rounded-full text-xs font-bold uppercase text-white bg-amber-500">PENDING</span>
+                    <button onclick="closeOrderModal()" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 space-y-5" id="order-detail-body">
+                <!-- Customer Info -->
+                <div class="flex items-start gap-4">
+                    <div id="modal-cust-init" class="w-11 h-11 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center font-bold text-lg shrink-0">?</div>
+                    <div>
+                        <div id="modal-cust-name" class="font-bold text-gray-900">Unknown</div>
+                        <div id="modal-cust-phone" class="text-sm text-gray-500">—</div>
+                        <div id="modal-cust-addr" class="text-xs text-gray-400 mt-1">—</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 text-sm text-gray-600">
+                    <span>Seller: <strong id="modal-seller-info">—</strong></span>
+                    <span>Source: <strong id="modal-order-source">—</strong></span>
+                </div>
+                <!-- Items Table -->
+                <div class="border border-gray-100 rounded-xl overflow-hidden">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-gray-500 text-xs font-semibold"><tr><th class="px-4 py-3 text-left">Item</th><th class="px-4 py-3 text-center">Qty</th><th class="px-4 py-3 text-right">Price</th></tr></thead>
+                        <tbody id="modal-items-tbody"></tbody>
+                    </table>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-500">Items: <strong id="modal-items-count">0</strong></span>
+                    <span class="text-lg font-bold text-gray-900">Total: <span id="modal-total-amount">₹0</span></span>
+                </div>
+                <!-- Notes -->
+                <div id="modal-notes-container" class="hidden bg-amber-50 border border-amber-100 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-amber-800 uppercase tracking-wider mb-1">Notes</p>
+                    <p id="modal-notes-text" class="text-sm text-amber-900">—</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>

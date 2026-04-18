@@ -686,11 +686,13 @@ async def signup(req: SignupRequest, request: Request = None, user: dict = Depen
             "shopkeeper_name": req.shopkeeper_name,
         }).eq("phone", phone).execute()
 
-        # Initialize order counter for this store
-        sb.table("order_counters").upsert(
-            {"user_phone": phone, "last_order_num": 0},
-            on_conflict="user_phone"
-        ).execute()
+        # Initialize order counter for this store (only if new — never reset existing counter)
+        try:
+            sb.table("order_counters").insert(
+                {"user_phone": phone, "last_order_num": 0}
+            ).execute()
+        except Exception:
+            pass  # Counter already exists, don't reset it
 
         _log_activity("auth.signup", store_phone=phone, entity_type="store", entity_id=phone,
                       metadata={"shop_name": req.shop_name, "category": req.store_category, "city": req.store_city}, request=request)
@@ -742,7 +744,8 @@ async def get_next_order_id(user: dict = Depends(get_current_user)):
         try:
             result = sb.rpc("increment_order_counter", {"p_user_phone": phone}).execute()
             next_num = result.data if isinstance(result.data, int) else int(result.data)
-        except Exception:
+        except Exception as rpc_err:
+            print(f"[OrderID] RPC unavailable ({rpc_err}), using fallback", flush=True)
             # Fallback to manual increment if RPC not available
             result = sb.table("order_counters").select("*").eq("user_phone", phone).execute()
             if not result.data:
@@ -750,6 +753,18 @@ async def get_next_order_id(user: dict = Depends(get_current_user)):
                 current_num = 0
             else:
                 current_num = result.data[0]["last_order_num"]
+
+            # Safety: cross-check against actual order count to prevent counter drift
+            try:
+                prefix = f"KIKO-{phone_last4}-"
+                existing = sb.table("orders").select("order_id").like("order_id", f"{prefix}%").eq("store_phone", phone).execute()
+                actual_count = len(existing.data) if existing.data else 0
+                if actual_count > current_num:
+                    print(f"[OrderID] ⚠ Counter drift detected: counter={current_num}, actual_orders={actual_count}. Auto-correcting.", flush=True)
+                    current_num = actual_count
+            except Exception as e:
+                print(f"[OrderID] Counter cross-check failed (non-critical): {e}", flush=True)
+
             next_num = current_num + 1
             sb.table("order_counters").update(
                 {"last_order_num": next_num}
@@ -1344,27 +1359,15 @@ async def sync_order(req: SyncOrderRequest, request: Request = None, user: dict 
 
         sb.table("orders").upsert(row, on_conflict="order_id").execute()
 
-        # Log Activity
-        try:
-            action_type = "ORDER_CREATE" if not existing else "ORDER_UPDATE"
-            notes = f"Order saved with {len(req.products) if req.products else 0} items for ₹{req.total_amount}."
-            
-            if req.is_cancelled:
-                action_type = "ORDER_CANCELLED"
-                notes = f"Order cancelled."
-            elif req.delivery_status and req.delivery_status.lower() == 'delivered':
-                action_type = "ORDER_DELIVERED"
-                notes = "Order marked as delivered."
-
-            sb.table("activity_log").insert({
-                "action_type": action_type,
-                "user_phone": store_phone,
-                "store_phone": store_phone,
-                "notes": notes,
-                "order_id": req.order_id
-            }).execute()
-        except Exception as e:
-            print(f"[SyncOrder] Failed to log activity: {e}", flush=True)
+        # Determine action for unified activity log (replaces old dual-logging)
+        if req.is_cancelled:
+            _order_action = "order.cancelled"
+        elif req.delivery_status and req.delivery_status.lower() == 'delivered':
+            _order_action = "order.delivered"
+        elif not existing:
+            _order_action = "order.created"
+        else:
+            _order_action = "order.updated"
 
         # Normalize products into order_items table
         if store_phone and req.products:
@@ -1414,7 +1417,7 @@ async def sync_order(req: SyncOrderRequest, request: Request = None, user: dict 
             except Exception:
                 pass  # Non-critical
 
-        _log_activity("order.synced", store_phone=user.get("phone"), entity_type="order",
+        _log_activity(_order_action, store_phone=user.get("phone"), entity_type="order",
                       entity_id=req.order_id, metadata={"customer_name": req.customer_name,
                       "customer_phone": req.customer_phone, "total_amount": req.total_amount,
                       "product_count": len(req.products)}, request=request)
