@@ -265,7 +265,7 @@ async function fetchDashboardData() {
         // Fetch tables in parallel. Users and stores without date filter.
         const [allOrders, allRecordings, allActivity] = await Promise.all([
             fetchAll('orders'),
-            fetchAll('recordings', 'date_recorded'),
+            fetchAll('recordings'),
             fetchAll('activity_log'),
         ]);
 
