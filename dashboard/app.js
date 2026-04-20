@@ -176,13 +176,22 @@ function switchTab(tabId) {
         el.classList.remove('active', 'bg-brand-50', 'text-brand-700');
         el.classList.add('text-gray-600', 'hover:bg-gray-100');
     });
+    document.querySelectorAll('.mobile-tab-btn').forEach(el => {
+        el.classList.remove('active', 'bg-brand-50', 'text-brand-700', 'font-semibold');
+        el.classList.add('text-gray-600', 'hover:bg-gray-100', 'font-medium');
+    });
     const tab = document.getElementById(tabId);
     if (tab) { tab.classList.remove('hidden'); tab.classList.add('block'); }
-    const btn = document.querySelector(`.sidebar-link[data-tab="${tabId}"]`);
-    if (btn) {
+    
+    document.querySelectorAll(`.sidebar-link[data-tab="${tabId}"]`).forEach(btn => {
         btn.classList.add('active', 'bg-brand-50', 'text-brand-700');
         btn.classList.remove('text-gray-600', 'hover:bg-gray-100');
-    }
+    });
+    document.querySelectorAll(`.mobile-tab-btn[data-tab="${tabId}"]`).forEach(btn => {
+        btn.classList.add('active', 'bg-brand-50', 'text-brand-700', 'font-semibold');
+        btn.classList.remove('text-gray-600', 'hover:bg-gray-100', 'font-medium');
+    });
+
     // Update page title
     const titles = {
         'tab-overview': 'Dashboard Overview', 'tab-orders': 'Orders',

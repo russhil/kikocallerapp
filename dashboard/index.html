@@ -62,7 +62,7 @@
         <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
 
         <!-- Sidebar -->
-        <aside id="sidebar" class="sidebar w-64 bg-white border-r border-gray-200 shrink-0 shadow-sm flex flex-col">
+        <aside id="sidebar" class="sidebar w-64 bg-white border-r border-gray-200 shrink-0 shadow-sm hidden md:flex flex-col">
             <div class="p-6 flex items-center justify-between gap-3 border-b border-gray-100">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center shadow-md">
@@ -118,10 +118,6 @@
             <header class="bg-white/95 backdrop-blur-md border-b border-gray-200 sticky top-0 z-30">
                 <div class="px-4 md:px-6 py-3 flex items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
-                        <!-- Mobile menu button -->
-                        <button id="mobile-menu-btn" class="mobile-menu-btn p-2 rounded-lg hover:bg-gray-100 transition-colors" onclick="openSidebar()">
-                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                        </button>
                         <div>
                             <h1 id="page-title" class="text-xl md:text-2xl font-bold text-gray-900 leading-tight">Dashboard Overview</h1>
                             <p id="last-updated" class="text-xs text-gray-400 mt-0.5">Connecting...</p>
@@ -146,6 +142,15 @@
                         <span class="text-gray-300 text-xs">→</span>
                         <input type="date" id="date-end" class="date-chip px-2 py-1 text-xs w-[110px]" title="Custom End">
                     </div>
+                </div>
+                <!-- Mobile Navigation Tabs (visible only on mobile) -->
+                <div class="md:hidden px-4 md:px-6 pb-3 pt-1 flex items-center gap-2 overflow-x-auto hide-scrollbar">
+                    <button onclick="switchTab('tab-overview')" data-tab="tab-overview" class="mobile-tab-btn active px-4 py-2 text-sm font-semibold whitespace-nowrap rounded-lg bg-brand-50 text-brand-700 transition-colors">Overview</button>
+                    <button onclick="switchTab('tab-orders')" data-tab="tab-orders" class="mobile-tab-btn px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">Orders</button>
+                    <button onclick="switchTab('tab-transcripts')" data-tab="tab-transcripts" class="mobile-tab-btn px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">Transcripts</button>
+                    <button onclick="switchTab('tab-users')" data-tab="tab-users" class="mobile-tab-btn px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">Users &amp; Logins</button>
+                    <button onclick="switchTab('tab-activity')" data-tab="tab-activity" class="mobile-tab-btn px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">Activity</button>
+                    <button onclick="switchTab('tab-first-otp')" data-tab="tab-first-otp" class="mobile-tab-btn px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">First OTP</button>
                 </div>
             </header>
 
