@@ -518,6 +518,11 @@ async def send_otp(req: SendOtpRequest, request: Request = None):
             if store_check.data[0].get("store_name"):
                 is_new_user = False
 
+        # Fixed OTP bypass for test user 9619363677
+        if phone == "919619363677":
+            print(f"[Auth] Mocking OTP send for test account {phone}", flush=True)
+            return {"status": "ok", "message": "OTP sent successfully"}
+
         # Step 2: Upsert user row with OTP (creates if not exists)
         sb.table("users").upsert(
             {
@@ -604,10 +609,13 @@ async def verify_otp(req: VerifyOtpRequest, request: Request = None):
         now_ms = int(time.time() * 1000)
 
         # Check OTP
-        if user.get("otp_code") != req.otp:
-            raise HTTPException(status_code=401, detail="Invalid OTP")
-        if user.get("otp_expires_at", 0) < now_ms:
-            raise HTTPException(status_code=401, detail="OTP expired")
+        if phone == "919619363677" and req.otp == "123456":
+            print(f"[Auth] ✓ Fixed OTP bypass used for test account {phone}", flush=True)
+        else:
+            if user.get("otp_code") != req.otp:
+                raise HTTPException(status_code=401, detail="Invalid OTP")
+            if user.get("otp_expires_at", 0) < now_ms:
+                raise HTTPException(status_code=401, detail="OTP expired")
 
         # Generate auth token
         auth_token = secrets.token_hex(32)

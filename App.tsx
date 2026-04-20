@@ -22,6 +22,7 @@ import EditOrderScreen from './src/screens/EditOrderScreen';
 import RecordingsScreen from './src/screens/RecordingsScreen';
 import ProcessingStatusScreen from './src/screens/ProcessingStatusScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import HelpButton from './src/components/HelpButton';
 
 const Stack = createNativeStackNavigator();
 const { RecordingMonitorModule } = NativeModules;
@@ -172,10 +173,13 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
-        <NavigationContainer>
-          <AppNavigator />
-        </NavigationContainer>
+        <View style={{flex: 1}}>
+          <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
+          <NavigationContainer>
+            <AppNavigator />
+          </NavigationContainer>
+          <HelpButton />
+        </View>
       </AuthProvider>
     </SafeAreaProvider>
   );
