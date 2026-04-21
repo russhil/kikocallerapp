@@ -496,6 +496,18 @@ async def send_otp(req: SendOtpRequest, request: Request = None):
     if len(phone) == 10:
         phone = f"91{phone}"
 
+    # ── Playstore review bypass ──────────────────────────────────────
+    # Demo account: skip SMS entirely, OTP is always 123456.
+    # This ensures login works across ALL app versions without
+    # requiring client-side bypasses that break on every update.
+    DEMO_PHONE = "919619363677"
+    if phone == DEMO_PHONE:
+        print(f"[Auth] Demo account {phone} — skipping SMS, fixed OTP", flush=True)
+        _log_activity("auth.otp_sent", store_phone=phone, entity_type="user", entity_id=phone,
+                      metadata={"demo_bypass": True}, request=request)
+        return {"status": "ok", "message": "OTP sent successfully"}
+    # ─────────────────────────────────────────────────────────────────
+
     otp = str(random.randint(100000, 999999))
     expires_at = int(time.time() * 1000) + (5 * 60 * 1000)  # 5 minutes
 
@@ -598,6 +610,46 @@ async def verify_otp(req: VerifyOtpRequest, request: Request = None):
     phone = req.phone.replace("+", "").strip()
     if len(phone) == 10:
         phone = f"91{phone}"
+
+    # ── Playstore review bypass ──────────────────────────────────────
+    # Demo account with fixed OTP 123456.
+    # Upserts demo store/user rows, mints a real auth token.
+    DEMO_PHONE = "919619363677"
+    DEMO_OTP = "123456"
+    if phone == DEMO_PHONE and req.otp == DEMO_OTP:
+        print(f"[Auth] Demo account {phone} — fixed OTP accepted", flush=True)
+        sb = _require_supabase()
+        auth_token = secrets.token_hex(32)
+        now_ms = int(time.time() * 1000)
+        try:
+            # Ensure store row exists
+            store_check = sb.table("stores").select("phone").eq("phone", phone).execute()
+            if not store_check.data:
+                sb.table("stores").insert({"phone": phone, "store_name": "Test Shop", "owner_name": "Test User"}).execute()
+            # Upsert user row with real token
+            sb.table("users").upsert({
+                "phone": phone,
+                "auth_token": auth_token,
+                "otp_code": None,
+                "otp_expires_at": 0,
+                "last_login_at": now_ms,
+                "shop_name": "Test Shop",
+                "shopkeeper_name": "Test User",
+            }, on_conflict="phone").execute()
+        except Exception as e:
+            print(f"[Auth] Demo upsert warning (non-fatal): {e}", flush=True)
+        _log_activity("auth.login", store_phone=phone, entity_type="user", entity_id=phone,
+                      metadata={"demo_bypass": True}, request=request)
+        return {
+            "status": "ok",
+            "token": auth_token,
+            "is_new_user": False,
+            "user": {"phone": phone, "shop_name": "Test Shop", "shopkeeper_name": "Test User"}
+        }
+    # ── Wrong OTP for demo account → reject clearly ──────────────────
+    if phone == DEMO_PHONE and req.otp != DEMO_OTP:
+        raise HTTPException(status_code=401, detail="Invalid OTP")
+    # ─────────────────────────────────────────────────────────────────
 
     sb = _require_supabase()
     try:
