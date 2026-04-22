@@ -274,7 +274,7 @@ async function fetchDashboardData() {
         // Fetch tables in parallel. Users and stores without date filter.
         const [allOrders, allRecordings, allActivity] = await Promise.all([
             fetchAll('orders'),
-            fetchAll('recordings'),
+            fetchAll('recordings', 'date_recorded'),
             fetchAll('activity_log'),
         ]);
 
@@ -697,13 +697,20 @@ function renderFullTranscripts(recordings) {
         return;
     }
 
+    // Sort recordings by date_recorded descending so the latest transcripts appear at the top
+    const sortedRecordings = [...recordings].sort((a, b) => {
+        const tA = parseTs(a.date_recorded || a.created_at) || 0;
+        const tB = parseTs(b.date_recorded || b.created_at) || 0;
+        return tB - tA;
+    });
+
     const page = state.pages.transcripts;
-    const items = paginate(recordings, page);
-    renderPagination('pagination-transcripts', recordings.length, page, 'transcripts', () => renderFullTranscripts(recordings));
+    const items = paginate(sortedRecordings, page);
+    renderPagination('pagination-transcripts', sortedRecordings.length, page, 'transcripts', () => renderFullTranscripts(recordings));
 
     items.forEach((r, index) => {
         const srNo = (page - 1) * PER_PAGE + index + 1;
-        const ts = parseTs(r.created_at);
+        const ts = parseTs(r.date_recorded || r.created_at);
         const identifier = r.source_phone || r.store_phone || r.contact_name || 'Unknown';
         const storeName = r.store_phone || '';
         const hasTranscript = r.transcript && r.transcript.length > 4;

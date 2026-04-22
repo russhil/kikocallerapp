@@ -234,7 +234,6 @@ html, body {
     .sidebar-overlay.open { display: block; }
     .mobile-menu-btn { display: flex !important; }
     .slide-panel { width: 100vw; }
-    .date-chips-row { flex-wrap: wrap; }
 }
 @media (min-width: 769px) {
     .mobile-menu-btn { display: none !important; }

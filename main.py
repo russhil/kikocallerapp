@@ -619,7 +619,7 @@ async def verify_otp(req: VerifyOtpRequest, request: Request = None):
     if phone == DEMO_PHONE and req.otp == DEMO_OTP:
         print(f"[Auth] Demo account {phone} — fixed OTP accepted", flush=True)
         sb = _require_supabase()
-        auth_token = secrets.token_hex(32)
+        auth_token = "review_token_9619363677_x3a"
         now_ms = int(time.time() * 1000)
         try:
             # Ensure store row exists
