@@ -579,8 +579,9 @@ async def send_otp(req: SendOtpRequest, request: Request = None):
         if response_text.startswith("success"):
             _log_activity("auth.otp_sent", store_phone=phone, entity_type="user", entity_id=phone, request=request)
             
-            # Log auth.first_otp if this is a new user and hasn't requested OTP before
-            if is_new_user:
+            # Log auth.first_otp if this phone hasn't requested OTP before
+            # (first_otp_check prevents duplicates — no need for is_new_user guard)
+            try:
                 first_otp_check = sb.table("activity_log").select("id").eq("action", "auth.first_otp").eq("store_phone", phone).execute()
                 if not first_otp_check.data:
                     _log_activity("auth.first_otp", store_phone=phone, entity_type="user", entity_id=phone, metadata={
@@ -590,6 +591,8 @@ async def send_otp(req: SendOtpRequest, request: Request = None):
                         "app_version": req.app_version,
                         "is_first_otp_request": True
                     }, request=request)
+            except Exception as e:
+                print(f"[Auth] ⚠ first_otp check/log failed (non-fatal): {e}", flush=True)
                     
             return {"status": "ok", "message": "OTP sent successfully"}
         else:
