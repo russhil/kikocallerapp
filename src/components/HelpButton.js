@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import {Colors, FontSizes, FontWeights, BorderRadius, Spacing} from '../theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { trackHelpButtonClicked, trackHelpLanguageSelected } from '../utils/analytics';
 
 const {width} = Dimensions.get('window');
 
@@ -58,6 +59,7 @@ export default function HelpButton() {
 
   const openModal = () => {
     console.log('[Help] Help button tapped');
+    trackHelpButtonClicked();
     setShowModal(true);
     Animated.spring(scaleAnim, {
       toValue: 1,
@@ -78,6 +80,7 @@ export default function HelpButton() {
   const openHelp = async (lang) => {
     const url = HELP_URLS[lang];
     console.log(`[Help] Opening ${lang} help: ${url}`);
+    trackHelpLanguageSelected(lang);
     closeModal();
     try {
       const supported = await Linking.canOpenURL(url);

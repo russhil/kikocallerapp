@@ -24,6 +24,15 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { AuthContext } from '../context/AuthContext';
 import { BASE_URL } from '../config';
 import CustomPopup from '../components/CustomPopup';
+import {
+  trackLoginScreenViewed,
+  trackOtpRequested,
+  trackOtpVerifyAttempt,
+  trackLoginSuccess,
+  trackLoginFailed,
+  trackSignupStarted,
+  trackSignupCompleted,
+} from '../utils/analytics';
 
 export default function LoginScreen() {
   const { login } = useContext(AuthContext);
@@ -95,6 +104,11 @@ export default function LoginScreen() {
     }
   }, [showOtp, showSignup]);
 
+  // Track login screen view on mount
+  useEffect(() => {
+    trackLoginScreenViewed();
+  }, []);
+
   const showPopup = (title, message, icon, buttons) => {
     setPopup({
       visible: true,
@@ -120,6 +134,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     setStatus('Sending OTP...');
+    trackOtpRequested(phone);
     try {
       const res = await fetch(`${BASE_URL}/api/auth/send-otp`, {
         method: 'POST',
@@ -132,9 +147,11 @@ export default function LoginScreen() {
       } else {
         const text = await res.text();
         setStatus(text || `Server error ${res.status}`);
+        trackLoginFailed('otp_send_failed');
       }
     } catch (e) {
       setStatus('Cannot connect to server. Check internet connection.');
+      trackLoginFailed('network_error');
     }
     setLoading(false);
   };
@@ -149,6 +166,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     setStatus('Verifying OTP...');
+    trackOtpVerifyAttempt();
     try {
       const res = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
         method: 'POST',
@@ -157,6 +175,7 @@ export default function LoginScreen() {
       });
       if (!res.ok) {
         setStatus('Invalid OTP. Please try again.');
+        trackLoginFailed('invalid_otp');
         setLoading(false);
         return;
       }
@@ -165,8 +184,10 @@ export default function LoginScreen() {
       if (data.is_new_user) {
         setStatus('Welcome! Please complete your profile.');
         setShowSignup(true);
+        trackSignupStarted();
       } else {
         const user = data.user || {};
+        trackLoginSuccess(user.phone || currentPhone);
         await login(
           data.token,
           user.phone || currentPhone,
@@ -176,6 +197,7 @@ export default function LoginScreen() {
       }
     } catch (e) {
       setStatus('Network error. Please try again.');
+      trackLoginFailed('network_error');
     }
     setLoading(false);
   };
@@ -249,6 +271,8 @@ export default function LoginScreen() {
       }
       const data = await res.json();
       const user = data.user || {};
+      trackSignupCompleted(shopName);
+      trackLoginSuccess(user.phone || currentPhone);
       await login(
         data.token || currentToken,
         user.phone || currentPhone,
@@ -257,6 +281,7 @@ export default function LoginScreen() {
       );
     } catch (e) {
       setStatus('Network error. Please try again.');
+      trackLoginFailed('signup_network_error');
     }
     setLoading(false);
   };

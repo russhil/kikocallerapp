@@ -7,6 +7,7 @@ import {Colors, FontSizes, FontWeights, BorderRadius, Spacing} from '../theme';
 import {AuthContext} from '../context/AuthContext';
 import CustomPopup from '../components/CustomPopup';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { trackSettingsViewed, trackSettingsSaved, trackLogoutClicked } from '../utils/analytics';
 
 const LANGUAGE_OPTIONS = [
   {label: 'Auto-Detect Language', value: 'auto'},
@@ -30,7 +31,10 @@ export default function SettingsScreen() {
   };
   const hidePopup = () => setPopup(p => ({...p, visible: false}));
 
-  useEffect(() => { loadSettings(); }, []);
+  useEffect(() => {
+    loadSettings();
+    trackSettingsViewed();
+  }, []);
 
   const loadSettings = async () => {
     const sn = await AsyncStorage.getItem('shopName');
@@ -54,6 +58,7 @@ export default function SettingsScreen() {
       NativeModules.RecordingMonitorModule.setCustomScanPath(customPath);
     }
     showPopup('Saved', 'Settings saved successfully!', 'check');
+    trackSettingsSaved(language);
   };
 
   const browseFolderPicker = async () => {
@@ -81,7 +86,7 @@ export default function SettingsScreen() {
   const onLogout = () => {
     showPopup('Logout', 'Are you sure you want to logout?', 'question', [
       {text: 'Cancel', style: 'outline', onPress: hidePopup},
-      {text: 'Logout', style: 'destructive', onPress: () => { hidePopup(); logout(); }},
+      {text: 'Logout', style: 'destructive', onPress: () => { hidePopup(); trackLogoutClicked(); logout(); }},
     ]);
   };
 

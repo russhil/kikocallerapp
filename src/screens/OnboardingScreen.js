@@ -13,6 +13,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
+import {
+  trackOnboardingStarted,
+  trackOnboardingSlideViewed,
+  trackOnboardingSkipped,
+  trackOnboardingCompleted,
+} from '../utils/analytics';
 
 const {width, height} = Dimensions.get('window');
 
@@ -302,7 +308,24 @@ export default function OnboardingScreen() {
   const scrollX = useRef(new Animated.Value(0)).current;
   const slidesRef = useRef(null);
 
+  // Track onboarding started on mount
+  useEffect(() => {
+    trackOnboardingStarted();
+  }, []);
+
   const completeOnboarding = async () => {
+    try {
+      await AsyncStorage.setItem('hasLaunched', 'true');
+      trackOnboardingCompleted();
+      nav.replace('Login');
+    } catch (e) {
+      console.error('Error saving onboarding state:', e);
+      nav.replace('Login');
+    }
+  };
+
+  const skipOnboarding = async () => {
+    trackOnboardingSkipped(currentIndex);
     try {
       await AsyncStorage.setItem('hasLaunched', 'true');
       nav.replace('Login');
@@ -322,7 +345,9 @@ export default function OnboardingScreen() {
 
   const onViewableItemsChanged = useRef(({viewableItems}) => {
     if (viewableItems && viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index);
+      const newIndex = viewableItems[0].index;
+      setCurrentIndex(newIndex);
+      trackOnboardingSlideViewed(newIndex);
     }
   }).current;
 
@@ -373,7 +398,7 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={completeOnboarding} hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
+        <TouchableOpacity onPress={skipOnboarding} hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
           <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
       </View>

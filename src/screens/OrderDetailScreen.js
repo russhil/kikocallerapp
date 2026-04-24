@@ -8,6 +8,14 @@ import {sendWhatsApp, shareOrderViaWhatsApp, composeMessage, formatPrice, format
 import CustomPopup from '../components/CustomPopup';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {syncOrder} from '../api/syncApi';
+import {
+  trackWhatsappSent,
+  trackWhatsappShared,
+  trackOrderCancelled,
+  trackOrderRestored,
+  trackOrderDelivered,
+  trackButtonClick,
+} from '../utils/analytics';
 
 export default function OrderDetailScreen() {
   const route = useRoute();
@@ -58,6 +66,7 @@ export default function OrderDetailScreen() {
       {text: 'No', style: 'outline', onPress: hidePopup},
       {text: 'Cancel Order', style: 'destructive', onPress: () => {
         hidePopup();
+        trackOrderCancelled(orderId);
         saveOrders(list => list.map(o => o.orderId === orderId ? {...o, isCancelled: true, cancelledAt: Date.now(), deliveryStatus: 'cancelled'} : o));
       }},
     ]);
@@ -68,18 +77,21 @@ export default function OrderDetailScreen() {
       {text: 'No', style: 'outline', onPress: hidePopup},
       {text: 'Yes, Delivered', style: 'primary', onPress: () => {
         hidePopup();
+        trackOrderDelivered(orderId);
         saveOrders(list => list.map(o => o.orderId === orderId ? {...o, deliveryStatus: 'delivered', isCancelled: false, cancelledAt: null} : o));
       }},
     ]);
   };
 
   const restoreOrder = () => {
+    trackOrderRestored(orderId);
     saveOrders(list => list.map(o => o.orderId === orderId ? {...o, isCancelled: false, cancelledAt: null, deliveryStatus: 'pending'} : o));
   };
 
   const whatsAppSend = async () => {
     try {
       await sendWhatsApp(order);
+      trackWhatsappSent(orderId);
       await saveOrders(list => list.map(o => o.orderId === orderId ? {...o, whatsappSent: true} : o));
       showPopup('Sent', 'Order sent via WhatsApp!', 'check');
     } catch (e) {
@@ -183,7 +195,7 @@ export default function OrderDetailScreen() {
           <TouchableOpacity style={s.actionBtn} onPress={() => nav.navigate('EditOrder', {orderId})} activeOpacity={0.7}>
             <Text style={s.actionBtnText}>Edit Order</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={s.actionBtn} onPress={() => shareOrderViaWhatsApp(order)} activeOpacity={0.7}>
+          <TouchableOpacity style={s.actionBtn} onPress={() => { trackWhatsappShared(orderId); shareOrderViaWhatsApp(order); }} activeOpacity={0.7}>
             <Text style={s.actionBtnText}>Share</Text>
           </TouchableOpacity>
         </View>

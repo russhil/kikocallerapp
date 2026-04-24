@@ -7,6 +7,7 @@ import {Colors, FontSizes, FontWeights, BorderRadius, Spacing} from '../theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {BASE_URL} from '../config';
 import CustomPopup from '../components/CustomPopup';
+import { trackOrderEdited } from '../utils/analytics';
 
 export default function EditOrderScreen() {
   const route = useRoute();
@@ -105,7 +106,7 @@ export default function EditOrderScreen() {
     } catch (e) {}
 
     showPopup('Saved', 'Order updated successfully!', 'check', [
-      {text: 'OK', onPress: () => { hidePopup(); nav.goBack(); }},
+      {text: 'OK', onPress: () => { hidePopup(); trackOrderEdited(orderId); nav.goBack(); }},
     ]);
   };
 

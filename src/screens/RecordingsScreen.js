@@ -23,6 +23,14 @@ import { BASE_URL } from '../config';
 import { syncOrder, syncRecording } from '../api/syncApi';
 import CustomPopup from '../components/CustomPopup';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {
+  trackRecordingsScreenViewed,
+  trackTranscribeStarted,
+  trackTranscribeSuccess,
+  trackTranscribeFailed,
+  trackOrderCreated,
+  trackProcessAllStarted,
+} from '../utils/analytics';
 
 const { RecordingMonitorModule } = NativeModules;
 
@@ -113,6 +121,8 @@ export default function RecordingsScreen() {
       );
     }
     setScanning(false);
+    // Track recordings screen viewed with count
+    trackRecordingsScreenViewed(recordings.length);
   };
 
   const saveRecordingState = async (path, updates) => {
@@ -156,6 +166,7 @@ export default function RecordingsScreen() {
     };
 
     const notifId = Math.floor(Math.random() * 100000);
+    trackTranscribeStarted(recording.filename);
 
     try {
       let callPhone = null;
@@ -312,6 +323,7 @@ export default function RecordingsScreen() {
 
       if (!transcript) {
         updateStep('Transcription failed');
+        trackTranscribeFailed(recording.filename, 'no_transcript');
         showPopup('Error', 'Failed to transcribe audio', 'error');
         return;
       }
@@ -530,6 +542,8 @@ export default function RecordingsScreen() {
           }
 
           updateStep('Done!');
+          trackOrderCreated(newOrder.orderId, (newOrder.products || []).length, newOrder.totalAmount);
+          trackTranscribeSuccess(recording.filename, 'ORDER_CALL');
           try {
             await RecordingMonitorModule.showNotification(
               'Order Created!',
@@ -571,6 +585,7 @@ export default function RecordingsScreen() {
           ),
         );
         updateStep('No order found');
+        trackTranscribeSuccess(recording.filename, 'PERSONAL_CALL');
         try {
           await RecordingMonitorModule.showNotification(
             'Call Processed',
@@ -628,6 +643,7 @@ export default function RecordingsScreen() {
           text: 'Process',
           onPress: async () => {
             hidePopup();
+            trackProcessAllStarted(unprocessedNew.length);
             for (const r of unprocessedNew) {
               await processRecording(r);
             }

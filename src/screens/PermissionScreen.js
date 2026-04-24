@@ -22,6 +22,7 @@ import {
   Spacing,
 } from '../theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { trackPermissionScreenViewed, trackPermissionsGranted } from '../utils/analytics';
 
 const PERMISSIONS = [
   { key: 'READ_CONTACTS', label: 'Contacts', desc: 'Match caller names' },
@@ -100,9 +101,15 @@ export default function PermissionScreen({ onAllGranted }) {
     const runtimeGranted = Object.values(result).every(v => v);
     const roleGate = !ROLE_SUPPORTED || !roleAvail || roleHeld;
     if (runtimeGranted && roleGate) {
+      trackPermissionsGranted();
       onAllGranted?.();
     }
   }, [onAllGranted]);
+
+  // Track permission screen view on mount
+  useEffect(() => {
+    trackPermissionScreenViewed();
+  }, []);
 
   const requestAll = async () => {
     setChecking(true);

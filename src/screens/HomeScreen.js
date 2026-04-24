@@ -8,6 +8,14 @@ import {AuthContext} from '../context/AuthContext';
 import {formatPrice, sendWhatsApp} from '../utils/whatsappHelper';
 import CustomPopup from '../components/CustomPopup';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {
+  trackHomeScreenViewed,
+  trackOrderViewed,
+  trackOrderCancelled,
+  trackOrderRestored,
+  trackWhatsappSent,
+  trackButtonClick,
+} from '../utils/analytics';
 
 const {width} = Dimensions.get('window');
 const {RecordingMonitorModule} = NativeModules;
@@ -41,7 +49,18 @@ export default function HomeScreen() {
     setLoading(false);
   };
 
-  useFocusEffect(useCallback(() => { loadOrders(); }, []));
+  useFocusEffect(useCallback(() => {
+    loadOrders().then(() => {
+      // Track after orders load
+    });
+  }, []));
+
+  // Track home screen viewed whenever orders change
+  useEffect(() => {
+    if (orders.length >= 0) {
+      trackHomeScreenViewed(orders.length);
+    }
+  }, [orders.length]);
 
   useEffect(() => {
     let list = [...orders];
@@ -69,11 +88,13 @@ export default function HomeScreen() {
   };
 
   const cancelOrder = async (orderId) => {
+    trackOrderCancelled(orderId);
     const updated = orders.map(o => o.orderId === orderId ? {...o, isCancelled: true, cancelledAt: Date.now()} : o);
     await saveOrders(updated);
   };
 
   const restoreOrder = async (orderId) => {
+    trackOrderRestored(orderId);
     const updated = orders.map(o => o.orderId === orderId ? {...o, isCancelled: false, cancelledAt: null} : o);
     await saveOrders(updated);
   };
@@ -100,6 +121,7 @@ export default function HomeScreen() {
   const handleWhatsApp = async (order) => {
     try {
       await sendWhatsApp(order);
+      trackWhatsappSent(order.orderId);
       const updated = orders.map(o => o.orderId === order.orderId ? {...o, whatsappSent: true} : o);
       await saveOrders(updated);
     } catch (e) {
@@ -139,7 +161,7 @@ export default function HomeScreen() {
     return (
       <TouchableOpacity
         style={s.card}
-        onPress={() => { markAsRead(order.orderId); nav.navigate('OrderDetail', {orderId: order.orderId}); }}
+        onPress={() => { markAsRead(order.orderId); trackOrderViewed(order.orderId); nav.navigate('OrderDetail', {orderId: order.orderId}); }}
         onLongPress={() => handleLongPress(order)}
         activeOpacity={0.7}
       >

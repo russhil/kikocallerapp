@@ -14,6 +14,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
 import { Colors } from './src/theme';
 import HelpButton from './src/components/HelpButton';
+import { trackAppOpened, trackSetupComplete } from './src/utils/analytics';
 
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -24,7 +25,6 @@ import EditOrderScreen from './src/screens/EditOrderScreen';
 import RecordingsScreen from './src/screens/RecordingsScreen';
 import ProcessingStatusScreen from './src/screens/ProcessingStatusScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
-import HelpButton from './src/components/HelpButton';
 
 const Stack = createNativeStackNavigator();
 const { RecordingMonitorModule } = NativeModules;
@@ -85,6 +85,8 @@ function AppNavigator() {
   // Start background monitoring service once logged in AND permissions granted
   useEffect(() => {
     if (isLoggedIn && permGranted) {
+      // Track setup complete (login + permissions done)
+      trackSetupComplete();
       const startMonitoring = async () => {
         try {
           const running = await RecordingMonitorModule.isMonitorRunning();
@@ -183,6 +185,10 @@ function AppNavigator() {
 }
 
 export default function App() {
+  useEffect(() => {
+    trackAppOpened();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <AuthProvider>
