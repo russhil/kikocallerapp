@@ -84,8 +84,8 @@ android {
         applicationId "com.kikocall"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 49
-        versionName "1.0.49"
+        versionCode 51
+        versionName "1.0.51"
 
         if (project.hasProperty('reactNativeArchitectures')) {
             ndk {
