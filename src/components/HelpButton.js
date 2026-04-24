@@ -16,8 +16,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 const {width} = Dimensions.get('window');
 
 const HELP_URLS = {
-  english: 'https://ordertaker.kiko.live/english/',
-  hindi: 'https://ordertaker.kiko.live/hindi/',
+  english: 'https://ordertaker.kiko.live/selfhelp/?lang=en',
+  hindi: 'https://ordertaker.kiko.live/selfhelp/?lang=hi',
 };
 
 /**

@@ -12,6 +12,8 @@
   "dependencies": {
     "@parcel/watcher": "^2.5.6",
     "@react-native-async-storage/async-storage": "^2.1.0",
+    "@react-native-firebase/analytics": "^24.0.0",
+    "@react-native-firebase/app": "^24.0.0",
     "@react-native/new-app-screen": "0.84.1",
     "@react-navigation/bottom-tabs": "^7.15.7",
     "@react-navigation/native": "^7.2.0",

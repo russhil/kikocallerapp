@@ -13,7 +13,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
 import { Colors } from './src/theme';
+import HelpButton from './src/components/HelpButton';
 
+import OnboardingScreen from './src/screens/OnboardingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import PermissionScreen from './src/screens/PermissionScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -70,6 +72,16 @@ function AppNavigator() {
     }
   }, [isLoggedIn, permChecked]);
 
+  const [hasLaunched, setHasLaunched] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    import('@react-native-async-storage/async-storage').then(({default: AsyncStorage}) => {
+      AsyncStorage.getItem('hasLaunched').then(value => {
+        setHasLaunched(value === 'true');
+      });
+    });
+  }, []);
+
   // Start background monitoring service once logged in AND permissions granted
   useEffect(() => {
     if (isLoggedIn && permGranted) {
@@ -105,7 +117,7 @@ function AppNavigator() {
     }
   }, [isLoggedIn, permGranted]);
 
-  if (loading || (isLoggedIn && !permChecked)) {
+  if (loading || (isLoggedIn && !permChecked) || (!isLoggedIn && hasLaunched === null)) {
     return (
       <View
         style={{
@@ -142,8 +154,9 @@ function AppNavigator() {
 
   if (!isLoggedIn) {
     return (
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Navigator screenOptions={{headerShown: false}} initialRouteName={hasLaunched ? "Login" : "Onboarding"}>
+        <Stack.Screen name="Onboarding" component={OnboardingScreen}/>
+        <Stack.Screen name="Login" component={LoginScreen}/>
       </Stack.Navigator>
     );
   }
