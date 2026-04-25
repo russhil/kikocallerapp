@@ -821,10 +821,20 @@ async def get_next_order_id(user: dict = Depends(get_current_user)):
             try:
                 prefix = f"KIKO-{phone_last4}-"
                 existing = sb.table("orders").select("order_id").like("order_id", f"{prefix}%").eq("store_phone", phone).execute()
-                actual_count = len(existing.data) if existing.data else 0
-                if actual_count > current_num:
-                    print(f"[OrderID] ⚠ Counter drift detected: counter={current_num}, actual_orders={actual_count}. Auto-correcting.", flush=True)
-                    current_num = actual_count
+                max_order_num = 0
+                if existing.data:
+                    for order in existing.data:
+                        try:
+                            # Extract the 4 digit sequence
+                            num_str = order["order_id"].split("-")[-1]
+                            num = int(num_str)
+                            if num > max_order_num:
+                                max_order_num = num
+                        except:
+                            pass
+                if max_order_num > current_num:
+                    print(f"[OrderID] ⚠ Counter drift detected: counter={current_num}, max_order={max_order_num}. Auto-correcting.", flush=True)
+                    current_num = max_order_num
             except Exception as e:
                 print(f"[OrderID] Counter cross-check failed (non-critical): {e}", flush=True)
 
@@ -1416,9 +1426,51 @@ async def sync_order(req: SyncOrderRequest, request: Request = None, user: dict 
         # Check if new to log correctly
         existing = None
         try:
-            res = sb.table("orders").select("id").eq("order_id", req.order_id).execute()
+            res = sb.table("orders").select("id, created_at, recording_id").eq("order_id", req.order_id).execute()
             existing = res.data[0] if res.data else None
         except: pass
+
+        # Collision detection: if order_id exists, but this looks like a completely different order 
+        # (e.g. from app reinstall reusing local ID 001)
+        if existing:
+            is_collision = False
+            
+            # Heuristics for collision:
+            req_time = parse_epoch_ms(req.created_at) if req.created_at else None
+            existing_time = existing.get("created_at")
+            
+            # If time differs by more than 24 hours OR recording_id differs and is present
+            time_diff = abs((req_time or 0) - (existing_time or 0))
+            if existing_time and req_time and time_diff > 86400000:
+                is_collision = True
+            elif row.get("recording_id") and existing.get("recording_id") and str(row.get("recording_id")) != str(existing.get("recording_id")):
+                is_collision = True
+                
+            if is_collision:
+                print(f"[SyncOrder] ⚠ Collision detected for {req.order_id}. Assigning new ID.", flush=True)
+                # Query max
+                prefix = req.order_id.rsplit("-", 1)[0] + "-"
+                existing_orders = sb.table("orders").select("order_id").like("order_id", f"{prefix}%").eq("store_phone", store_phone).execute()
+                max_num = 0
+                if existing_orders.data:
+                    for ord in existing_orders.data:
+                        try:
+                            num = int(ord["order_id"].split("-")[-1])
+                            if num > max_num: max_num = num
+                        except: pass
+                
+                new_num = max_num + 1
+                new_order_id = f"{prefix}{new_num:04d}"
+                print(f"[SyncOrder] Reassigned {req.order_id} to {new_order_id}", flush=True)
+                
+                req.order_id = new_order_id
+                row["order_id"] = new_order_id
+                existing = None # Treat as new insert
+                
+                # Update counter
+                try:
+                    sb.table("order_counters").update({"last_order_num": new_num}).eq("user_phone", store_phone).execute()
+                except: pass
 
         sb.table("orders").upsert(row, on_conflict="order_id").execute()
 
@@ -1494,6 +1546,7 @@ async def sync_order(req: SyncOrderRequest, request: Request = None, user: dict 
 
 # ---------- Get Orders (scoped to user) ----------
 
+@app.get("/orders")
 @app.get("/api/orders")
 async def list_orders(
     store_name: str = "",
