@@ -140,6 +140,21 @@ export default function RecordingsScreen() {
     isAutoProcess = false,
   ) => {
     if (processingRef.current.has(recording.path)) return;
+
+    // Global lock to prevent race conditions with BackgroundSync
+    const lockKey = `processing_${recording.path}`;
+    const lockValue = await AsyncStorage.getItem(lockKey);
+    if (lockValue && !forceOrder) {
+      const lockTime = parseInt(lockValue, 10);
+      if (Date.now() - lockTime < 5 * 60 * 1000) {
+        console.log('Skipping: Recording is currently being processed globally.');
+        return;
+      }
+    }
+    await AsyncStorage.setItem(lockKey, Date.now().toString());
+
+    let callPhoneRef = null;
+
     if (forceOrder) {
       // Clear previous state for reprocessing
       await saveRecordingState(recording.path, {
@@ -201,6 +216,24 @@ export default function RecordingsScreen() {
           ),
         );
         return;
+      }
+
+      callPhoneRef = callPhone;
+
+      // Deduplication check
+      if (!forceOrder) {
+        const dedupKey = `ord_dedup_${callPhone || 'unknown'}_${recording.lastModified}`;
+        const isDuplicate = await AsyncStorage.getItem(dedupKey);
+        if (isDuplicate) {
+          console.log('Skipping: duplicate call/timestamp detected via global dedupKey');
+          await saveRecordingState(recording.path, { isProcessed: true });
+          setRecordings(prev =>
+            prev.map(r =>
+              r.path === recording.path ? { ...r, isProcessed: true, processingStep: null } : r
+            )
+          );
+          return;
+        }
       }
 
       const callerDisplay =
@@ -346,6 +379,7 @@ export default function RecordingsScreen() {
           const confidence = data.confidence || 0.5;
           if (classification === 'PERSONAL_CALL' && confidence >= 0.7) {
             updateStep('Personal call');
+            await AsyncStorage.setItem(`ord_dedup_${callPhoneRef || 'unknown'}_${recording.lastModified}`, 'true');
             await saveRecordingState(recording.path, {
               isProcessed: true,
               classification,
@@ -519,6 +553,7 @@ export default function RecordingsScreen() {
             ),
           );
 
+          await AsyncStorage.setItem(`ord_dedup_${callPhoneRef || 'unknown'}_${recording.lastModified}`, 'true');
           updateStep('Syncing...');
           try {
             const recSyncObj = {
@@ -584,6 +619,7 @@ export default function RecordingsScreen() {
               : r,
           ),
         );
+        await AsyncStorage.setItem(`ord_dedup_${callPhoneRef || 'unknown'}_${recording.lastModified}`, 'true');
         updateStep('No order found');
         trackTranscribeSuccess(recording.filename, 'PERSONAL_CALL');
         try {
@@ -604,6 +640,7 @@ export default function RecordingsScreen() {
         );
       } catch (err) {}
     } finally {
+      await AsyncStorage.removeItem(`processing_${recording.path}`);
       processingRef.current.delete(recording.path);
       setProcessingIds(prev => {
         const n = new Set(prev);
