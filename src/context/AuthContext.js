@@ -1,6 +1,7 @@
 import React, {createContext, useState, useEffect} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Alert} from 'react-native';
+import {BASE_URL} from '../config';
 
 export const AuthContext = createContext({
   isLoggedIn: false,
@@ -37,6 +38,36 @@ export function AuthProvider({children}) {
     }
 
     setToken(newToken);
+
+    // Fetch past orders from backend
+    try {
+      const res = await fetch(`${BASE_URL}/api/orders`, {
+        headers: { 'Authorization': `Bearer ${newToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.orders && Array.isArray(data.orders)) {
+          // Map to app structure
+          const appOrders = data.orders.map(o => ({
+            orderId: o.order_id,
+            createdAt: o.created_at,
+            customerPhone: o.customer_phone,
+            customerName: o.customer_name,
+            totalAmount: o.total_amount,
+            isCancelled: o.is_cancelled,
+            cancelledAt: o.cancelled_at,
+            isRead: true, // Marked as read when fetched from past
+            whatsappSent: false,
+            products: o.products || [], // Map the products array
+            recordingFilename: o.recording_filename,
+          }));
+          await AsyncStorage.setItem('orders', JSON.stringify(appOrders));
+          console.log('[Auth] Fetched and saved', appOrders.length, 'past orders');
+        }
+      }
+    } catch (e) {
+      console.log('[Auth] Error fetching past orders:', e);
+    }
 
     // Show call recording popup once
     const shown = await AsyncStorage.getItem('callRecordingPopupShown');
