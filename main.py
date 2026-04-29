@@ -2,6 +2,7 @@ import asyncio
 import base64
 import collections
 import io
+import json
 import os
 import random
 import secrets
@@ -109,7 +110,88 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1/models"
 STT_URL = "https://speech.googleapis.com/v1/speech:recognize"
 
-# Models
+# ---------- Google Cloud Service Account ----------
+# Load SA credentials from env var (JSON string) or file path
+GOOGLE_SA_KEY_JSON = os.getenv("GOOGLE_SA_KEY_JSON", "")
+GOOGLE_SA_KEY_FILE = os.getenv("GOOGLE_SA_KEY_FILE", "")
+_sa_config = None  # Will hold parsed SA credentials dict
+
+def _load_sa_config():
+    """Load service account JSON from env var or file."""
+    global _sa_config
+    if GOOGLE_SA_KEY_JSON:
+        try:
+            _sa_config = json.loads(GOOGLE_SA_KEY_JSON)
+            print(f"[KikoCall] ✓ Service Account loaded from GOOGLE_SA_KEY_JSON (project: {_sa_config.get('project_id')})", flush=True)
+            return
+        except json.JSONDecodeError as e:
+            print(f"[KikoCall] ✗ Failed to parse GOOGLE_SA_KEY_JSON: {e}", flush=True)
+    if GOOGLE_SA_KEY_FILE:
+        try:
+            with open(GOOGLE_SA_KEY_FILE, "r") as f:
+                _sa_config = json.load(f)
+            print(f"[KikoCall] ✓ Service Account loaded from file {GOOGLE_SA_KEY_FILE} (project: {_sa_config.get('project_id')})", flush=True)
+            return
+        except Exception as e:
+            print(f"[KikoCall] ✗ Failed to load SA key file {GOOGLE_SA_KEY_FILE}: {e}", flush=True)
+    print("[KikoCall] ⚠ No Service Account configured (GOOGLE_SA_KEY_JSON / GOOGLE_SA_KEY_FILE not set)", flush=True)
+
+_load_sa_config()
+
+# SA token cache (same pattern as OAuth token cache)
+_sa_cached_token = None
+_sa_token_expiry = 0
+
+async def _get_sa_access_token() -> str:
+    """Get an access token using the Service Account credentials.
+    Signs a JWT with the SA private key, exchanges it at Google's token endpoint.
+    Tokens are cached until 60s before expiry."""
+    global _sa_cached_token, _sa_token_expiry
+
+    if _sa_cached_token and time.time() < _sa_token_expiry - 60:
+        return _sa_cached_token
+
+    if not _sa_config:
+        raise HTTPException(status_code=500, detail="Service Account not configured")
+
+    import jwt  # PyJWT
+
+    now = int(time.time())
+    token_uri = _sa_config.get("token_uri", "https://oauth2.googleapis.com/token")
+    scopes = "https://www.googleapis.com/auth/generative-language https://www.googleapis.com/auth/cloud-platform"
+
+    # Build JWT claims
+    claims = {
+        "iss": _sa_config["client_email"],
+        "sub": _sa_config["client_email"],
+        "aud": token_uri,
+        "iat": now,
+        "exp": now + 3600,  # 1 hour
+        "scope": scopes,
+    }
+
+    # Sign JWT with SA private key (RS256)
+    signed_jwt = jwt.encode(claims, _sa_config["private_key"], algorithm="RS256")
+
+    print("[Auth] Exchanging SA JWT for access token...", flush=True)
+    payload = {
+        "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        "assertion": signed_jwt,
+    }
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(token_uri, data=payload)
+
+    if resp.status_code != 200:
+        print(f"[Auth] ✗ SA token exchange failed {resp.status_code}: {resp.text}", flush=True)
+        raise HTTPException(status_code=500, detail=f"SA token exchange failed: {resp.text}")
+
+    data = resp.json()
+    _sa_cached_token = data["access_token"]
+    _sa_token_expiry = now + data.get("expires_in", 3600)
+    print("[Auth] ✓ Got SA access token", flush=True)
+    return _sa_cached_token
+
+
 # Models (configurable via env vars)
 TRANSCRIBE_MODEL = os.getenv("TRANSCRIBE_MODEL", "gemini-1.5-flash")
 CLASSIFY_MODEL = os.getenv("CLASSIFY_MODEL", "gemini-1.5-flash")
@@ -125,6 +207,7 @@ GUPSHUP_HASH_CODE = os.getenv("GUPSHUP_HASH_CODE", "WkvzfHFQrep")
 AUTH_SECRET = os.getenv("AUTH_SECRET", secrets.token_hex(32))
 
 print(f"[KikoCall] GOOGLE_API_KEY set: {bool(GOOGLE_API_KEY)}", flush=True)
+print(f"[KikoCall] Service Account configured: {bool(_sa_config)}", flush=True)
 print(f"[KikoCall] OAUTH configured: {bool(GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_REFRESH_TOKEN)}", flush=True)
 print(f"[KikoCall] Gupshup configured: userid={GUPSHUP_USERID}", flush=True)
 
@@ -277,12 +360,39 @@ async def _get_access_token() -> str:
 
 
 async def _call_gemini(model: str, payload: dict, timeout_seconds: int = 90) -> dict:
-    """Call Gemini API. Tries API key first, falls back to OAuth Bearer.
+    """Call Gemini API. Tries Service Account first, then API key, then OAuth Bearer.
     Default timeout is 90s (was 120s) to prevent app-side timeout races."""
     url = f"{GEMINI_BASE}/{model}:generateContent"
     errors = []
 
-    # Method 1: API key
+    # Method 0: Service Account Bearer token (highest priority)
+    if _sa_config:
+        try:
+            print(f"[Gemini] Trying {model} with Service Account...", flush=True)
+            token = await _get_sa_access_token()
+            async with httpx.AsyncClient(timeout=timeout_seconds) as client:
+                resp = await client.post(
+                    url, json=payload,
+                    headers={"Authorization": f"Bearer {token}"},
+                )
+            if resp.status_code == 200:
+                print(f"[Gemini] ✓ Service Account auth succeeded", flush=True)
+                return resp.json()
+            body = resp.text[:1000]
+            err = f"ServiceAccount: {resp.status_code} {body}"
+            print(f"[Gemini] ✗ {err}", flush=True)
+            errors.append(err)
+            # Invalidate cached token on auth errors so next call retries
+            if resp.status_code in (401, 403):
+                global _sa_cached_token, _sa_token_expiry
+                _sa_cached_token = None
+                _sa_token_expiry = 0
+        except Exception as e:
+            err = f"ServiceAccount exception: {e}"
+            print(f"[Gemini] ✗ {err}", flush=True)
+            errors.append(err)
+
+    # Method 1: API key (fallback)
     if GOOGLE_API_KEY:
         try:
             print(f"[Gemini] Trying {model} with API key...", flush=True)
@@ -300,7 +410,7 @@ async def _call_gemini(model: str, payload: dict, timeout_seconds: int = 90) -> 
             print(f"[Gemini] ✗ {err}", flush=True)
             errors.append(err)
 
-    # Method 2: OAuth Bearer token
+    # Method 2: OAuth Bearer token (last resort)
     if GOOGLE_OAUTH_REFRESH_TOKEN:
         try:
             print(f"[Gemini] Trying {model} with OAuth Bearer...", flush=True)
@@ -861,6 +971,8 @@ async def get_next_order_id(user: dict = Depends(get_current_user)):
 def health():
     return {
         "status": "ok",
+        "service_account_configured": bool(_sa_config),
+        "service_account_project": _sa_config.get("project_id") if _sa_config else None,
         "google_api_key_set": bool(GOOGLE_API_KEY),
         "oauth_configured": bool(GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_REFRESH_TOKEN),
         "supabase_configured": _supabase_client is not None,
@@ -891,7 +1003,12 @@ async def transcribe(req: TranscribeRequest, request: Request = None, user: dict
             "audio": {"content": req.audio_base64},
         }
         async with httpx.AsyncClient(timeout=120) as client:
-            resp = await client.post(f"{STT_URL}?key={GOOGLE_API_KEY}", json=payload)
+            if _sa_config:
+                # Use Service Account Bearer token for Cloud STT
+                sa_token = await _get_sa_access_token()
+                resp = await client.post(STT_URL, json=payload, headers={"Authorization": f"Bearer {sa_token}"})
+            else:
+                resp = await client.post(f"{STT_URL}?key={GOOGLE_API_KEY}", json=payload)
 
         if resp.status_code != 200:
             print(f"[STT] ✗ Error {resp.status_code}: {resp.text[:500]}", flush=True)
@@ -1865,8 +1982,12 @@ async def admin_export(
 
 @app.get("/api/gemini-live-token")
 async def gemini_live_token(user: dict = Depends(get_current_user)):
-    """Exchange refresh token for a short-lived access token for Gemini Live WebSocket."""
-    token = await _get_access_token()
+    """Get a short-lived access token for Gemini Live WebSocket.
+    Uses Service Account when configured, falls back to OAuth refresh token."""
+    if _sa_config:
+        token = await _get_sa_access_token()
+    else:
+        token = await _get_access_token()
     return {"access_token": token, "expires_in": 3600}
 
 
