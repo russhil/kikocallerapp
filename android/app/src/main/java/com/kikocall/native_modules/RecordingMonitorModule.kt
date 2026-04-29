@@ -140,6 +140,10 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
     @ReactMethod
     fun setCustomScanPath(path: String, promise: Promise) {
         userCustomPath = path
+        reactApplicationContext.getSharedPreferences("kikocall_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putString("customScanPath", path)
+            .apply()
         promise.resolve(true)
     }
 
@@ -161,9 +165,12 @@ class RecordingMonitorModule(private val reactContext: ReactApplicationContext) 
     private fun getAllDirectories(): List<String> {
         val dirs = mutableSetOf<String>()
         
+        val prefs = reactApplicationContext.getSharedPreferences("kikocall_prefs", Context.MODE_PRIVATE)
+        val savedCustomPath = userCustomPath ?: prefs.getString("customScanPath", null)
+
         // v42 Optimization: If user has a custom path, ONLY scan that.
-        if (!userCustomPath.isNullOrBlank()) {
-            dirs.add(userCustomPath!!)
+        if (!savedCustomPath.isNullOrBlank()) {
+            dirs.add(savedCustomPath!!)
             return dirs.toList()
         }
 

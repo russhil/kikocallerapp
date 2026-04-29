@@ -252,6 +252,13 @@ class BackgroundMonitorService : Service() {
     private fun getRecordingDirectories(): List<String> {
         val dirs = mutableSetOf<String>()
         val brand = Build.MANUFACTURER.lowercase()
+        
+        // Add user's custom scan path if configured
+        val prefs = applicationContext.getSharedPreferences("kikocall_prefs", Context.MODE_PRIVATE)
+        val customPath = prefs.getString("customScanPath", null)
+        if (!customPath.isNullOrBlank()) {
+            dirs.add(customPath)
+        }
 
         // Common recording directories based on device brand
         val brandDirs = mapOf(

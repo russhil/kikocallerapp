@@ -57,6 +57,8 @@ export async function syncBackgroundRecordings(taskData) {
   await AsyncStorage.setItem('isBgSyncing', 'true');
 
   try {
+    let globalLockKey = null;
+
     // 1. Get token and shop info from storage
     const token = await AsyncStorage.getItem('authToken');
     if (!token) {
@@ -116,6 +118,19 @@ export async function syncBackgroundRecordings(taskData) {
       console.log('Skipping processing: Duplicate call/timestamp detected.');
       return;
     }
+
+    // Global lock to prevent race conditions with foreground processing
+    const lockKey = `processing_${recent.path}`;
+    const lockValue = await AsyncStorage.getItem(lockKey);
+    if (lockValue) {
+      const lockTime = parseInt(lockValue, 10);
+      if (Date.now() - lockTime < 5 * 60 * 1000) {
+        console.log('Skipping: Recording is currently being processed globally.');
+        return;
+      }
+    }
+    await AsyncStorage.setItem(lockKey, Date.now().toString());
+    globalLockKey = lockKey;
 
     // 5 & 6: Upload Audio & Transcribe using Gemini via Multipart
     console.log(
@@ -356,9 +371,10 @@ export async function syncBackgroundRecordings(taskData) {
       );
       await AsyncStorage.setItem(`seq_${dateStr}`, (seq + 1).toString());
       const paddedSeq = seq.toString().padStart(3, '0');
+      const prefix = shopName ? shopName.substring(0, 3).toUpperCase() : 'ORD';
 
       const newOrder = {
-        orderId: `${dateStr}-${paddedSeq}`,
+        orderId: `${prefix}-${dateStr}-${paddedSeq}`,
         recordingId: recent.path,
         customerName:
           callName || orderData.customer_name || callPhone || 'Unknown',
@@ -465,6 +481,9 @@ export async function syncBackgroundRecordings(taskData) {
       `Background sync fatal error: ${error.message || error}`,
     );
   } finally {
+    if (globalLockKey) {
+      await AsyncStorage.removeItem(globalLockKey);
+    }
     await AsyncStorage.setItem('isBgSyncing', 'false');
   }
 }

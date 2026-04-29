@@ -1537,6 +1537,19 @@ async def sync_order(req: SyncOrderRequest, request: Request = None, user: dict 
                 print(f"[SyncOrder] Could not resolve recording: {e}", flush=True)
         # Don't include recording_id if we couldn't resolve it (avoid FK violation)
 
+        # --- Backend Deduplication ---
+        if "recording_id" in row and row["recording_id"]:
+            try:
+                dup_res = sb.table("orders").select("order_id").eq("recording_id", row["recording_id"]).eq("store_phone", store_phone).execute()
+                if dup_res.data:
+                    existing_order_id = dup_res.data[0]["order_id"]
+                    if existing_order_id != req.order_id:
+                        print(f"[SyncOrder] Backend deduplication: Recording {req.recording_filename} already mapped to order {existing_order_id}. Rejecting {req.order_id}.", flush=True)
+                        return {"status": "ok", "order_id": existing_order_id, "message": "Duplicate order merged."}
+            except Exception as e:
+                print(f"[SyncOrder] Duplicate check failed: {e}", flush=True)
+        # -----------------------------
+
         if req.created_at is not None:
             row["created_at"] = parse_epoch_ms(req.created_at)
         
