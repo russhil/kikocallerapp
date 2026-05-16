@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,8 @@ import {
 
 const { RecordingMonitorModule } = NativeModules;
 
+const PAGE_SIZE = 20;
+
 // Native Logging Bridge
 const nativeLog = (tag, message) => {
   try {
@@ -64,6 +66,22 @@ export default function RecordingsScreen() {
   });
   const processingRef = useRef(new Set());
 
+  // Pagination state
+  const allRecordingsRef = useRef([]);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [totalScanned, setTotalScanned] = useState(0);
+
+  // Derive visible recordings from the full list
+  const visibleRecordings = useMemo(
+    () => recordings.slice(0, visibleCount),
+    [recordings, visibleCount],
+  );
+  const hasMore = visibleCount < recordings.length;
+
+  const loadMore = useCallback(() => {
+    setVisibleCount(prev => Math.min(prev + PAGE_SIZE, recordings.length));
+  }, [recordings.length]);
+
   const showPopup = (title, message, icon, buttons) => {
     setPopup({
       visible: true,
@@ -92,7 +110,10 @@ export default function RecordingsScreen() {
       const savedRaw = await AsyncStorage.getItem('recordingsState');
       const savedState = savedRaw ? JSON.parse(savedRaw) : {};
       const files = await RecordingMonitorModule.scanRecordings();
-      const list = (files || []).map(f => {
+      const allFiles = files || [];
+      setTotalScanned(allFiles.length);
+      nativeLog('RecScreen', `Scan returned ${allFiles.length} files, showing first ${PAGE_SIZE}`);
+      const list = allFiles.map(f => {
         const prev = savedState[f.path] || {};
         return {
           filename: f.filename,
@@ -107,9 +128,12 @@ export default function RecordingsScreen() {
           orderId: prev.orderId || null,
         };
       });
+      allRecordingsRef.current = list;
       setRecordings(list);
-      // Auto-process unprocessed NEW recordings one at a time
-      const unprocessedNew = list.filter(r => !r.isProcessed && !r.isOld);
+      // Reset pagination to first page on fresh scan
+      setVisibleCount(PAGE_SIZE);
+      // Auto-process unprocessed NEW recordings one at a time (only first page)
+      const unprocessedNew = list.slice(0, PAGE_SIZE).filter(r => !r.isProcessed && !r.isOld);
       for (const r of unprocessedNew) {
         await processRecording(r, false, true);
       }
@@ -868,9 +892,9 @@ export default function RecordingsScreen() {
     );
   };
 
-  const processed = recordings.filter(r => r.isProcessed).length;
-  const unprocessed = recordings.length - processed;
-  const unprocessedNew = recordings.filter(
+  const processed = visibleRecordings.filter(r => r.isProcessed).length;
+  const unprocessed = visibleRecordings.length - processed;
+  const unprocessedNew = visibleRecordings.filter(
     r => !r.isProcessed && !r.isOld,
   ).length;
 
@@ -899,8 +923,8 @@ export default function RecordingsScreen() {
       {/* Stats bar */}
       <View style={s.statsBar}>
         <View style={s.statItem}>
-          <Text style={s.statNum}>{recordings.length}</Text>
-          <Text style={s.statLabel}>Total</Text>
+          <Text style={s.statNum}>{visibleRecordings.length}</Text>
+          <Text style={s.statLabel}>Showing</Text>
         </View>
         <View style={s.statDivider} />
         <View style={s.statItem}>
@@ -917,6 +941,11 @@ export default function RecordingsScreen() {
           <Text style={s.statLabel}>Pending</Text>
         </View>
       </View>
+      {totalScanned > 0 && (
+        <Text style={s.totalScanText}>
+          {totalScanned} total recordings found on device
+        </Text>
+      )}
 
       {unprocessedNew > 0 && (
         <TouchableOpacity
@@ -929,6 +958,7 @@ export default function RecordingsScreen() {
           </Text>
         </TouchableOpacity>
       )}
+
 
       {recordings.length === 0 && !scanning ? (
         <View style={s.emptyState}>
@@ -955,7 +985,7 @@ export default function RecordingsScreen() {
         </View>
       ) : (
         <FlatList
-          data={recordings}
+          data={visibleRecordings}
           keyExtractor={item => item.path}
           renderItem={renderRecording}
           refreshControl={
@@ -967,9 +997,28 @@ export default function RecordingsScreen() {
           }
           contentContainerStyle={{ padding: Spacing.sm, paddingBottom: 30 }}
           showsVerticalScrollIndicator={false}
-          removeClippedSubviews={false}
+          removeClippedSubviews={true}
           initialNumToRender={10}
-          windowSize={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          ListFooterComponent={
+            hasMore ? (
+              <TouchableOpacity
+                style={s.loadMoreBtn}
+                onPress={loadMore}
+                activeOpacity={0.7}
+              >
+                <Icon name="chevron-down" size={18} color={Colors.primary} />
+                <Text style={s.loadMoreText}>
+                  Load More ({visibleCount} of {recordings.length})
+                </Text>
+              </TouchableOpacity>
+            ) : recordings.length > PAGE_SIZE ? (
+              <Text style={s.allLoadedText}>
+                All {recordings.length} recordings loaded
+              </Text>
+            ) : null
+          }
         />
       )}
 
@@ -1037,6 +1086,38 @@ const s = StyleSheet.create({
   },
   statLabel: { fontSize: FontSizes.xs, color: Colors.textMuted, marginTop: 2 },
   statDivider: { width: 1, height: 30, backgroundColor: Colors.divider },
+  totalScanText: {
+    fontSize: FontSizes.xs,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: 4,
+    backgroundColor: Colors.surface,
+  },
+  loadMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary + '14',
+    marginHorizontal: Spacing.sm,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.primary + '30',
+  },
+  loadMoreText: {
+    color: Colors.primary,
+    fontSize: FontSizes.body,
+    fontWeight: FontWeights.bold,
+    marginLeft: 8,
+  },
+  allLoadedText: {
+    fontSize: FontSizes.xs,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: Spacing.md,
+  },
   processAllBtn: {
     backgroundColor: Colors.primary,
     margin: Spacing.lg,
