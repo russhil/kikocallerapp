@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Kiko Self Help & Setup Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3A1FA8;
+      --accent: #00C8FF;
+      --danger: #EF4444;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --text-dark: #1A1033;
+      --text-body: #3D3558;
+      --bg-light: #F7F5FF;
+      --border: #E8E2FF;
+      --font-body: 'Poppins', sans-serif;
+      --font-hi: 'Noto Sans Devanagari', sans-serif;
+      --radius: 12px;
+      --shadow: 0 4px 16px rgba(58, 31, 168, 0.08);
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-body); color: var(--text-body); background: var(--bg-light); line-height: 1.6; }
+    
+    .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+    
+    /* Translation classes */
+    body.lang-en .hi { display: none !important; }
+    body.lang-hi .en { display: none !important; }
+    body.lang-hi { font-family: var(--font-hi), var(--font-body); }
+    
+    /* Header */
+    .header { text-align: center; margin: 20px 0 40px; }
+    .header-logo { height: 80px; margin-bottom: 20px; }
+    .header h1 { color: var(--primary); font-size: 28px; margin-bottom: 10px; font-weight: 700; line-height: 1.2; }
+    .header p { color: var(--text-body); font-size: 16px; opacity: 0.8; }
+    
+    /* Toggle */
+    .toggle-wrapper { text-align: center; margin-bottom: 30px; }
+    .lang-toggle { display: inline-flex; align-items: center; background: white; border-radius: 30px; padding: 5px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+    .lang-btn { padding: 10px 24px; border: none; background: transparent; color: var(--text-body); border-radius: 25px; font-weight: 600; cursor: pointer; font-size: 15px; transition: 0.3s; display: inline-flex; align-items: center; justify-content: center; margin: 0; }
+    .lang-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(58,31,168,0.2); }
+
+    /* Section Styles */
+    .section-title { font-size: 18px; color: var(--text-dark); margin-bottom: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; justify-content: center; white-space: nowrap; }
+    @media(min-width: 400px) { .section-title { font-size: 20px; } }
+    .section-title span { color: var(--primary); display: inline-flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; background: transparent; }
+    
+    /* Video Grid */
+    .video-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 50px; }
+    @media(min-width: 768px) { .video-grid { grid-template-columns: repeat(3, 1fr); gap: 24px; } }
+    .video-card { background: white; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; flex-direction: column; }
+    .video-wrapper { position: relative; width: 100%; aspect-ratio: 9/16; background: #000; }
+    .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+    .video-wrapper .placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #eee; color: #666; font-size: 12px; text-align: center; padding: 20px; flex-direction: column; gap: 10px; }
+    .video-info { padding: 15px; border-bottom: 1px solid var(--border); }
+    .video-title { font-size: 14px; font-weight: 600; color: var(--text-dark); line-height: 1.4; }
+    
+    /* Troubleshooting */
+    .troubleshoot { background: white; border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 50px; }
+    .issue-box { border: 2px solid #fee2e2; border-radius: 8px; padding: 15px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 10px; background: #fef2f2; }
+    .issue-box > span { flex-shrink: 0; display: inline-flex; line-height: 1; }
+    .issue-box strong { color: var(--danger); font-size: 15px; line-height: 1.4; display: block; }
+    
+    .steps-container { display: flex; flex-direction: column; gap: 10px; }
+    .step-acc { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #fafafa; }
+    .step-header { padding: 16px; font-weight: 600; color: var(--text-dark); cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 15px; line-height: 1.3; gap: 10px; }
+    .step-header::after { content: '+'; font-size: 20px; font-weight: normal; color: var(--primary); transition: 0.2s; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; }
+    .step-acc.open .step-header { background: #f3f0ff; color: var(--primary); }
+    .step-acc.open .step-header::after { content: '−'; transform: rotate(180deg); }
+    .step-content { padding: 0 16px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, padding 0.3s; font-size: 14px; color: var(--text-body); }
+    .step-acc.open .step-content { padding: 16px; max-height: 500px; border-top: 1px solid var(--border); }
+    
+    .step-content ul { padding-left: 20px; margin-top: 10px; }
+    .step-content li { margin-bottom: 8px; line-height: 1.5; }
+    .important-text { font-weight: bold; color: var(--text-dark); }
+    
+    .final-step { margin-top: 20px; padding: 16px; background: #fffbeb; border-left: 4px solid var(--warning); border-radius: 4px; font-size: 14px; color: #92400e; font-weight: 600; line-height: 1.5; }
+    
+    /* CTA */
+    .cta { text-align: center; margin-bottom: 50px; }
+    .cta-buttons { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 20px; }
+    @media(min-width: 600px) { .cta-buttons { flex-direction: row; justify-content: center; } }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 24px; border-radius: 30px; font-size: 16px; font-weight: 600; text-decoration: none; transition: 0.3s; width: 100%; max-width: 280px; }
+    .btn svg { flex-shrink: 0; }
+    .btn-wa { background: #25D366; color: white; }
+    .btn-wa:hover { background: #1da851; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3); }
+    
+  </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-X1HK0NPQT8"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-X1HK0NPQT8');
+  </script>
+
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '326242339368504');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=326242339368504&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+</head>
+<body class="lang-en">
+  <div class="container">
+    
+    <!-- Language Toggle -->
+    <div class="toggle-wrapper">
+      <div class="lang-toggle">
+        <button class="lang-btn active" onclick="setLang('en')">English</button>
+        <button class="lang-btn" onclick="setLang('hi')">हिंदी</button>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+      <img src="/images/logo.png" alt="Kiko AI" class="header-logo" onerror="this.src='https://ordertaker.kiko.live/images/logo.png'">
+      <h1 class="en">Kiko Self Help & Setup Guide</h1>
+      <h1 class="hi">किको सेल्फ हेल्प और सेटअप गाइड</h1>
+      <p class="en">Get started in minutes and fix common issues</p>
+      <p class="hi">मिनटों में शुरू करें और सामान्य समस्याओं को ठीक करें</p>
+    </header>
+
+    <!-- Video Guides -->
+    <section>
+      <h2 class="section-title">
+        <span>🎥</span>
+        <span class="en">Video Guides</span>
+        <span class="hi">वीडियो गाइड</span>
+      </h2>
+      <div class="video-grid">
+        
+        <!-- Video 1 -->
+        <div class="video-card">
+          <div class="video-info">
+            <div class="video-title en">Kiko AI Order Taker App Setup Step by Step Guide (Full Beginner Guide)</div>
+            <div class="video-title hi">किको एआई ऑर्डर टेकर ऐप सेटअप स्टेप बाय स्टेप गाइड (शुरुआती गाइड)</div>
+          </div>
+          <div class="video-wrapper">
+            <div id="ytplayer-0"></div>
+          </div>
+        </div>
+
+        <!-- Video 2 -->
+        <div class="video-card">
+          <div class="video-info">
+            <div class="video-title en">How to Enable Call Recording & Choose Storage Folder</div>
+            <div class="video-title hi">कॉल रिकॉर्डिंग कैसे चालू करें और स्टोरेज फ़ोल्डर कैसे चुनें</div>
+          </div>
+          <div class="video-wrapper">
+            <div id="ytplayer-1"></div>
+          </div>
+        </div>
+
+        <!-- Video 3 -->
+        <div class="video-card">
+          <div class="video-info">
+            <div class="video-title en">How to Send Order Details to Customers (WhatsApp/SMS)</div>
+            <div class="video-title hi">ग्राहकों को ऑर्डर डिटेल्स कैसे भेजें (WhatsApp/SMS)</div>
+          </div>
+          <div class="video-wrapper">
+            <div id="ytplayer-2"></div>
+          </div>
+        </div>
+
+        <!-- Video 4 -->
+        <div class="video-card">
+          <div class="video-info">
+            <div class="video-title en">How to Install O Dialler (OnePlus, Vivo, Oppo) for Call Recording</div>
+            <div class="video-title hi">कॉल रिकॉर्डिंग के लिए O Dialler (OnePlus, Vivo, Oppo) कैसे इनस्टॉल करें</div>
+          </div>
+          <div class="video-wrapper">
+            <div id="ytplayer-3"></div>
+          </div>
+        </div>
+
+        <!-- Video 5 -->
+        <div class="video-card">
+          <div class="video-info">
+            <div class="video-title en">How Kiko Takes Orders Automatically on Calls (Simple Explanation)</div>
+            <div class="video-title hi">किको कॉल पर आटोमेटिक आर्डर कैसे लेता है (सरल व्याख्या)</div>
+          </div>
+          <div class="video-wrapper">
+            <div id="ytplayer-4"></div>
+          </div>
+        </div>
+
+        <!-- Video 6 -->
+        <div class="video-card">
+          <div class="video-info">
+            <div class="video-title en">How to View, Edit & Confirm Orders in Kiko</div>
+            <div class="video-title hi">किको में आर्डर कैसे देखें, एडिट और कन्फर्म करें</div>
+          </div>
+          <div class="video-wrapper">
+            <div id="ytplayer-5"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Troubleshooting -->
+    <section>
+      <h2 class="section-title">
+        <span>🛠</span>
+        <span class="en">Facing Issues? Try This</span>
+        <span class="hi">समस्या आ रही है? इसे ट्राई करें</span>
+      </h2>
+      <div class="troubleshoot">
+        
+        <div class="issue-box">
+          <span style="font-size: 24px;">⚠️</span>
+          <div>
+            <strong class="en">Issue: "I am not able to view orders after the call"</strong>
+            <strong class="hi">समस्या: "कॉल के बाद मुझे ऑर्डर नहीं दिख रहे हैं"</strong>
+          </div>
+        </div>
+
+        <div class="steps-container">
+          
+          <div class="step-acc">
+            <div class="step-header">
+              <span class="en">Step A: Check Basics</span>
+              <span class="hi">स्टेप A: बेसिक्स चेक करें</span>
+            </div>
+            <div class="step-content">
+              <ul>
+                <li class="en">Ensure Android version is <span class="important-text">v13 or above</span>.</li>
+                <li class="hi">सुनिश्चित करें कि आपका फ़ोन <span class="important-text">Android v13 या उससे ऊपर</span> का है।</li>
+                <li class="en">Check if call recording is active in your dialer.</li>
+                <li class="hi">चेक करें कि आपके डायलर में कॉल रिकॉर्डिंग चालू है या नहीं।</li>
+                <li class="en">Verify if old recordings exist in your file manager.</li>
+                <li class="hi">फ़ाइल मैनेजर में चेक करें कि पुरानी रिकॉर्डिंग मौजूद हैं या नहीं।</li>
+                <li class="en" style="color: var(--danger); font-weight: bold;">If not → your phone's call recording is NOT working.</li>
+                <li class="hi" style="color: var(--danger); font-weight: bold;">यदि नहीं → तो आपके फ़ोन की कॉल रिकॉर्डिंग काम नहीं कर रही है।</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="step-acc">
+            <div class="step-header">
+              <span class="en">Step B: If Recording Not Supported</span>
+              <span class="hi">स्टेप B: अगर रिकॉर्डिंग सपोर्ट नहीं करती</span>
+            </div>
+            <div class="step-content">
+              <ul>
+                <li class="en">Install <span class="important-text">O Dialler</span> from Play Store.</li>
+                <li class="hi">Play Store से <span class="important-text">O Dialler</span> ऐप इनस्टॉल करें।</li>
+                <li class="en">Works best on: <strong>OnePlus, Vivo, Oppo</strong>.</li>
+                <li class="hi">यह इन फ़ोन में अच्छा काम करता है: <strong>OnePlus, Vivo, Oppo</strong>.</li>
+                <li class="en">Make a test call to see if recordings are saved in the folder.</li>
+                <li class="hi">एक टेस्ट कॉल करें और चेक करें कि रिकॉर्डिंग फ़ोल्डर में सेव हो रही है या नहीं।</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="step-acc">
+            <div class="step-header">
+              <span class="en">Step C: Folder Check</span>
+              <span class="hi">स्टेप C: फ़ोल्डर चेक करें</span>
+            </div>
+            <div class="step-content">
+              <ul>
+                <li class="en">Ensure the <span class="important-text">correct recording folder</span> is selected inside the Kiko app settings.</li>
+                <li class="hi">सुनिश्चित करें कि किको ऐप की सेटिंग्स में <span class="important-text">सही रिकॉर्डिंग फ़ोल्डर</span> चुना गया है।</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="step-acc">
+            <div class="step-header">
+              <span class="en">Step D: Default App Check</span>
+              <span class="hi">स्टेप D: डिफ़ॉल्ट ऐप चेक करें</span>
+            </div>
+            <div class="step-content">
+              <ul>
+                <li class="en">Ensure Kiko is set as the <span class="important-text">default caller ID app</span>.</li>
+                <li class="hi">सुनिश्चित करें कि किको को <span class="important-text">डिफ़ॉल्ट कॉलर आईडी ऐप (Default Caller ID)</span> के रूप में सेट किया गया है।</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="final-step">
+          <span class="en">👉 If still not working: Try using another mobile device (some phones don’t support AI processing properly).</span>
+          <span class="hi">👉 अगर फिर भी काम नहीं कर रहा है: तो किसी दूसरे मोबाइल डिवाइस का उपयोग करके देखें (कुछ फ़ोन AI को ठीक से सपोर्ट नहीं करते हैं)।</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Support CTA -->
+    <section class="cta">
+      <h2 class="section-title">
+        <span>💬</span>
+        <span class="en">Still Need Help?</span>
+        <span class="hi">अभी भी मदद चाहिए?</span>
+      </h2>
+      <div class="cta-buttons">
+        <a href="https://wa.aisensy.com/+918800544974" class="btn btn-wa" target="_blank">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+          <span class="en">WhatsApp Support</span>
+          <span class="hi">WhatsApp सपोर्ट</span>
+        </a>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // Language Toggle Logic
+    function setLang(lang) {
+      document.body.className = 'lang-' + lang;
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      // Find the button that was clicked to make it active
+      document.querySelector('.lang-btn[onclick="setLang(\'' + lang + '\')"]').classList.add('active');
+    }
+
+    // Auto-select language from URL query parameter (?lang=en or ?lang=hi)
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var lang = params.get('lang');
+      if (lang === 'hi' || lang === 'hindi') {
+        setLang('hi');
+      } else if (lang === 'en' || lang === 'english') {
+        setLang('en');
+      }
+    })();
+
+    // Accordion Logic
+    document.querySelectorAll('.step-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const acc = header.parentElement;
+        const isOpen = acc.classList.contains('open');
+        
+        // Only open the clicked one, do not auto close others
+        if (!isOpen) {
+          acc.classList.add('open');
+        } else {
+          acc.classList.remove('open');
+        }
+      });
+    });
+
+    // YouTube IFrame Player API Logic
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    var players = [];
+    var videoIds = [
+      'eEQUYvlVWIk', // 0
+      'oIh2vR5mf4E', // 1
+      'vqSk3YZZGMI', // 2
+      'oIh2vR5mf4E', // 3
+      'WvlPzPIgK6k', // 4
+      'FJ5BdwUR0qM'  // 5
+    ];
+
+    function onYouTubeIframeAPIReady() {
+      for (let i = 0; i < videoIds.length; i++) {
+        players[i] = new YT.Player('ytplayer-' + i, {
+          height: '100%',
+          width: '100%',
+          videoId: videoIds[i],
+          playerVars: {
+            'playsinline': 1,
+            'rel': 0
+          },
+          events: {
+            'onStateChange': onPlayerStateChange
+          }
+        });
+      }
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data == YT.PlayerState.PLAYING) {
+        // Pause all other players
+        for (let i = 0; i < players.length; i++) {
+          if (players[i] !== event.target && players[i].getPlayerState() == YT.PlayerState.PLAYING) {
+            players[i].pauseVideo();
+          }
+        }
+      }
+    }
+  </script>
+  <script>
+    // App Download Click Tracking (no Purchase event — OrderTakerPurchase
+    // custom conversion is only for /english/ and /hindi/ pages)
+    document.addEventListener('DOMContentLoaded', function() {
+      var playLinks = document.querySelectorAll('a[href*="play.google.com/store/apps/details?id=com.kikocall"]');
+      playLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+          if (typeof gtag === 'function') {
+            gtag('event', 'app_download_click', {
+              event_category: 'engagement',
+              event_label: 'selfhelp',
+              page_type: 'selfhelp'
+            });
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

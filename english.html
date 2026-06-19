@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Kiko AI Order Taker – Turn Phone Calls into Digital Orders | Free Android App</title>
+  <meta name="description" content="Kiko AI automatically converts your phone call recordings into organized digital orders. No writing, no confusion. Trusted by 1,000+ Indian shop owners. Free to download on Android.">
+  <meta name="keywords" content="AI order taker, phone order app, order management app India, kiko app, shop order app, restaurant order app, call to order, WhatsApp order, Hindi order app, Android order app">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://ordertaker.kiko.live/">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Kiko AI Order Taker – Turn Phone Calls into Digital Orders">
+  <meta property="og:description" content="AI that listens to your call recordings and captures every order automatically. Free to start. 1,000+ shop owners trust Kiko.">
+  <meta property="og:image" content="https://ordertaker.kiko.live/images/app-mockup.png">
+  <meta property="og:url" content="https://ordertaker.kiko.live/">
+  <meta property="og:type" content="website">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Kiko AI Order Taker – Phone Call to Digital Order in Seconds">
+  <meta name="twitter:description" content="Stop losing phone orders. Kiko's AI auto-captures every order from your call recordings. Free Android app for Indian shop owners.">
+
+  <meta name="theme-color" content="#3A1FA8">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/logo.png">
+
+  <!-- Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Kiko AI Order Taker",
+    "operatingSystem": "Android",
+    "applicationCategory": "BusinessApplication",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
+    "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.5", "ratingCount": "1000", "bestRating": "5" },
+    "url": "https://play.google.com/store/apps/details?id=com.kikocall"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type":"Question","name":"Does Kiko record my phone calls?","acceptedAnswer":{"@type":"Answer","text":"No. Kiko does not record calls itself. It only processes call recordings already saved on your phone by your device's built-in call recorder or a third-party recorder app."}},
+      {"@type":"Question","name":"Do I need internet for Kiko to work?","acceptedAnswer":{"@type":"Answer","text":"You need internet only when AI processes your recording and sends the order via WhatsApp. Your actual phone call works on your normal mobile network — no VoIP needed."}},
+      {"@type":"Question","name":"Which languages does Kiko support?","acceptedAnswer":{"@type":"Answer","text":"Currently Hindi, English, and Hinglish (mixed). Tamil, Telugu, Marathi, and Bengali are coming soon."}},
+      {"@type":"Question","name":"Is my data safe with Kiko?","acceptedAnswer":{"@type":"Answer","text":"Yes. All data is encrypted in transit (TLS/HTTPS) and at rest. Audio is processed in real-time and not retained beyond what's needed. Delete your account and all data anytime."}},
+      {"@type":"Question","name":"Can my staff use it too?","acceptedAnswer":{"@type":"Answer","text":"Yes. On the Business plan, you can set up multiple staff accounts. Designed to be extremely simple — even non-tech staff can use with zero training."}},
+      {"@type":"Question","name":"Which phones does Kiko work on?","acceptedAnswer":{"@type":"Answer","text":"Any Android phone running Android 8.0 or higher. No special hardware needed."}},
+      {"@type":"Question","name":"Can I cancel my subscription anytime?","acceptedAnswer":{"@type":"Answer","text":"Absolutely. Cancel anytime from the app or by emailing help@kiko.live. No lock-in, no questions asked."}},
+      {"@type":"Question","name":"Is there a free version?","acceptedAnswer":{"@type":"Answer","text":"Yes! Kiko is free to start. Download from Play Store, install in 2 minutes, and begin capturing orders immediately."}}
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Kiko AI",
+    "url": "https://kiko.live",
+    "logo": "https://ordertaker.kiko.live/images/logo.png",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+91-96256-39692",
+      "contactType": "customer service",
+      "email": "help@kiko.live",
+      "availableLanguage": ["English", "Hindi"]
+    }
+  }
+  </script>
+
+  <style>
+    /* ============================================
+       KIKO AI ORDER TAKER — Master Landing Page
+       Colors: #3A1FA8 (purple) + #00C8FF (cyan)
+       Fonts: Poppins + DM Sans
+       ============================================ */
+
+    :root {
+      --primary: #3A1FA8;
+      --primary-dark: #2A1580;
+      --primary-light: #5B3FCC;
+      --accent: #00C8FF;
+      --accent-secondary: #4FC3F7;
+      --gradient-hero: linear-gradient(135deg, #3A1FA8 0%, #5B3FCC 50%, #00C8FF 100%);
+      --gradient-card: linear-gradient(135deg, #f8f6ff 0%, #eef4ff 100%);
+      --gradient-cta: linear-gradient(135deg, #3A1FA8, #00C8FF);
+      --text-dark: #1A1033;
+      --text-body: #3D3558;
+      --text-muted: #7B6FA0;
+      --white: #FFFFFF;
+      --bg-light: #F7F5FF;
+      --bg-section: #FAFAFE;
+      --success: #10B981;
+      --border: #E8E2FF;
+      --danger: #EF4444;
+      --warning: #F59E0B;
+      --orange: #F97316;
+
+      --font-heading: 'Poppins', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-hindi: 'Noto Sans Devanagari', sans-serif;
+
+      --fs-hero: clamp(2.4rem, 6vw, 4.2rem);
+      --fs-h2: clamp(1.6rem, 4vw, 2.4rem);
+      --fs-h3: clamp(1.1rem, 2vw, 1.3rem);
+      --fs-body: 1rem;
+      --fs-body-lg: 1.1rem;
+      --fs-small: 0.875rem;
+      --fs-xs: 0.75rem;
+
+      --max-width: 1200px;
+      --radius: 12px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+
+      --transition: 300ms ease;
+      --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+
+      --shadow-sm: 0 1px 3px rgba(58, 31, 168, 0.06);
+      --shadow-md: 0 4px 16px rgba(58, 31, 168, 0.08);
+      --shadow-lg: 0 8px 30px rgba(58, 31, 168, 0.12);
+      --shadow-xl: 0 16px 48px rgba(58, 31, 168, 0.15);
+      --shadow-glow: 0 0 30px rgba(0, 200, 255, 0.15);
+    }
+
+    /* Reset */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: var(--font-body);
+      font-size: var(--fs-body);
+      line-height: 1.7;
+      color: var(--text-body);
+      background: var(--white);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { max-width: 100%; height: auto; display: block; }
+    a { text-decoration: none; color: inherit; transition: color var(--transition); }
+    ul, ol { list-style: none; }
+    button { border: none; cursor: pointer; background: none; font-family: inherit; }
+
+    /* Utilities */
+    .container { width: 100%; max-width: var(--max-width); margin: 0 auto; padding: 0 1.5rem; }
+    .text-center { text-align: center; }
+
+    .section-tag {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 6px 16px; border-radius: var(--radius-full);
+      background: linear-gradient(135deg, rgba(58,31,168,0.06), rgba(0,200,255,0.06));
+      border: 1px solid rgba(58,31,168,0.12);
+      color: var(--primary); font-size: var(--fs-xs); font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 1.25rem;
+    }
+    .section-tag svg { width: 14px; height: 14px; color: var(--accent); }
+
+    .section-title {
+      font-family: var(--font-heading); font-size: var(--fs-h2);
+      font-weight: 700; line-height: 1.2; margin-bottom: 0.75rem; color: var(--text-dark);
+    }
+    .section-title span {
+      background: var(--gradient-cta); -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .section-subtitle {
+      font-size: var(--fs-body-lg); color: var(--text-muted);
+      max-width: 560px; line-height: 1.7; margin-left: auto; margin-right: auto;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      padding: 14px 28px; border-radius: var(--radius); font-size: var(--fs-body);
+      font-weight: 600; transition: all var(--transition); position: relative;
+      overflow: hidden; white-space: nowrap; font-family: var(--font-body);
+    }
+    .btn-primary {
+      background: var(--gradient-cta); color: white; box-shadow: var(--shadow-md);
+    }
+    .btn-primary:hover {
+      box-shadow: var(--shadow-lg), var(--shadow-glow); transform: translateY(-2px);
+    }
+    .btn-outline {
+      border: 2px solid var(--primary); color: var(--primary); background: transparent;
+    }
+    .btn-outline:hover {
+      background: var(--primary); color: white; transform: translateY(-2px);
+    }
+    .btn-lg { padding: 16px 36px; font-size: var(--fs-body-lg); border-radius: 14px; }
+    .btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    /* ===== 1. STICKY NAV ===== */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      padding: 1rem 0; transition: all var(--transition-slow);
+      background: rgba(255,255,255,0.6); backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .nav.scrolled {
+      background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(58,31,168,0.06);
+      padding: 0.5rem 0; box-shadow: var(--shadow-sm);
+    }
+    .nav__inner { display: flex; align-items: center; justify-content: space-between; }
+    .nav__logo { display: flex; align-items: center; }
+    .nav__logo img { height: 40px; width: auto; }
+    .nav__links { display: flex; align-items: center; gap: 2rem; }
+    .nav__links a {
+      font-size: var(--fs-small); font-weight: 500; color: var(--text-body);
+      padding: 0.25rem 0; position: relative;
+    }
+    .nav__links a:hover, .nav__links a.active { color: var(--primary); }
+    .nav__links a::after {
+      content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 2px;
+      background: var(--gradient-cta); border-radius: 2px; transition: width var(--transition);
+    }
+    .nav__links a:hover::after, .nav__links a.active::after { width: 100%; }
+    .nav__cta { display: flex; align-items: center; gap: 1rem; }
+    .nav__cta .btn { padding: 10px 20px; font-size: var(--fs-small); border-radius: var(--radius-full); }
+    .nav__menu-btn {
+      display: none; flex-direction: column; gap: 5px; padding: 8px; z-index: 1001;
+    }
+    .nav__menu-btn span {
+      display: block; width: 22px; height: 2px; background: var(--primary);
+      border-radius: 2px; transition: all var(--transition);
+    }
+    .nav__menu-btn.open span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+    .nav__menu-btn.open span:nth-child(2) { opacity: 0; }
+    .nav__menu-btn.open span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+    .nav__mobile { display: none; }
+    .mobile-overlay { display: none; }
+
+    @media (max-width: 768px) {
+      .nav__links { display: none; }
+      .nav__menu-btn { display: flex; }
+      .nav__mobile {
+        position: fixed; top: 0; right: -100%; width: 80%; max-width: 320px;
+        height: 100vh; height: 100dvh; background: var(--white);
+        padding: 80px 2rem 2rem; transition: right var(--transition-slow);
+        z-index: 1000; border-left: 1px solid var(--border);
+        display: flex; flex-direction: column; gap: 0.5rem;
+      }
+      .nav__mobile.open { right: 0; }
+      .nav__mobile a {
+        display: block; padding: 1rem 0; font-size: var(--fs-body-lg);
+        color: var(--text-body); border-bottom: 1px solid var(--border); font-weight: 500;
+      }
+      .nav__mobile a:hover { color: var(--primary); }
+      .nav__mobile .btn { margin-top: 1.5rem; width: 100%; }
+      .mobile-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 999;
+        opacity: 0; pointer-events: none; transition: opacity var(--transition-slow); display: block;
+      }
+      .mobile-overlay.active { opacity: 1; pointer-events: auto; }
+    }
+
+    /* ===== 2. HERO SECTION ===== */
+    .hero {
+      position: relative; min-height: 100vh; min-height: 100dvh;
+      display: flex; align-items: center; padding: 100px 0 4rem;
+      overflow: hidden; background: var(--white);
+    }
+    .hero__bg-shape {
+      position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.08;
+      z-index: 0; pointer-events: none;
+    }
+    .hero__bg-shape--1 { width: 500px; height: 500px; background: var(--primary); top: -150px; right: -100px; }
+    .hero__bg-shape--2 { width: 400px; height: 400px; background: var(--accent); bottom: -100px; left: -100px; }
+    .hero__content {
+      position: relative; z-index: 1; display: grid;
+      grid-template-columns: 1.5fr 1fr; gap: 3rem; align-items: center;
+    }
+    .hero__text { color: var(--text-dark); }
+    .hero__badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 8px 18px; border-radius: var(--radius-full);
+      background: linear-gradient(135deg, rgba(58,31,168,0.06), rgba(0,200,255,0.06));
+      border: 1px solid rgba(58,31,168,0.12);
+      color: var(--primary); font-size: var(--fs-xs); font-weight: 600;
+      margin-bottom: 1.5rem; animation: fadeInUp 0.6s ease forwards;
+    }
+    .hero__badge .pulse-dot {
+      width: 8px; height: 8px; background: var(--success);
+      border-radius: 50%; animation: pulse 2s infinite;
+    }
+    .hero__title {
+      font-family: var(--font-heading); font-size: var(--fs-hero);
+      font-weight: 800; line-height: 1.12; margin-bottom: 1.25rem;
+      color: var(--text-dark); animation: fadeInUp 0.6s ease 0.1s forwards; opacity: 0;
+    }
+    .hero__title .highlight {
+      background: var(--gradient-cta);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero__subtitle {
+      font-size: var(--fs-body-lg); color: var(--text-body);
+      line-height: 1.7; margin-bottom: 1.5rem; max-width: 520px;
+      animation: fadeInUp 0.6s ease 0.2s forwards; opacity: 0;
+    }
+    .hero__checklist {
+      display: flex; flex-direction: column; gap: 0.5rem;
+      margin-bottom: 2rem; animation: fadeInUp 0.6s ease 0.25s forwards; opacity: 0;
+    }
+    .hero__checklist li {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: var(--fs-small); color: var(--text-body); font-weight: 500;
+    }
+    .hero__checklist li svg { width: 18px; height: 18px; color: var(--success); flex-shrink: 0; }
+    .hero__buttons {
+      display: flex; gap: 1rem; margin-bottom: 2rem;
+      animation: fadeInUp 0.6s ease 0.3s forwards; opacity: 0; flex-wrap: wrap;
+    }
+    .hero__buttons .btn-primary { background: var(--gradient-cta); color: white; }
+    .hero__buttons .btn-primary:hover { box-shadow: var(--shadow-lg), var(--shadow-glow); transform: translateY(-2px); }
+    .hero__buttons .btn-outline { border-color: var(--primary); color: var(--primary); }
+    .hero__buttons .btn-outline:hover { background: var(--primary); color: white; }
+    .hero__social-proof {
+      display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+      animation: fadeInUp 0.6s ease 0.4s forwards; opacity: 0;
+    }
+    .hero__social-proof span {
+      font-size: var(--fs-small); color: var(--text-muted);
+    }
+    .hero__visual {
+      position: relative; display: flex; justify-content: center; align-items: center;
+      animation: fadeInUp 0.8s ease 0.4s forwards; opacity: 0;
+    }
+    .hero__phone-mockup {
+      position: relative; max-width: 280px;
+      border-radius: 28px; overflow: hidden;
+      box-shadow: var(--shadow-xl); border: 1px solid rgba(58,31,168,0.12);
+    }
+    .hero__phone-mockup img { width: 100%; border-radius: 26px; }
+    .hero__float-card {
+      position: absolute; background: white; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px 16px;
+      animation: floatBounce 3s ease-in-out infinite; box-shadow: var(--shadow-lg);
+    }
+    .hero__float-card--order { top: 12%; right: -50px; animation-delay: 0s; }
+    .hero__float-card--saved { bottom: 18%; left: -40px; animation-delay: 1.5s; }
+    .hero__float-card .card-label { font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: 2px; }
+    .hero__float-card .card-value {
+      font-size: var(--fs-small); font-weight: 600; color: var(--text-dark);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .hero__float-card .card-value svg { width: 14px; height: 14px; }
+
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.5)} }
+    @keyframes floatBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    @keyframes fadeInUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ===== 3. PROBLEM SECTION ===== */
+    .problem { padding: clamp(3rem,8vw,5rem) 0; background: var(--bg-light); }
+    .problem__header { text-align: center; margin-bottom: 2.5rem; }
+    .problem__cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 3rem; }
+    .problem__card {
+      padding: 2rem; background: var(--white); border-radius: var(--radius-lg);
+      border: 1px solid var(--border); transition: all var(--transition); text-align: center;
+    }
+    .problem__card:hover { border-color: rgba(0,200,255,0.3); box-shadow: var(--shadow-lg); transform: translateY(-4px); }
+    .problem__card-icon {
+      width: 56px; height: 56px; border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin: 0 auto 1.25rem;
+    }
+    .problem__card-icon--red { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.15); }
+    .problem__card-icon--amber { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.15); }
+    .problem__card-icon--orange { background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.15); }
+    .problem__card h4 { font-family: var(--font-heading); font-size: var(--fs-h3); font-weight: 600; margin-bottom: 0.5rem; color: var(--text-dark); }
+    .problem__card p { font-size: var(--fs-small); color: var(--text-body); line-height: 1.65; }
+
+    /* Hidden Cost Infographic */
+    .problem__infographic {
+      background: var(--white); border-radius: var(--radius-lg);
+      border: 1px solid var(--border); padding: 2rem 2.5rem; text-align: center;
+    }
+    .problem__infographic h3 {
+      font-family: var(--font-heading); font-size: 1.2rem; font-weight: 700;
+      color: var(--text-dark); margin-bottom: 1.5rem;
+    }
+    .infographic-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 1rem;
+    }
+    .infographic-stat {
+      padding: 1.25rem; border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(239,68,68,0.06), rgba(249,115,22,0.06));
+      border: 1px solid rgba(239,68,68,0.1);
+    }
+    .infographic-stat__number {
+      font-family: var(--font-heading); font-size: 1.5rem; font-weight: 800;
+      color: var(--danger); margin-bottom: 0.25rem;
+    }
+    .infographic-stat__label { font-size: var(--fs-small); color: var(--text-body); }
+    .problem__infographic .source-note { font-size: var(--fs-xs); color: var(--text-muted); font-style: italic; }
+
+    /* ===== 4. SOLUTION SECTION ===== */
+    .solution { padding: clamp(3rem,8vw,5rem) 0; background: var(--white); }
+    .solution__header { text-align: center; margin-bottom: 2.5rem; }
+    .solution__steps {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem; position: relative; margin-bottom: 3rem;
+    }
+    .solution__steps::before {
+      content: ''; position: absolute; top: 44px; left: 20%; right: 20%; height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--accent), var(--primary));
+      z-index: 0; opacity: 0.2;
+    }
+    .solution__step {
+      position: relative; z-index: 1; text-align: center; padding: 1.5rem;
+      transition: transform var(--transition);
+    }
+    .solution__step:hover { transform: translateY(-4px); }
+    .solution__step-number {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--gradient-cta); display: flex; align-items: center;
+      justify-content: center; font-family: var(--font-heading);
+      font-size: 1.3rem; font-weight: 700; color: white;
+      margin: 0 auto 1rem; box-shadow: var(--shadow-glow);
+    }
+    .solution__step-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .solution__step h3 {
+      font-family: var(--font-heading); font-size: var(--fs-h3);
+      font-weight: 600; margin-bottom: 0.5rem; color: var(--text-dark);
+    }
+    .solution__step p { font-size: var(--fs-small); color: var(--text-body); line-height: 1.65; }
+
+    /* Process Flow Infographic */
+    .process-flow {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; padding: 2rem; background: var(--gradient-card);
+      border-radius: var(--radius-lg); border: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .process-flow__node {
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+      padding: 0.75rem 1rem;
+    }
+    .process-flow__icon {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--gradient-cta); display: flex; align-items: center;
+      justify-content: center; font-size: 1.3rem; color: white;
+      box-shadow: var(--shadow-glow);
+    }
+    .process-flow__label { font-size: var(--fs-xs); font-weight: 600; color: var(--text-dark); text-align: center; }
+    .process-flow__arrow { font-size: 1.5rem; color: var(--primary); opacity: 0.5; padding: 0 0.25rem; }
+
+    /* ===== 5. DEMO VIDEOS ===== */
+    .demo-videos {
+      padding: clamp(3rem,8vw,5rem) 0;
+      background: linear-gradient(135deg, #2A1580, #1A0F50); color: white;
+    }
+    .demo-videos__header { text-align: center; margin-bottom: 2.5rem; }
+    .demo-videos .section-title { color: white; }
+    .demo-videos .section-title span { background: linear-gradient(135deg, #00C8FF, #4FC3F7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .demo-videos .section-subtitle { color: rgba(255,255,255,0.65); }
+    .demo-videos__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .video-card {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(0,200,255,0.2);
+      border-radius: var(--radius-lg); padding: 1.5rem; transition: all var(--transition);
+    }
+    .video-card:hover { border-color: rgba(0,200,255,0.5); box-shadow: 0 0 20px rgba(0,200,255,0.1); }
+    .video-card__badge {
+      display: inline-block; padding: 4px 12px; border-radius: var(--radius-full);
+      font-size: var(--fs-xs); font-weight: 700; margin-bottom: 0.75rem;
+      background: rgba(0,200,255,0.15); color: var(--accent);
+    }
+    .video-card__title {
+      font-family: var(--font-heading); font-size: 1.05rem; font-weight: 600;
+      color: white; margin-bottom: 1rem;
+    }
+    .video-card__iframe-wrap {
+      position: relative; width: 100%; aspect-ratio: 9/16;
+      border-radius: var(--radius); overflow: hidden;
+      background: rgba(0,0,0,0.3); max-height: 480px;
+    }
+    .video-card__iframe-wrap iframe {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;
+    }
+    .video-card__caption {
+      margin-top: 0.75rem; font-size: var(--fs-small);
+      color: rgba(255,255,255,0.6); line-height: 1.5;
+    }
+
+    /* ===== 6. FEATURES SECTION ===== */
+    .features { padding: clamp(3rem,8vw,5rem) 0; background: var(--white); }
+    .features__header { text-align: center; margin-bottom: 2.5rem; }
+    .features__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 3rem; }
+    .feature-card {
+      padding: 2rem; background: var(--white); border-radius: var(--radius-lg);
+      border: 1px solid var(--border); transition: all var(--transition-slow);
+      position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--gradient-cta); transform: scaleX(0); transform-origin: left;
+      transition: transform var(--transition-slow);
+    }
+    .feature-card:hover { border-color: rgba(0,200,255,0.3); box-shadow: var(--shadow-lg); transform: translateY(-4px); }
+    .feature-card:hover::before { transform: scaleX(1); }
+    .feature-card__icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, rgba(58,31,168,0.06), rgba(0,200,255,0.06));
+      border: 1px solid rgba(58,31,168,0.12); display: flex;
+      align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 1.25rem;
+    }
+    .feature-card h3 { font-family: var(--font-heading); font-size: var(--fs-h3); font-weight: 600; margin-bottom: 0.5rem; color: var(--text-dark); }
+    .feature-card p { font-size: var(--fs-small); color: var(--text-body); line-height: 1.7; }
+
+    /* Before vs After Table */
+    .comparison-table { overflow-x: auto; }
+    .comparison-table table {
+      width: 100%; border-collapse: collapse; border-radius: var(--radius-lg);
+      overflow: hidden; box-shadow: var(--shadow-md);
+    }
+    .comparison-table th {
+      font-family: var(--font-heading); font-weight: 600;
+      padding: 1rem 1.25rem; font-size: var(--fs-small); text-align: left;
+    }
+    .comparison-table th:first-child { background: var(--primary); color: white; }
+    .comparison-table th:nth-child(2) { background: rgba(239,68,68,0.1); color: var(--danger); }
+    .comparison-table th:nth-child(3) { background: rgba(16,185,129,0.1); color: var(--success); }
+    .comparison-table td {
+      padding: 0.85rem 1.25rem; font-size: var(--fs-small);
+      color: var(--text-body); border-bottom: 1px solid var(--border);
+    }
+    .comparison-table tr:nth-child(even) td { background: var(--bg-light); }
+    .comparison-table tr:nth-child(odd) td { background: var(--white); }
+
+    /* ===== 7. SOCIAL PROOF / STATS ===== */
+    .stats {
+      padding: clamp(2.5rem,6vw,4rem) 0;
+      background: var(--gradient-hero); color: white;
+    }
+    .stats__grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; text-align: center;
+      margin-bottom: 3rem;
+    }
+    .stat-item {
+      padding: 1.5rem 1rem; border-radius: var(--radius-lg);
+      background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
+      transition: transform var(--transition);
+    }
+    .stat-item:hover { transform: translateY(-4px); }
+    .stat-item__icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .stat-item__number {
+      font-family: var(--font-heading); font-size: clamp(1.8rem, 3vw, 2.4rem);
+      font-weight: 800; color: white; margin-bottom: 4px;
+    }
+    .stat-item__label { font-size: var(--fs-small); color: rgba(255,255,255,0.7); }
+    .stats__testimonial {
+      max-width: 680px; margin: 0 auto; text-align: center;
+      padding: 2rem; background: rgba(255,255,255,0.08);
+      border-radius: var(--radius-lg); border: 1px solid rgba(255,255,255,0.1);
+    }
+    .stats__testimonial blockquote {
+      font-size: var(--fs-body-lg); font-style: italic;
+      color: rgba(255,255,255,0.9); line-height: 1.7; margin-bottom: 1rem;
+    }
+    .stats__testimonial cite {
+      font-size: var(--fs-small); color: rgba(255,255,255,0.6);
+      font-style: normal; font-weight: 600;
+    }
+
+    /* ===== 8. HOW IT COMPARES ===== */
+    .comparison { padding: clamp(3rem,8vw,5rem) 0; background: var(--bg-light); }
+    .comparison__header { text-align: center; margin-bottom: 2.5rem; }
+    .comparison__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .compare-card {
+      padding: 2rem; border-radius: var(--radius-lg); border: 2px solid var(--border);
+      transition: all var(--transition); text-align: center;
+    }
+    .compare-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .compare-card--paper { background: rgba(239,68,68,0.03); }
+    .compare-card--paper:hover { border-color: var(--danger); }
+    .compare-card--assistant { background: rgba(245,158,11,0.03); }
+    .compare-card--assistant:hover { border-color: var(--warning); }
+    .compare-card--kiko { background: rgba(16,185,129,0.03); border-color: var(--success); box-shadow: var(--shadow-glow); }
+    .compare-card--kiko:hover { border-color: var(--success); }
+    .compare-card__icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .compare-card__title { font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: var(--text-dark); margin-bottom: 1.25rem; }
+    .compare-card__list { display: flex; flex-direction: column; gap: 0.75rem; text-align: left; }
+    .compare-card__item { display: flex; align-items: center; gap: 0.5rem; font-size: var(--fs-small); color: var(--text-body); }
+    .compare-card__item .label { flex: 1; font-weight: 500; }
+    .compare-card__item .value { font-weight: 600; }
+    .compare-card__item .value--bad { color: var(--danger); }
+    .compare-card__item .value--mid { color: var(--warning); }
+    .compare-card__item .value--good { color: var(--success); }
+
+    /* ===== 9. FAQ SECTION ===== */
+    .faq { padding: clamp(3rem,8vw,5rem) 0; background: var(--white); }
+    .faq__header { text-align: center; margin-bottom: 2.5rem; }
+    .faq__list { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.75rem; }
+    .faq-item {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; transition: all var(--transition);
+    }
+    .faq-item:hover { border-color: rgba(0,200,255,0.3); }
+    .faq-item__question {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 1.25rem 1.5rem; font-size: var(--fs-body); font-weight: 600;
+      color: var(--text-dark); text-align: left; cursor: pointer; gap: 1rem;
+    }
+    .faq-chevron {
+      width: 20px; height: 20px; flex-shrink: 0; color: var(--text-muted);
+      transition: transform var(--transition);
+    }
+    .faq-item.open .faq-chevron { transform: rotate(180deg); color: var(--accent); }
+    .faq-item__answer { max-height: 0; overflow: hidden; transition: max-height var(--transition-slow); }
+    .faq-item.open .faq-item__answer { max-height: 300px; }
+    .faq-item__answer p {
+      padding: 0 1.5rem 1.25rem; font-size: var(--fs-small);
+      color: var(--text-body); line-height: 1.7;
+    }
+
+    /* ===== 10. ABOUT SECTION ===== */
+    .about { padding: clamp(3rem,8vw,5rem) 0; background: var(--white); }
+    .about__header { text-align: center; margin-bottom: 2.5rem; }
+    .about__content { max-width: 720px; margin: 0 auto; border-left: 4px solid var(--accent); padding-left: 2rem; }
+    .about__text p { font-size: var(--fs-body-lg); color: var(--text-body); line-height: 1.8; margin-bottom: 1.25rem; }
+    .about__text p strong { color: var(--text-dark); }
+    .about__badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 8px 20px; border-radius: var(--radius-full);
+      background: var(--gradient-card); border: 1px solid var(--border);
+      font-size: var(--fs-small); font-weight: 600; color: var(--text-dark);
+      margin-top: 0.5rem;
+    }
+
+    /* ===== 11. CONTACT SECTION ===== */
+    .contact { padding: clamp(3rem,8vw,5rem) 0; background: var(--bg-light); }
+    .contact__header { text-align: center; margin-bottom: 2.5rem; }
+    .contact__cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .contact-card {
+      text-align: center; padding: 2.5rem 1.5rem; background: var(--white);
+      border: 1px solid var(--border); border-radius: var(--radius-lg);
+      transition: all var(--transition);
+    }
+    .contact-card:hover { border-color: rgba(0,200,255,0.3); box-shadow: var(--shadow-lg), var(--shadow-glow); transform: translateY(-4px); }
+    .contact-card__icon { font-size: 2rem; margin-bottom: 1.25rem; }
+    .contact-card h3 { font-family: var(--font-heading); font-size: var(--fs-h3); font-weight: 600; color: var(--text-dark); margin-bottom: 0.25rem; }
+    .contact-card p { font-size: var(--fs-small); color: var(--text-muted); margin-bottom: 1rem; }
+    .contact-card__link {
+      font-size: var(--fs-body); font-weight: 600;
+      background: var(--gradient-cta); -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .contact-card__link:hover { opacity: 0.8; }
+
+    /* ===== 12. FINAL CTA ===== */
+    .cta-final {
+      padding: clamp(3rem,8vw,5rem) 0; position: relative;
+      text-align: center; overflow: hidden; background: var(--primary-dark);
+    }
+    .cta-final::before {
+      content: ''; position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      z-index: 0;
+    }
+    .cta-final__content { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; }
+    .cta-final__title {
+      font-family: var(--font-heading); font-size: var(--fs-h2); font-weight: 700;
+      margin-bottom: 1rem; line-height: 1.2; color: white;
+    }
+    .cta-final__title .highlight {
+      background: linear-gradient(135deg, #00C8FF, #4FC3F7);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .cta-final__subtitle { font-size: var(--fs-body-lg); color: rgba(255,255,255,0.7); margin-bottom: 1.5rem; line-height: 1.7; }
+    .cta-final__badges {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    .cta-final__badges span {
+      padding: 5px 14px; border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+      font-size: var(--fs-xs); color: rgba(255,255,255,0.8); font-weight: 500;
+    }
+    .cta-final__playstore { margin-bottom: 1.5rem; }
+    .cta-final__playstore img { height: 60px; margin: 0 auto; }
+    .cta-final__note { font-size: var(--fs-small); color: rgba(255,255,255,0.5); }
+    .cta-final__note span { margin: 0 0.5rem; }
+
+    /* ===== 13. FOOTER ===== */
+    .footer { padding: 2.5rem 0 1.5rem; background: #1A0F50; color: white; }
+    .footer__grid {
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 2.5rem; margin-bottom: 2.5rem;
+    }
+    .footer__brand .nav__logo img { height: 36px; }
+    .footer__brand p {
+      font-size: var(--fs-small); color: rgba(255,255,255,0.5);
+      margin-top: 1rem; line-height: 1.7; max-width: 260px;
+    }
+    .footer__col h4 {
+      font-family: var(--font-heading); font-size: var(--fs-xs); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 1.25rem; color: rgba(255,255,255,0.9);
+    }
+    .footer__col a {
+      display: block; font-size: var(--fs-small); color: rgba(255,255,255,0.5);
+      padding: 0.25rem 0; transition: color var(--transition);
+    }
+    .footer__col a:hover { color: var(--accent); }
+    .footer__bottom {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .footer__bottom p { font-size: var(--fs-xs); color: rgba(255,255,255,0.35); }
+    .footer__bottom-links { display: flex; gap: 1.5rem; }
+    .footer__bottom-links a { font-size: var(--fs-xs); color: rgba(255,255,255,0.35); }
+    .footer__bottom-links a:hover { color: var(--accent); }
+
+    /* ===== WhatsApp Float ===== */
+    .whatsapp-float {
+      position: fixed; bottom: 24px; right: 24px; z-index: 998;
+      width: 54px; height: 54px; border-radius: 50%; background: #25D366;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(37,211,102,0.35); transition: all var(--transition);
+      animation: fadeInUp 0.6s ease 1s forwards; opacity: 0;
+    }
+    .whatsapp-float:hover { transform: scale(1.1) translateY(-2px); box-shadow: 0 6px 24px rgba(37,211,102,0.45); }
+    .whatsapp-float svg { width: 26px; height: 26px; fill: white; }
+
+    /* ===== Help Float ===== */
+    .help-float {
+      position: fixed; bottom: 24px; right: 24px; z-index: 998;
+      padding: 12px 22px; border-radius: var(--radius-full); background: var(--primary);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 4px 16px rgba(58,31,168,0.35); transition: all var(--transition);
+      animation: fadeInUp 0.6s ease 1s forwards; opacity: 0;
+      color: white; font-size: var(--fs-small); font-weight: 600; text-decoration: none;
+      font-family: var(--font-body); white-space: nowrap;
+    }
+    .help-float:hover { transform: scale(1.05) translateY(-2px); box-shadow: 0 6px 24px rgba(58,31,168,0.45); color: white; }
+
+    /* ===== Mobile Sticky CTA ===== */
+    .sticky-cta {
+      display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 997;
+      padding: 1rem 1.5rem; background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(58,31,168,0.12); transform: translateY(100%);
+      transition: transform var(--transition-slow); box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+    }
+    .sticky-cta.visible { transform: translateY(0); }
+    .sticky-cta .btn { width: 100%; border-radius: var(--radius); }
+
+    /* ===== Scroll Animations ===== */
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 1024px) {
+      .hero__content { grid-template-columns: 1fr; text-align: center; }
+      .hero__text { display: flex; flex-direction: column; align-items: center; }
+      .hero__checklist { align-items: center; }
+      .hero__buttons { justify-content: center; }
+      .hero__social-proof { justify-content: center; }
+      .hero__float-card { display: none; }
+      .hero__phone-mockup { max-width: 240px; }
+      .features__grid { grid-template-columns: repeat(2, 1fr); }
+      .demo-videos__grid { grid-template-columns: repeat(2, 1fr); }
+      .footer__grid { grid-template-columns: 1fr 1fr; gap: 2rem; }
+    }
+    @media (max-width: 768px) {
+      .container { padding: 0 1rem; }
+      .hero { padding: 90px 0 2rem; min-height: auto; }
+      .hero__phone-mockup { max-width: 200px; }
+      .hero__title { font-size: clamp(1.8rem, 7vw, 2.5rem); }
+      .problem__cards { grid-template-columns: 1fr; }
+      .infographic-stats { grid-template-columns: 1fr; }
+      .solution__steps { grid-template-columns: 1fr; }
+      .solution__steps::before { display: none; }
+      .features__grid { grid-template-columns: 1fr; }
+      .demo-videos__grid { grid-template-columns: 1fr; }
+      .stats__grid { grid-template-columns: repeat(2, 1fr); }
+      .comparison__grid { grid-template-columns: 1fr; }
+      .contact__cards { grid-template-columns: 1fr; }
+      .footer__grid { grid-template-columns: 1fr; gap: 1.5rem; }
+      .footer__bottom { flex-direction: column; gap: 1rem; text-align: center; }
+      .sticky-cta { display: block; }
+      .whatsapp-float { bottom: 80px; }
+      .help-float { bottom: 80px; }
+      .process-flow { flex-direction: column; }
+      .process-flow__arrow { transform: rotate(90deg); }
+      .faq-item__question { padding: 1rem 1.25rem; font-size: var(--fs-small); }
+      .faq-item__answer p { padding: 0 1.25rem 1rem; }
+      .about__content { padding-left: 1.25rem; }
+    }
+    @media (max-width: 420px) {
+      .hero__badge { font-size: 11px; padding: 5px 12px; }
+      .hero__social-proof { flex-direction: column; gap: 0.5rem; }
+      .hero__buttons .btn { width: 100%; }
+      .stats__grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-X1HK0NPQT8"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-X1HK0NPQT8');
+  </script>
+
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '326242339368504');
+  fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=326242339368504&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+</head>
+<body>
+
+  <!-- ===== 1. STICKY NAV ===== -->
+  <nav class="nav" id="navbar">
+    <div class="container nav__inner">
+      <a href="#home" class="nav__logo" id="nav-logo">
+        <img src="https://ordertaker.kiko.live/images/logo.png" alt="Kiko AI Order Taker" height="40">
+      </a>
+      <div class="nav__links" id="nav-links">
+        <a href="#home" id="nav-home">Home</a>
+        <a href="#solution" id="nav-solution">How It Works</a>
+        <a href="#demo-videos" id="nav-demos">Demo Videos</a>
+        <a href="#features" id="nav-features">Features</a>
+        <a href="#faq" id="nav-faq">FAQ</a>
+        <a href="#contact" id="nav-contact">Contact</a>
+      </div>
+      <div class="nav__cta">
+        <a href="https://play.google.com/store/apps/details?id=com.kikocall" target="_blank" class="btn btn-primary" id="nav-cta-download">
+          📲 Free Download
+        </a>
+        <button class="nav__menu-btn" id="nav-menu-btn" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+    <div class="nav__mobile" id="nav-mobile">
+      <a href="#home" id="mobile-nav-home">Home</a>
+      <a href="#solution" id="mobile-nav-solution">How It Works</a>
+      <a href="#demo-videos" id="mobile-nav-demos">Demo Videos</a>
+      <a href="#features" id="mobile-nav-features">Features</a>
+      <a href="#faq" id="mobile-nav-faq">FAQ</a>
+      <a href="#contact" id="mobile-nav-contact">Contact</a>
+      <a href="https://play.google.com/store/apps/details?id=com.kikocall" target="_blank" class="btn btn-primary" id="mobile-nav-cta">
+        📲 Download on Play Store
+      </a>
+    </div>
+    <div class="mobile-overlay" id="mobile-overlay"></div>
+  </nav>
+
+
+  <!-- ===== 2. HERO SECTION ===== -->
+  <main>
+  <section class="hero" id="home">
+    <div class="hero__bg-shape hero__bg-shape--1" aria-hidden="true"></div>
+    <div class="hero__bg-shape hero__bg-shape--2" aria-hidden="true"></div>
+    <div class="container hero__content">
+      <div class="hero__text">
+        <div class="hero__badge" id="hero-badge">
+          <span class="pulse-dot"></span>
+          🇮🇳 Used by 1,000+ Shop Owners Across India
+        </div>
+
+        <h1 class="hero__title" id="hero-title">
+          Phone Call Aaya?<br>
+          <span class="highlight">Order Ready! 📞✅</span>
+        </h1>
+
+        <p class="hero__subtitle" id="hero-subtitle">
+          Stop losing orders to missed calls and messy notes. Kiko's AI listens to your call recordings and turns every order into a clean, organized digital record — automatically.
+        </p>
+
+        <ul class="hero__checklist">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg> Works with your existing phone calls</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg> No special equipment needed</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg> Setup in under 2 minutes</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg> Supports Hindi, English & Hinglish</li>
+        </ul>
+
+        <div class="hero__buttons" id="hero-buttons">
+          <a href="https://play.google.com/store/apps/details?id=com.kikocall" target="_blank" class="btn btn-primary btn-lg" id="hero-cta-playstore">
+            📲 Download Free on Play Store
+          </a>
+          <a href="#demo-videos" class="btn btn-outline btn-lg" id="hero-cta-watch">
+            ▶ Watch How It Works
+          </a>
+        </div>
+
+        <div class="hero__social-proof" id="hero-social-proof">
+          <span>⭐ 4.5 Play Store</span>
+          <span>•</span>
+          <span>50,000+ Orders Captured</span>
+          <span>•</span>
+          <span>Free to Start</span>
+        </div>
+      </div>
+
+      <div class="hero__visual" id="hero-visual">
+        <div class="hero__phone-mockup">
+          <img src="https://ordertaker.kiko.live/images/app-mockup.png" alt="Kiko App showing organized customer orders" width="280" loading="eager">
+        </div>
+        <div class="hero__float-card hero__float-card--order" id="float-order">
+          <div class="card-label">🆕 New Order</div>
+          <div class="card-value">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+            Captured!
+          </div>
+        </div>
+        <div class="hero__float-card hero__float-card--saved" id="float-saved">
+          <div class="card-label">Today</div>
+          <div class="card-value">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#00C8FF" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+            24 orders ✨
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== 3. PROBLEM SECTION ===== -->
+  <section class="problem" id="problem">
+    <div class="container">
+      <div class="problem__header reveal">
+        <div class="section-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          The Real Problem
+        </div>
+        <h2 class="section-title">
+          Yeh Problems <span>Pehchano?</span>
+        </h2>
+        <p class="section-subtitle">
+          Every shop owner knows these pains. You're not alone.
+        </p>
+      </div>
+
+      <div class="problem__cards">
+        <div class="problem__card reveal" id="problem-card-1">
+          <div class="problem__card-icon problem__card-icon--red">📵</div>
+          <h4>Missed Calls = Lost Money</h4>
+          <p>Every unanswered call could be a ₹500–₹5,000 order gone forever. You're serving one customer — another rings and hangs up.</p>
+        </div>
+        <div class="problem__card reveal" id="problem-card-2" style="transition-delay: 0.1s;">
+          <div class="problem__card-icon problem__card-icon--amber">📝</div>
+          <h4>Paper Notes = Costly Mistakes</h4>
+          <p>Writing orders while talking means wrong items, wrong quantities, illegible handwriting — and unhappy customers who got the wrong order.</p>
+        </div>
+        <div class="problem__card reveal" id="problem-card-3" style="transition-delay: 0.2s;">
+          <div class="problem__card-icon problem__card-icon--orange">🔄</div>
+          <h4>Zero Order History</h4>
+          <p>"Kal wala order kya tha?" — No records means no insights, no repeat-order tracking, and no way to grow your business.</p>
+        </div>
+      </div>
+
+      <div class="problem__infographic reveal">
+        <h3>📊 The Hidden Cost of Manual Orders</h3>
+        <div class="infographic-stats">
+          <div class="infographic-stat">
+            <div class="infographic-stat__number">₹15,000+</div>
+            <div class="infographic-stat__label">per month in lost orders</div>
+          </div>
+          <div class="infographic-stat">
+            <div class="infographic-stat__number">2.3 errors</div>
+            <div class="infographic-stat__label">per 10 handwritten orders</div>
+          </div>
+          <div class="infographic-stat">
+            <div class="infographic-stat__number">40%</div>
+            <div class="infographic-stat__label">customers don't call back after a bad experience</div>
+          </div>
+        </div>
+        <p class="source-note">*Based on aggregated feedback from Kiko users</p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== 4. SOLUTION SECTION ===== -->
+  <section class="solution" id="solution">
+    <div class="container">
+      <div class="solution__header reveal">
+        <div class="section-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          How It Works
+        </div>
+        <h2 class="section-title">
+          Simple as <span>1-2-3</span>
+        </h2>
+        <p class="section-subtitle">
+          No training needed. No complex setup. Just install and start.
+        </p>
+      </div>
+
+      <div class="solution__steps">
+        <div class="solution__step reveal" id="step-1">
+          <div class="solution__step-number">1</div>
+          <div class="solution__step-icon">📞</div>
+          <h3>Receive Customer Call</h3>
+          <p>Take orders on phone exactly like you do today. Zero change to your routine. Kiko runs silently in the background.</p>
+        </div>
+        <div class="solution__step reveal" id="step-2" style="transition-delay: 0.15s;">
+          <div class="solution__step-number">2</div>
+          <div class="solution__step-icon">🤖</div>
+          <h3>AI Captures the Order</h3>
+          <p>Kiko reads your call recording and automatically extracts: customer name, items ordered, quantities, special instructions, delivery details.</p>
+        </div>
+        <div class="solution__step reveal" id="step-3" style="transition-delay: 0.3s;">
+          <div class="solution__step-number">3</div>
+          <div class="solution__step-icon">✅</div>
+          <h3>Confirm & Send via WhatsApp</h3>
+          <p>Review the clean digital order on screen. Send a confirmation to your customer's WhatsApp in one tap. Done.</p>
+        </div>
+      </div>
+
+      <div class="process-flow reveal">
+        <div class="process-flow__node">
+          <div class="process-flow__icon">📞</div>
+          <div class="process-flow__label">Phone Call</div>
+        </div>
+        <div class="process-flow__arrow">→</div>
+        <div class="process-flow__node">
+          <div class="process-flow__icon">🎙️</div>
+          <div class="process-flow__label">Call Recording</div>
+        </div>
+        <div class="process-flow__arrow">→</div>
+        <div class="process-flow__node">
+          <div class="process-flow__icon">🤖</div>
+          <div class="process-flow__label">Kiko AI Engine</div>
+        </div>
+        <div class="process-flow__arrow">→</div>
+        <div class="process-flow__node">
+          <div class="process-flow__icon">📋</div>
+          <div class="process-flow__label">Digital Order Card</div>
+        </div>
+        <div class="process-flow__arrow">→</div>
+        <div class="process-flow__node">
+          <div class="process-flow__icon">💬</div>
+          <div class="process-flow__label">WhatsApp Message</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== 5. DEMO VIDEOS ===== -->
+  <section class="demo-videos" id="demo-videos">
+    <div class="container">
+      <div class="demo-videos__header reveal">
+        <h2 class="section-title text-center">
+          Watch How Easy It Is <span>👇</span>
+        </h2>
+        <p class="section-subtitle text-center">
+          Three short videos. Under 60 seconds each. You'll get it immediately.
+        </p>
+      </div>
+
+      <div class="demo-videos__grid">
+        <div class="video-card reveal" id="video-1">
+          <div class="video-card__badge">🟢 START HERE</div>
+          <div class="video-card__title">How to Use Kiko</div>
+          <div class="video-card__iframe-wrap">
+            <iframe src="https://www.youtube.com/embed/vqSk3YZZGMI" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="How to Use Kiko"></iframe>
+          </div>
+          <p class="video-card__caption">See how orders get captured automatically from a real phone call</p>
+        </div>
+
+        <div class="video-card reveal" id="video-2" style="transition-delay: 0.15s;">
+          <div class="video-card__badge">🔧 SETUP GUIDE</div>
+          <div class="video-card__title">Call Recording Setup</div>
+          <div class="video-card__iframe-wrap">
+            <iframe src="https://www.youtube.com/embed/oIh2vR5mf4E" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="Call Recording Setup"></iframe>
+          </div>
+          <p class="video-card__caption">Configure call recording on your Android — takes 2 minutes</p>
+        </div>
+
+        <div class="video-card reveal" id="video-3" style="transition-delay: 0.3s;">
+          <div class="video-card__badge">📲 INSTALL GUIDE</div>
+          <div class="video-card__title">How to Install Kiko</div>
+          <div class="video-card__iframe-wrap">
+            <iframe src="https://www.youtube.com/embed/eEQUYvlVWIk" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="How to Install Kiko"></iframe>
+          </div>
+          <p class="video-card__caption">Install and set up Kiko on your Android phone step by step</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== 6. FEATURES SECTION ===== -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="features__header reveal">
+        <div class="section-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+          Features
+        </div>
+        <h2 class="section-title text-center">
+          Everything You Need, <span>Nothing You Don't</span>
+        </h2>
+        <p class="section-subtitle text-center">
+          Built for simplicity. Designed for busy shop owners who just want it to work.
+        </p>
+      </div>
+
+      <div class="features__grid">
+        <div class="feature-card reveal" id="feature-1">
+          <div class="feature-card__icon">🎙️</div>
+          <h3>Auto Order Capture</h3>
+          <p>AI extracts customer name, items, quantities, and delivery details from your call recordings — fully automatic.</p>
+        </div>
+        <div class="feature-card reveal" id="feature-2" style="transition-delay: 0.1s;">
+          <div class="feature-card__icon">📋</div>
+          <h3>Full Order History</h3>
+          <p>All orders in one place. Filter by date, customer, or item. Your shop's complete order record, always available.</p>
+        </div>
+        <div class="feature-card reveal" id="feature-3" style="transition-delay: 0.2s;">
+          <div class="feature-card__icon">📱</div>
+          <h3>Works with Normal Calls</h3>
+          <p>No internet calling, no VoIP, no special phone needed. Your regular Android phone calls — that's all.</p>
+        </div>
+        <div class="feature-card reveal" id="feature-4" style="transition-delay: 0.1s;">
+          <div class="feature-card__icon">🚀</div>
+          <h3>Zero Training Required</h3>
+          <p>If you can answer a phone call, you can use Kiko. Install it and you're ready. No manual, no tutorial needed.</p>
+        </div>
+        <div class="feature-card reveal" id="feature-5" style="transition-delay: 0.2s;">
+          <div class="feature-card__icon">👥</div>
+          <h3>Staff-Friendly</h3>
+          <p>Designed for everyone, not just tech users. Large buttons, clear Hindi/English text, simple workflow.</p>
+        </div>
+        <div class="feature-card reveal" id="feature-6" style="transition-delay: 0.3s;">
+          <div class="feature-card__icon">💬</div>
+          <h3>WhatsApp in One Tap</h3>
+          <p>Send clean, professional order confirmations to your customer's WhatsApp instantly after each order.</p>
+        </div>
+      </div>
+
+      <!-- Before vs After Comparison -->
+      <div class="comparison-table reveal">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>❌ Without Kiko</th>
+              <th>✅ With Kiko</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Order capture</strong></td><td>Manual, error-prone writing</td><td>Automatic AI extraction</td></tr>
+            <tr><td><strong>Order history</strong></td><td>Paper notebooks (lost/torn)</td><td>Searchable digital records</td></tr>
+            <tr><td><strong>Customer confirmation</strong></td><td>Verbal only, often forgotten</td><td>WhatsApp confirmation in 1 tap</td></tr>
+            <tr><td><strong>Missed call orders</strong></td><td>Lost forever</td><td>Processed from recording</td></tr>
+            <tr><td><strong>Staff errors</strong></td><td>Common</td><td>Eliminated</td></tr>
+            <tr><td><strong>Setup time</strong></td><td>N/A</td><td>2 minutes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== 7. SOCIAL PROOF / STATS ===== -->
+  <section class="stats" id="stats">
+    <div class="container">
+      <div class="stats__grid">
+        <div class="stat-item reveal" id="stat-1">
+          <div class="stat-item__icon">🏪</div>
+          <div class="stat-item__number" data-count="1000">0</div>
+          <div class="stat-item__label">Shop Owners Trust Kiko</div>
+        </div>
+        <div class="stat-item reveal" id="stat-2" style="transition-delay: 0.1s;">
+          <div class="stat-item__icon">📦</div>
+          <div class="stat-item__number" data-count="50000">0</div>
+          <div class="stat-item__label">Orders Captured</div>
+        </div>
+        <div class="stat-item reveal" id="stat-3" style="transition-delay: 0.2s;">
+          <div class="stat-item__icon">⏱️</div>
+          <div class="stat-item__number">2 min</div>
+          <div class="stat-item__label">Average Setup Time</div>
+        </div>
+        <div class="stat-item reveal" id="stat-4" style="transition-delay: 0.3s;">
+          <div class="stat-item__icon">⭐</div>
+          <div class="stat-item__number">4.5 ⭐</div>
+          <div class="stat-item__label">Play Store Rating</div>
+        </div>
+      </div>
+
+      <div class="stats__testimonial reveal">
+        <blockquote>
+          "Pehle roz 4-5 orders miss ho jaate the. Ab sab record ho jaata hai automatically. Best app for my shop!"
+        </blockquote>
+        <cite>— Ramesh, Grocery Store Owner, Delhi</cite>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== 8. HOW IT COMPARES ===== -->
+  <section class="comparison" id="comparison">
+    <div class="container">
+      <div class="comparison__header reveal">
+        <div class="section-tag text-center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          Compare
+        </div>
+        <h2 class="section-title text-center">
+          Why Kiko <span>Beats the Old Way</span>
+        </h2>
+      </div>
+
+      <div class="comparison__grid">
+        <div class="compare-card compare-card--paper reveal" id="compare-1">
+          <div class="compare-card__icon">📓</div>
+          <div class="compare-card__title">Paper & Pen</div>
+          <div class="compare-card__list">
+            <div class="compare-card__item"><span class="label">Error rate</span><span class="value value--bad">High</span></div>
+            <div class="compare-card__item"><span class="label">Setup</span><span class="value">Instant</span></div>
+            <div class="compare-card__item"><span class="label">Cost</span><span class="value">Low</span></div>
+            <div class="compare-card__item"><span class="label">Scalable</span><span class="value value--bad">No</span></div>
+            <div class="compare-card__item"><span class="label">Digital record</span><span class="value value--bad">No</span></div>
+          </div>
+        </div>
+        <div class="compare-card compare-card--assistant reveal" id="compare-2" style="transition-delay: 0.15s;">
+          <div class="compare-card__icon">👤</div>
+          <div class="compare-card__title">Hired Assistant</div>
+          <div class="compare-card__list">
+            <div class="compare-card__item"><span class="label">Error rate</span><span class="value value--mid">Medium</span></div>
+            <div class="compare-card__item"><span class="label">Setup</span><span class="value value--mid">Weeks</span></div>
+            <div class="compare-card__item"><span class="label">Cost</span><span class="value value--bad">₹8,000+/mo</span></div>
+            <div class="compare-card__item"><span class="label">Scalable</span><span class="value value--mid">Hard</span></div>
+            <div class="compare-card__item"><span class="label">Digital record</span><span class="value value--mid">Maybe</span></div>
+          </div>
+        </div>
+        <div class="compare-card compare-card--kiko reveal" id="compare-3" style="transition-delay: 0.3s;">
+          <div class="compare-card__icon">🤖</div>
+          <div class="compare-card__title">Kiko AI</div>
+          <div class="compare-card__list">
+            <div class="compare-card__item"><span class="label">Error rate</span><span class="value value--good">Near Zero</span></div>
+            <div class="compare-card__item"><span class="label">Setup</span><span class="value value--good">2 min</span></div>
+            <div class="compare-card__item"><span class="label">Cost</span><span class="value value--good">Free / Low</span></div>
+            <div class="compare-card__item"><span class="label">Scalable</span><span class="value value--good">Yes</span></div>
+            <div class="compare-card__item"><span class="label">Digital record</span><span class="value value--good">Always ✅</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== 9. FAQ SECTION ===== -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div class="faq__header reveal">
+        <div class="section-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          FAQ
+        </div>
+        <h2 class="section-title text-center">
+          Frequently Asked <span>Questions</span>
+        </h2>
+        <p class="section-subtitle text-center">
+          Everything you need to know before downloading.
+        </p>
+      </div>
+
+      <div class="faq__list">
+        <div class="faq-item reveal" id="faq-1">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>Does Kiko record my phone calls?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="faq-item__answer">
+            <p>No. Kiko does not record calls itself. It only processes call recordings already saved on your phone by your device's built-in call recorder or a third-party recorder app.</p>
+          </div>
+        </div>
+        <div class="faq-item reveal" id="faq-2" style="transition-delay: 0.05s;">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>Do I need internet for Kiko to work?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="faq-item__answer">
+            <p>You need internet only when AI processes your recording and sends the order via WhatsApp. Your actual phone call works on your normal mobile network — no VoIP needed.</p>
+          </div>
+        </div>
+        <div class="faq-item reveal" id="faq-3" style="transition-delay: 0.1s;">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>Which languages does Kiko support?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="faq-item__answer">
+            <p>Currently Hindi, English, and Hinglish (mixed). Tamil, Telugu, Marathi, and Bengali are coming soon.</p>
+          </div>
+        </div>
+        <div class="faq-item reveal" id="faq-4" style="transition-delay: 0.15s;">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>Is my data safe with Kiko?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="faq-item__answer">
+            <p>Yes. All data is encrypted in transit (TLS/HTTPS) and at rest. Audio is processed in real-time and not retained beyond what's needed. Delete your account and all data anytime.</p>
+          </div>
+        </div>
+        <div class="faq-item reveal" id="faq-5" style="transition-delay: 0.2s;">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>Can my staff use it too?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="faq-item__answer">
+            <p>Yes. On the Business plan, you can set up multiple staff accounts. Designed to be extremely simple — even non-tech staff can use with zero training.</p>
+          </div>
+        </div>
+        <div class="faq-item reveal" id="faq-6" style="transition-delay: 0.25s;">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>Which phones does Kiko work on?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="faq-item__answer">
+            <p>Any Android phone running Android 8.0 or higher. No special hardware needed.</p>
+          </div>
+        </div>
+        <div class="faq-item reveal" id="faq-7" style="transition-delay: 0.3s;">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>Can I cancel my subscription anytime?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="faq-item__answer">
+            <p>Absolutely. Cancel anytime from the app or by emailing help@kiko.live. No lock-in, no questions asked.</p>
+          </div>
+        </div>
+        <div class="faq-item reveal" id="faq-8" style="transition-delay: 0.35s;">
+          <button class="faq-item__question" aria-expanded="false">
+            <span>Is there a free version?</span>
+            <svg class="faq-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="faq-item__answer">
+            <p>Yes! Kiko is free to start. Download from Play Store, install in 2 minutes, and begin capturing orders immediately.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== 10. ABOUT SECTION ===== -->
+  <section class="about" id="about">
+    <div class="container">
+      <div class="about__header reveal">
+        <h2 class="section-title text-center">
+          Built for Businesses <span>Like Yours 🇮🇳</span>
+        </h2>
+      </div>
+
+      <div class="about__content reveal">
+        <div class="about__text">
+          <p>Kiko AI was born from a simple observation: millions of Indian businesses still take orders over the phone — but writing them down by hand leads to errors, missed items, and lost customers.</p>
+          <p>We asked: <strong>what if every phone order automatically became a clean, confirmed WhatsApp message — without the seller lifting a pen?</strong></p>
+          <p>That's Kiko. An AI that reads call recordings, understands the order, and delivers it to WhatsApp — ready to send, ready to confirm.</p>
+          <p>We're a small team who've watched family members run food businesses and struggle with phone orders. Kiko is our way of giving every local business the same tools big companies have — without complexity or cost.</p>
+        </div>
+        <div class="about__badge">Made with ❤️ in India 🇮🇳</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== 11. CONTACT SECTION ===== -->
+  <section class="contact" id="contact">
+    <div class="container">
+      <div class="contact__header reveal">
+        <div class="section-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Contact Us
+        </div>
+        <h2 class="section-title text-center">
+          We're Here to <span>Help</span>
+        </h2>
+        <p class="section-subtitle text-center">
+          Got a question, facing an issue, or want to share feedback? Reach us — we reply fast.
+        </p>
+      </div>
+
+      <div class="contact__cards">
+        <div class="contact-card reveal" id="contact-email">
+          <div class="contact-card__icon">📧</div>
+          <h3>Email Us</h3>
+          <p>Drop us an email anytime</p>
+          <a href="mailto:help@kiko.live" class="contact-card__link">help@kiko.live</a>
+        </div>
+        <div class="contact-card reveal" id="contact-help" style="transition-delay: 0.1s;">
+          <div class="contact-card__icon">❓</div>
+          <h3>Help & Support</h3>
+          <p>Visit our Self-Help guide</p>
+          <a href="https://ordertaker.kiko.live/selfhelp/" class="contact-card__link">Get Help</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===== 12. FINAL CTA ===== -->
+  <section class="cta-final" id="cta-final">
+    <div class="container cta-final__content reveal">
+      <h2 class="cta-final__title">
+        Start Digitizing Your Orders <span class="highlight">Today</span>
+      </h2>
+      <p class="cta-final__subtitle">
+        Join 1,000+ smart shop owners who've upgraded from pen-and-paper to automated order capture.
+      </p>
+      <div class="cta-final__badges">
+        <span>Free to start</span>
+        <span>Android only</span>
+        <span>No hardware</span>
+        <span>2-minute setup</span>
+        <span>Cancel anytime</span>
+      </div>
+      <div class="cta-final__playstore">
+        <a href="https://play.google.com/store/apps/details?id=com.kikocall" target="_blank" id="cta-final-playstore">
+          <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" loading="lazy">
+        </a>
+      </div>
+      <p class="cta-final__note">
+        ✅ No credit card required <span>·</span> ✅ Works on any Android phone <span>·</span> ✅ Setup in 2 minutes
+      </p>
+    </div>
+  </section>
+  </main>
+
+
+  <!-- ===== 13. FOOTER ===== -->
+  <footer class="footer" id="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div class="footer__brand">
+          <a href="#home" class="nav__logo">
+            <img src="https://ordertaker.kiko.live/images/logo.png" alt="Kiko AI Order Taker" height="36" style="filter: brightness(0) invert(1);">
+          </a>
+          <p>AI-powered order taking for Indian businesses. From call to organized order in seconds.</p>
+          <p style="margin-top:0.5rem;">Made with ❤️ in India 🇮🇳</p>
+        </div>
+        <div class="footer__col">
+          <h4>Product</h4>
+          <a href="#home" id="footer-home">Home</a>
+          <a href="#solution" id="footer-how">How It Works</a>
+          <a href="#demo-videos" id="footer-demos">Demo Videos</a>
+          <a href="#faq" id="footer-faq">FAQ</a>
+        </div>
+        <div class="footer__col">
+          <h4>Company</h4>
+          <a href="#about" id="footer-about">About Us</a>
+          <a href="#contact" id="footer-contact">Contact Us</a>
+        </div>
+        <div class="footer__col">
+          <h4>Legal</h4>
+          <a href="https://ordertaker.kiko.live/privacy.html" id="footer-privacy">Privacy Policy</a>
+          <a href="https://ordertaker.kiko.live/terms.html" id="footer-terms">Terms & Conditions</a>
+          <a href="https://ordertaker.kiko.live/deletion.html" id="footer-deletion">Account Deletion</a>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <p>© 2025 Kiko AI Order Taker · kiko.live · All rights reserved</p>
+        <div class="footer__bottom-links">
+          <a href="https://ordertaker.kiko.live/privacy.html">Privacy</a>
+          <a href="https://ordertaker.kiko.live/terms.html">Terms</a>
+          <a href="mailto:help@kiko.live">help@kiko.live</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+
+
+
+
+  <!-- ===== Floating Help Button ===== -->
+  <a href="https://ordertaker.kiko.live/selfhelp/" class="help-float" aria-label="Help & Support">
+    Help & Support
+  </a>
+
+  <!-- ===== Mobile Sticky CTA ===== -->
+  <div class="sticky-cta" id="sticky-cta">
+    <a href="https://play.google.com/store/apps/details?id=com.kikocall" target="_blank" class="btn btn-primary" id="sticky-cta-btn">
+      📲 Download Free on Play Store
+    </a>
+  </div>
+
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initNavbar();
+      initMobileMenu();
+      initScrollReveal();
+      initSmoothScroll();
+      initStickyCTA();
+      initCountUp();
+      initFAQ();
+    });
+
+    /* --- Navbar scroll effect --- */
+    function initNavbar() {
+      const nav = document.getElementById('navbar');
+      function onScroll() {
+        if (window.scrollY > 50) { nav.classList.add('scrolled'); }
+        else { nav.classList.remove('scrolled'); }
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+
+    /* --- Mobile menu toggle --- */
+    function initMobileMenu() {
+      const menuBtn = document.getElementById('nav-menu-btn');
+      const mobileNav = document.getElementById('nav-mobile');
+      const overlay = document.getElementById('mobile-overlay');
+      if (!menuBtn || !mobileNav) return;
+
+      function toggleMenu() {
+        const isOpen = mobileNav.classList.contains('open');
+        mobileNav.classList.toggle('open');
+        menuBtn.classList.toggle('open');
+        overlay.classList.toggle('active');
+        document.body.style.overflow = isOpen ? '' : 'hidden';
+      }
+      function closeMenu() {
+        mobileNav.classList.remove('open');
+        menuBtn.classList.remove('open');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+      menuBtn.addEventListener('click', toggleMenu);
+      overlay.addEventListener('click', closeMenu);
+      mobileNav.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
+    }
+
+    /* --- Scroll reveal --- */
+    function initScrollReveal() {
+      const els = document.querySelectorAll('.reveal');
+      if (!els.length) return;
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+      els.forEach(el => observer.observe(el));
+    }
+
+    /* --- Smooth scroll --- */
+    function initSmoothScroll() {
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', e => {
+          const id = anchor.getAttribute('href');
+          if (id === '#') return;
+          const target = document.querySelector(id);
+          if (!target) return;
+          e.preventDefault();
+          const navH = document.getElementById('navbar').offsetHeight;
+          window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - navH - 20, behavior: 'smooth' });
+        });
+      });
+    }
+
+    /* --- Mobile sticky CTA --- */
+    function initStickyCTA() {
+      const stickyCTA = document.getElementById('sticky-cta');
+      const hero = document.getElementById('home');
+      if (!stickyCTA || !hero) return;
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          stickyCTA.classList.toggle('visible', !entry.isIntersecting);
+        });
+      }, { threshold: 0.1 });
+      observer.observe(hero);
+    }
+
+    /* --- Count up --- */
+    function initCountUp() {
+      const nums = document.querySelectorAll('.stat-item__number[data-count]');
+      if (!nums.length) return;
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const el = entry.target;
+            const target = parseInt(el.getAttribute('data-count'), 10);
+            animateCount(el, target);
+            observer.unobserve(el);
+          }
+        });
+      }, { threshold: 0.5 });
+      nums.forEach(el => observer.observe(el));
+    }
+
+    function animateCount(el, target) {
+      const duration = 2000;
+      const start = performance.now();
+      function update(now) {
+        const p = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(target * eased).toLocaleString('en-IN') + '+';
+        if (p < 1) requestAnimationFrame(update);
+      }
+      requestAnimationFrame(update);
+    }
+
+    /* --- Active nav highlighting --- */
+    (function() {
+      const sections = document.querySelectorAll('section[id]');
+      const navLinks = document.querySelectorAll('.nav__links a');
+      if (!sections.length || !navLinks.length) return;
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const id = entry.target.getAttribute('id');
+            navLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === '#' + id));
+          }
+        });
+      }, { threshold: 0.3, rootMargin: '-80px 0px -50% 0px' });
+      sections.forEach(s => observer.observe(s));
+    })();
+
+    /* --- FAQ accordion --- */
+    function initFAQ() {
+      const items = document.querySelectorAll('.faq-item');
+      if (!items.length) return;
+      items.forEach(item => {
+        const q = item.querySelector('.faq-item__question');
+        if (!q) return;
+        q.addEventListener('click', () => {
+          const open = item.classList.contains('open');
+          items.forEach(o => { if (o !== item) o.classList.remove('open'); });
+          item.classList.toggle('open', !open);
+        });
+      });
+    }
+  </script>
+  <script>
+    // OrderTakerPurchase Event Tracking for App Downloads (with dedup guard)
+    // Meta Pixel: fires standard 'Purchase' event — Custom Conversion "OrderTakerPurchase"
+    // (ID 2463255337525553) filters by URL containing "ordertaker"/"hindi"/"english"
+    // Google Analytics: fires custom 'ordertakerpurchase' event for distinct GA tracking
+    document.addEventListener('DOMContentLoaded', function() {
+      var lastPurchaseFired = 0;
+      var playLinks = document.querySelectorAll('a[href*="play.google.com/store/apps/details?id=com.kikocall"]');
+      playLinks.forEach(function(link) {
+        link.addEventListener('click', function() {
+          var now = Date.now();
+          if (now - lastPurchaseFired < 2000) return; // prevent duplicate fires within 2s
+          lastPurchaseFired = now;
+          var eventId = 'ordertaker_purchase_' + now;
+          // Meta Pixel — standard Purchase event (custom conversion filters by URL)
+          if (typeof fbq === 'function') {
+            fbq('track', 'Purchase', { currency: 'INR', value: 1.00 }, { eventID: eventId });
+          }
+          // Google Analytics — custom event name for distinct tracking
+          if (typeof gtag === 'function') {
+            gtag('event', 'ordertakerpurchase', {
+              currency: 'INR',
+              value: 1.00,
+              transaction_id: eventId,
+              event_id: eventId,
+              event_category: 'conversion',
+              event_label: 'ordertaker_english',
+              page_type: 'ordertaker_landing'
+            });
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
