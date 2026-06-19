@@ -132,6 +132,13 @@ export default function LoginScreen() {
     }
     setCurrentPhone(phone);
 
+    // Playstore review bypass
+    if (phone === '9619363677') {
+      setStatus('');
+      setShowOtp(true);
+      return;
+    }
+
     setLoading(true);
     setStatus('Sending OTP...');
     trackOtpRequested(phone);
@@ -161,6 +168,14 @@ export default function LoginScreen() {
     const otpToVerify = pendingOtpRef.current || otp;
     if (otpToVerify.length !== 6) {
       setStatus('Enter the 6-digit OTP');
+      return;
+    }
+
+    // Playstore review bypass
+    if (currentPhone === '9619363677' && otpToVerify === '123456') {
+      const testToken = 'review_token_9619363677_x3a';
+      setCurrentToken(testToken);
+      await login(testToken, currentPhone, 'Test Shop', 'Test User');
       return;
     }
 
