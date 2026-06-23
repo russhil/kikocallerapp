@@ -45,6 +45,10 @@ export function composeMessage(order) {
     lines.push(`Notes: ${order.notes}`);
   }
 
+  lines.push('');
+  lines.push('Processed automatically by Kiko');
+  lines.push('https://ordertaker.kiko.live/english');
+
   return lines.join('\n').trimEnd();
 }
 
