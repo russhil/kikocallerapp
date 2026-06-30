@@ -35,3 +35,7 @@
 
 # ── Prevent stripping of MediaCodec / MediaExtractor usage ──
 -keep class android.media.** { *; }
+
+# ── react-native-html-to-pdf / PDFBox ──
+-dontwarn com.tom_roush.pdfbox.**
+-dontwarn com.gemalto.jp2.**
