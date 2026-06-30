@@ -35,7 +35,11 @@ const settings = {
     hi: 'दुकान का फ़ोन (वैकल्पिक)',
     gu: 'દુકાનનો ફોન (વૈકલ્પિક)',
   },
-  'settings.storePhonePlaceholder': { en: '+91...', hi: '+91...', gu: '+91...' },
+  'settings.storePhonePlaceholder': {
+    en: '+91...',
+    hi: '+91...',
+    gu: '+91...',
+  },
 
   // ---- Section headers ----
   'settings.businessSection': { en: 'BUSINESS', hi: 'दुकान', gu: 'દુકાન' },

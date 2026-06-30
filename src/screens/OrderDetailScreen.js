@@ -25,7 +25,7 @@ import {
   formatPrice,
   formatProductPrice,
 } from '../utils/whatsappHelper';
-import {generateInvoicePDF} from '../utils/pdfGenerator';
+import { generateInvoicePDF } from '../utils/pdfGenerator';
 import CustomPopup from '../components/CustomPopup';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { syncOrder } from '../api/syncApi';
@@ -451,7 +451,9 @@ export default function OrderDetailScreen() {
           {isGeneratingPDF ? (
             <ActivityIndicator color={Colors.primary} size="small" />
           ) : (
-            <Text style={s.receiptBtnText}>📄 {t('orderDetail.shareReceipt')}</Text>
+            <Text style={s.receiptBtnText}>
+              📄 {t('orderDetail.shareReceipt')}
+            </Text>
           )}
         </TouchableOpacity>
 

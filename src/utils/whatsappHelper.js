@@ -90,7 +90,11 @@ export async function shareOrderViaWhatsApp(order) {
 
 // Share a generated PDF receipt — tries WhatsApp directly, falls back to the
 // system share sheet if WhatsApp isn't available.
-export async function shareReceiptViaWhatsApp(order, pdfPath, storeSettings = {}) {
+export async function shareReceiptViaWhatsApp(
+  order,
+  pdfPath,
+  storeSettings = {},
+) {
   const storeDisplay = storeSettings.shopName || order.storeName || 'Store';
   const defaultMessage = `Thank you for your order with ${storeDisplay}.
 Your order has been confirmed.
@@ -115,7 +119,11 @@ Thank you for choosing us!`;
   } catch (error) {
     console.log('Direct WhatsApp share failed, trying fallback', error);
     try {
-      await Share.open({title: 'Share Receipt', message: defaultMessage, url});
+      await Share.open({
+        title: 'Share Receipt',
+        message: defaultMessage,
+        url,
+      });
     } catch (e) {
       console.log('Share fallback failed', e);
     }
