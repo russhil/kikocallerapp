@@ -12,10 +12,12 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, AuthContext } from './src/context/AuthContext';
+import { LanguageProvider } from './src/i18n/LanguageContext';
 import { Colors } from './src/theme';
 import HelpButton from './src/components/HelpButton';
 import { trackAppOpened, trackSetupComplete } from './src/utils/analytics';
 
+import LanguageSelectScreen from './src/screens/LanguageSelectScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import PermissionScreen from './src/screens/PermissionScreen';
@@ -33,6 +35,19 @@ function AppNavigator() {
   const { isLoggedIn, loading } = useContext(AuthContext);
   const [permGranted, setPermGranted] = useState(false);
   const [permChecked, setPermChecked] = useState(false);
+  // Language gate — asked once at the very first launch (before everything else),
+  // so a Hindi/Gujarati-only user can pick their language immediately.
+  const [langChosen, setLangChosen] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    import('@react-native-async-storage/async-storage').then(
+      ({ default: AsyncStorage }) => {
+        AsyncStorage.getItem('languageChosen').then(value => {
+          setLangChosen(value === 'true');
+        });
+      },
+    );
+  }, []);
 
   // Auto-check if permissions are already granted on startup
   // This prevents requiring the user to go through PermissionScreen on every app restart
@@ -75,11 +90,13 @@ function AppNavigator() {
   const [hasLaunched, setHasLaunched] = useState<boolean | null>(null);
 
   useEffect(() => {
-    import('@react-native-async-storage/async-storage').then(({default: AsyncStorage}) => {
-      AsyncStorage.getItem('hasLaunched').then(value => {
-        setHasLaunched(value === 'true');
-      });
-    });
+    import('@react-native-async-storage/async-storage').then(
+      ({ default: AsyncStorage }) => {
+        AsyncStorage.getItem('hasLaunched').then(value => {
+          setHasLaunched(value === 'true');
+        });
+      },
+    );
   }, []);
 
   // Start background monitoring service once logged in AND permissions granted
@@ -119,7 +136,17 @@ function AppNavigator() {
     }
   }, [isLoggedIn, permGranted]);
 
-  if (loading || (isLoggedIn && !permChecked) || (!isLoggedIn && hasLaunched === null)) {
+  // Ask for language first, before anything else.
+  if (langChosen === false) {
+    return <LanguageSelectScreen onDone={() => setLangChosen(true)} />;
+  }
+
+  if (
+    loading ||
+    langChosen === null ||
+    (isLoggedIn && !permChecked) ||
+    (!isLoggedIn && hasLaunched === null)
+  ) {
     return (
       <View
         style={{
@@ -156,9 +183,12 @@ function AppNavigator() {
 
   if (!isLoggedIn) {
     return (
-      <Stack.Navigator screenOptions={{headerShown: false}} initialRouteName={hasLaunched ? "Login" : "Onboarding"}>
-        <Stack.Screen name="Onboarding" component={OnboardingScreen}/>
-        <Stack.Screen name="Login" component={LoginScreen}/>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        initialRouteName={hasLaunched ? 'Login' : 'Onboarding'}
+      >
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
       </Stack.Navigator>
     );
   }
@@ -191,15 +221,20 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <View style={{flex: 1}}>
-          <StatusBar barStyle="dark-content" backgroundColor={Colors.surface} />
-          <NavigationContainer>
-            <AppNavigator />
-          </NavigationContainer>
-          <HelpButton />
-        </View>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <View style={{ flex: 1 }}>
+            <StatusBar
+              barStyle="dark-content"
+              backgroundColor={Colors.surface}
+            />
+            <NavigationContainer>
+              <AppNavigator />
+            </NavigationContainer>
+            <HelpButton />
+          </View>
+        </AuthProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

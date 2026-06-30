@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,21 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import {Colors, FontSizes, FontWeights, BorderRadius, Spacing} from '../theme';
+import {
+  Colors,
+  FontSizes,
+  FontWeights,
+  BorderRadius,
+  Spacing,
+} from '../theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { trackHelpButtonClicked, trackHelpLanguageSelected } from '../utils/analytics';
+import {
+  trackHelpButtonClicked,
+  trackHelpLanguageSelected,
+} from '../utils/analytics';
+import { useLang } from '../i18n/LanguageContext';
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const HELP_URLS = {
   english: 'https://ordertaker.kiko.live/selfhelp/?lang=en',
@@ -28,6 +38,7 @@ const HELP_URLS = {
  * then opens the appropriate help URL in the browser.
  */
 export default function HelpButton() {
+  const { t } = useLang();
   const [showModal, setShowModal] = useState(false);
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fabPulse = useRef(new Animated.Value(1)).current;
@@ -77,7 +88,7 @@ export default function HelpButton() {
     }).start(() => setShowModal(false));
   };
 
-  const openHelp = async (lang) => {
+  const openHelp = async lang => {
     const url = HELP_URLS[lang];
     console.log(`[Help] Opening ${lang} help: ${url}`);
     trackHelpLanguageSelected(lang);
@@ -99,16 +110,18 @@ export default function HelpButton() {
     <>
       {/* Floating Action Button */}
       <Animated.View
-        style={[s.fabContainer, {transform: [{scale: fabPulse}]}]}
-        pointerEvents="box-none">
+        style={[s.fabContainer, { transform: [{ scale: fabPulse }] }]}
+        pointerEvents="box-none"
+      >
         <TouchableOpacity
           style={s.fab}
           onPress={openModal}
           activeOpacity={0.8}
-          accessibilityLabel="Help"
-          accessibilityHint="Opens help and support options">
+          accessibilityLabel={t('help.fab')}
+          accessibilityHint={t('help.fabHint')}
+        >
           <Icon name="help-circle-outline" size={22} color={Colors.white} />
-          <Text style={s.fabText}>Help</Text>
+          <Text style={s.fabText}>{t('help.fab')}</Text>
         </TouchableOpacity>
       </Animated.View>
 
@@ -118,38 +131,36 @@ export default function HelpButton() {
         visible={showModal}
         animationType="none"
         onRequestClose={closeModal}
-        statusBarTranslucent>
+        statusBarTranslucent
+      >
         <TouchableOpacity
           style={s.overlay}
           activeOpacity={1}
-          onPress={closeModal}>
+          onPress={closeModal}
+        >
           <Animated.View
             style={[
               s.card,
               {
-                transform: [{scale: scaleAnim}],
+                transform: [{ scale: scaleAnim }],
                 opacity: scaleAnim,
               },
-            ]}>
+            ]}
+          >
             <TouchableOpacity activeOpacity={1}>
               {/* Header */}
               <View style={s.cardHeader}>
                 <View style={s.headerIconBox}>
-                  <Icon
-                    name="help-circle"
-                    size={28}
-                    color={Colors.primary}
-                  />
+                  <Icon name="help-circle" size={28} color={Colors.primary} />
                 </View>
-                <View style={{flex: 1, marginLeft: 12}}>
-                  <Text style={s.cardTitle}>Help & Support</Text>
-                  <Text style={s.cardSubtitle}>
-                    Choose your preferred language
-                  </Text>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={s.cardTitle}>{t('help.title')}</Text>
+                  <Text style={s.cardSubtitle}>{t('help.subtitle')}</Text>
                 </View>
                 <TouchableOpacity
                   onPress={closeModal}
-                  hitSlop={{top: 12, bottom: 12, left: 12, right: 12}}>
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
                   <Icon name="close" size={22} color={Colors.textMuted} />
                 </TouchableOpacity>
               </View>
@@ -161,53 +172,41 @@ export default function HelpButton() {
               <TouchableOpacity
                 style={s.langOption}
                 onPress={() => openHelp('english')}
-                activeOpacity={0.7}>
-                <View style={[s.langIcon, {backgroundColor: '#4F46E5' + '14'}]}>
+                activeOpacity={0.7}
+              >
+                <View
+                  style={[s.langIcon, { backgroundColor: '#4F46E5' + '14' }]}
+                >
                   <Text style={s.langFlag}>🇬🇧</Text>
                 </View>
-                <View style={{flex: 1, marginLeft: 14}}>
+                <View style={{ flex: 1, marginLeft: 14 }}>
                   <Text style={s.langTitle}>English</Text>
-                  <Text style={s.langDesc}>
-                    Tutorials, guides & support
-                  </Text>
+                  <Text style={s.langDesc}>Tutorials, guides & support</Text>
                 </View>
-                <Icon
-                  name="chevron-right"
-                  size={22}
-                  color={Colors.textMuted}
-                />
+                <Icon name="chevron-right" size={22} color={Colors.textMuted} />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[s.langOption, {borderBottomWidth: 0}]}
+                style={[s.langOption, { borderBottomWidth: 0 }]}
                 onPress={() => openHelp('hindi')}
-                activeOpacity={0.7}>
-                <View style={[s.langIcon, {backgroundColor: '#F97316' + '14'}]}>
+                activeOpacity={0.7}
+              >
+                <View
+                  style={[s.langIcon, { backgroundColor: '#F97316' + '14' }]}
+                >
                   <Text style={s.langFlag}>🇮🇳</Text>
                 </View>
-                <View style={{flex: 1, marginLeft: 14}}>
+                <View style={{ flex: 1, marginLeft: 14 }}>
                   <Text style={s.langTitle}>हिंदी (Hindi)</Text>
-                  <Text style={s.langDesc}>
-                    ट्यूटोरियल, गाइड और सहायता
-                  </Text>
+                  <Text style={s.langDesc}>ट्यूटोरियल, गाइड और सहायता</Text>
                 </View>
-                <Icon
-                  name="chevron-right"
-                  size={22}
-                  color={Colors.textMuted}
-                />
+                <Icon name="chevron-right" size={22} color={Colors.textMuted} />
               </TouchableOpacity>
 
               {/* Footer hint */}
               <View style={s.footerHint}>
-                <Icon
-                  name="open-in-new"
-                  size={14}
-                  color={Colors.textMuted}
-                />
-                <Text style={s.footerText}>
-                  Opens in your browser
-                </Text>
+                <Icon name="open-in-new" size={14} color={Colors.textMuted} />
+                <Text style={s.footerText}>{t('help.opensInBrowser')}</Text>
               </View>
             </TouchableOpacity>
           </Animated.View>
@@ -237,7 +236,7 @@ const s = StyleSheet.create({
     shadowColor: Colors.primary,
     shadowOpacity: 0.35,
     shadowRadius: 12,
-    shadowOffset: {width: 0, height: 6},
+    shadowOffset: { width: 0, height: 6 },
   },
   fabText: {
     color: Colors.white,
@@ -266,7 +265,7 @@ const s = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 24,
-    shadowOffset: {width: 0, height: 10},
+    shadowOffset: { width: 0, height: 10 },
   },
   cardHeader: {
     flexDirection: 'row',

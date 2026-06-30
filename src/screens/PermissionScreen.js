@@ -22,14 +22,24 @@ import {
   Spacing,
 } from '../theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { trackPermissionScreenViewed, trackPermissionsGranted } from '../utils/analytics';
+import {
+  trackPermissionScreenViewed,
+  trackPermissionsGranted,
+} from '../utils/analytics';
+import { useLang } from '../i18n/LanguageContext';
 
+// PERMISSIONS is defined at module scope, so we store i18n KEYS here and
+// resolve them with t(...) inside the component's render.
 const PERMISSIONS = [
-  { key: 'READ_CONTACTS', label: 'Contacts', desc: 'Match caller names' },
+  {
+    key: 'READ_CONTACTS',
+    labelKey: 'permission.contactsLabel',
+    descKey: 'permission.contactsDesc',
+  },
   {
     key: 'READ_PHONE_STATE',
-    label: 'Phone State',
-    desc: 'Detect incoming calls',
+    labelKey: 'permission.phoneStateLabel',
+    descKey: 'permission.phoneStateDesc',
   },
 ];
 
@@ -41,21 +51,21 @@ function getPermissions() {
   if (Platform.Version >= 33) {
     perms.push({
       key: 'READ_MEDIA_AUDIO',
-      label: 'Audio Files',
-      desc: 'Access recordings',
+      labelKey: 'permission.audioLabel',
+      descKey: 'permission.audioDesc',
       perm: PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO,
     });
     perms.push({
       key: 'POST_NOTIFICATIONS',
-      label: 'Notifications',
-      desc: 'Processing updates',
+      labelKey: 'permission.notificationsLabel',
+      descKey: 'permission.notificationsDesc',
       perm: PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
     });
   } else if (Platform.Version < 30) {
     perms.push({
       key: 'READ_EXTERNAL_STORAGE',
-      label: 'Storage',
-      desc: 'Access recordings',
+      labelKey: 'permission.storageLabel',
+      descKey: 'permission.storageDesc',
       perm: PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
     });
   }
@@ -65,6 +75,7 @@ function getPermissions() {
 const ROLE_SUPPORTED = Platform.OS === 'android' && Platform.Version >= 29;
 
 export default function PermissionScreen({ onAllGranted }) {
+  const { t } = useLang();
   const [statuses, setStatuses] = useState({});
   const [hasRole, setHasRole] = useState(!ROLE_SUPPORTED);
   const [roleAvailable, setRoleAvailable] = useState(ROLE_SUPPORTED);
@@ -97,27 +108,19 @@ export default function PermissionScreen({ onAllGranted }) {
     setHasRole(roleHeld);
     setRoleAvailable(roleAvail);
     setChecking(false);
-
-    const runtimeGranted = Object.values(result).every(v => v);
-    const roleGate = !ROLE_SUPPORTED || !roleAvail || roleHeld;
-    if (runtimeGranted && roleGate) {
-      trackPermissionsGranted();
-      onAllGranted?.();
-    }
-  }, [onAllGranted]);
+  }, []);
 
   // Track permission screen view on mount
   useEffect(() => {
     trackPermissionScreenViewed();
   }, []);
 
-  const requestAll = async () => {
-    setChecking(true);
+  // Auto-prompt the standard runtime permissions (system dialogs appear
+  // automatically). Caller ID is handled separately via its manual button.
+  const requestRuntime = async () => {
     try {
-      const permsToRequest = perms.map(p => p.perm);
-      await PermissionsAndroid.requestMultiple(permsToRequest);
+      await PermissionsAndroid.requestMultiple(perms.map(p => p.perm));
     } catch (e) {}
-
     await checkAll();
   };
 
@@ -129,7 +132,7 @@ export default function PermissionScreen({ onAllGranted }) {
   };
 
   useEffect(() => {
-    requestAll();
+    requestRuntime();
   }, []);
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => {
@@ -152,7 +155,12 @@ export default function PermissionScreen({ onAllGranted }) {
     Object.keys(statuses).length > 0 && Object.values(statuses).every(v => v);
   const roleGate = !ROLE_SUPPORTED || !roleAvailable || hasRole;
   const allGranted = runtimeGranted && roleGate;
-  if (allGranted) return null;
+
+  const onContinue = () => {
+    if (!allGranted) return;
+    trackPermissionsGranted();
+    onAllGranted?.();
+  };
 
   const showRoleRow = ROLE_SUPPORTED && roleAvailable;
   let totalPerms = perms.length;
@@ -168,11 +176,8 @@ export default function PermissionScreen({ onAllGranted }) {
         <View style={s.headerIcon}>
           <Icon name="shield-alert" size={36} color={Colors.white} />
         </View>
-        <Text style={s.title}>Permissions Required</Text>
-        <Text style={s.subtitle}>
-          Kiko AI needs these permissions to scan{'\n'}and process your call
-          recordings
-        </Text>
+        <Text style={s.title}>{t('permission.title')}</Text>
+        <Text style={s.subtitle}>{t('permission.subtitle')}</Text>
 
         {/* Progress */}
         <View style={s.progressBar}>
@@ -188,7 +193,10 @@ export default function PermissionScreen({ onAllGranted }) {
           />
         </View>
         <Text style={s.progressText}>
-          {grantedCount} of {totalPerms} granted
+          {t('permission.progress', {
+            granted: grantedCount,
+            total: totalPerms,
+          })}
         </Text>
 
         {/* Permission list */}
@@ -206,26 +214,24 @@ export default function PermissionScreen({ onAllGranted }) {
                 ]}
               />
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={s.permLabel}>{p.label}</Text>
-                <Text style={s.permDesc}>{p.desc}</Text>
+                <Text style={s.permLabel}>{t(p.labelKey)}</Text>
+                <Text style={s.permDesc}>{t(p.descKey)}</Text>
               </View>
-              <Text
-                style={[
-                  s.permStatus,
-                  { color: statuses[p.key] ? Colors.success : Colors.error },
-                ]}
-              >
-                {statuses[p.key] ? 'Granted' : 'Required'}
-              </Text>
+              {statuses[p.key] ? (
+                <View style={s.statusGranted}>
+                  <Icon name="check-circle" size={18} color={Colors.success} />
+                  <Text style={s.grantedText}>{t('permission.granted')}</Text>
+                </View>
+              ) : (
+                <Text style={[s.permStatus, { color: Colors.error }]}>
+                  {t('permission.required')}
+                </Text>
+              )}
             </View>
           ))}
 
           {showRoleRow && (
-            <TouchableOpacity
-              style={s.permRow}
-              onPress={requestRole}
-              activeOpacity={hasRole ? 1 : 0.7}
-            >
+            <View style={s.permRow}>
               <View
                 style={[
                   s.permDot,
@@ -235,49 +241,51 @@ export default function PermissionScreen({ onAllGranted }) {
                 ]}
               />
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={s.permLabel}>Caller ID App</Text>
-                <Text style={s.permDesc}>
-                  Capture caller number in real time
-                </Text>
+                <Text style={s.permLabel}>{t('permission.callerIdLabel')}</Text>
+                <Text style={s.permDesc}>{t('permission.callerIdDesc')}</Text>
               </View>
-              <Text
-                style={[
-                  s.permStatus,
-                  { color: hasRole ? Colors.success : Colors.error },
-                ]}
-              >
-                {hasRole ? 'Granted' : 'Required'}
-              </Text>
-            </TouchableOpacity>
+              {hasRole ? (
+                <View style={s.statusGranted}>
+                  <Icon name="check-circle" size={18} color={Colors.success} />
+                  <Text style={s.grantedText}>{t('permission.granted')}</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={s.allowBtn}
+                  onPress={requestRole}
+                  activeOpacity={0.7}
+                >
+                  <Text style={s.allowBtnText}>{t('permission.allow')}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
         </View>
 
-        {/* Buttons */}
+        {/* Continue — enabled only once everything is allowed */}
         <TouchableOpacity
-          style={s.grantBtn}
-          onPress={requestAll}
+          style={[s.continueBtn, !allGranted && s.continueBtnDisabled]}
+          onPress={onContinue}
+          disabled={!allGranted}
           activeOpacity={0.7}
         >
-          <Text style={s.grantBtnText}>Grant Permissions</Text>
-        </TouchableOpacity>
-        {showRoleRow && !hasRole && (
-          <TouchableOpacity
+          <Text
             style={[
-              s.grantBtn,
-              { marginTop: Spacing.md, backgroundColor: Colors.primary },
+              s.continueBtnText,
+              !allGranted && s.continueBtnTextDisabled,
             ]}
-            onPress={requestRole}
-            activeOpacity={0.7}
           >
-            <Text style={s.grantBtnText}>Set as Caller ID App</Text>
-          </TouchableOpacity>
-        )}
+            {t('permission.continue')}
+          </Text>
+        </TouchableOpacity>
         <TouchableOpacity
           style={s.settingsBtn}
           onPress={() => Linking.openSettings()}
           activeOpacity={0.7}
         >
-          <Text style={s.settingsBtnText}>Open App Settings</Text>
+          <Text style={s.settingsBtnText}>
+            {t('permission.openSettingsButton')}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -351,6 +359,43 @@ const s = StyleSheet.create({
   },
   permDesc: { fontSize: FontSizes.xs, color: Colors.textMuted, marginTop: 1 },
   permStatus: { fontSize: FontSizes.sm, fontWeight: FontWeights.semiBold },
+
+  // Per-row Allow button + Granted state
+  allowBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+  },
+  allowBtnText: {
+    color: Colors.white,
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.bold,
+  },
+  statusGranted: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  grantedText: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.semiBold,
+    color: Colors.success,
+  },
+
+  // Continue button (greyed until everything allowed)
+  continueBtn: {
+    width: '100%',
+    height: 52,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: Spacing.xxl,
+  },
+  continueBtnDisabled: { backgroundColor: Colors.divider },
+  continueBtnText: {
+    color: Colors.white,
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.bold,
+  },
+  continueBtnTextDisabled: { color: Colors.textMuted },
 
   grantBtn: {
     width: '100%',

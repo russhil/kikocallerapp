@@ -125,7 +125,9 @@ export async function syncBackgroundRecordings(taskData) {
     if (lockValue) {
       const lockTime = parseInt(lockValue, 10);
       if (Date.now() - lockTime < 5 * 60 * 1000) {
-        console.log('Skipping: Recording is currently being processed globally.');
+        console.log(
+          'Skipping: Recording is currently being processed globally.',
+        );
         return;
       }
     }
@@ -399,7 +401,11 @@ export async function syncBackgroundRecordings(taskData) {
         orderSource: 'call',
         paymentStatus: 'pending',
         deliveryStatus: 'pending',
-        createdAt: recent.lastModified || Date.now(),
+        // Order date = when it was processed/received (not the recording file's
+        // old mtime), so it sorts correctly on the app + dashboard.
+        createdAt: Date.now(),
+        recordedAt: recent.lastModified || null,
+        lang: 'en',
       };
 
       orders.unshift(newOrder);

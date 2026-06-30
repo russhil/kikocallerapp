@@ -22,8 +22,10 @@ import {
 } from '../theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { AuthContext } from '../context/AuthContext';
+import { useLang } from '../i18n/LanguageContext';
 import { BASE_URL } from '../config';
 import CustomPopup from '../components/CustomPopup';
+import LanguagePills from '../components/LanguagePills';
 import {
   trackLoginScreenViewed,
   trackOtpRequested,
@@ -36,6 +38,7 @@ import {
 
 export default function LoginScreen() {
   const { login } = useContext(AuthContext);
+  const { t } = useLang();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [shopkeeperName, setShopkeeperName] = useState('');
@@ -117,7 +120,7 @@ export default function LoginScreen() {
       icon: icon || 'info',
       buttons: buttons || [
         {
-          text: 'OK',
+          text: t('common.ok'),
           onPress: () => setPopup(p => ({ ...p, visible: false })),
         },
       ],
@@ -127,7 +130,7 @@ export default function LoginScreen() {
 
   const onSendOtp = async () => {
     if (phone.length !== 10) {
-      setStatus('Enter a valid 10-digit phone number');
+      setStatus(t('login.invalidPhone'));
       return;
     }
     setCurrentPhone(phone);
@@ -140,7 +143,7 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-    setStatus('Sending OTP...');
+    setStatus(t('login.sendingOtp'));
     trackOtpRequested(phone);
     try {
       const res = await fetch(`${BASE_URL}/api/auth/send-otp`, {
@@ -149,15 +152,15 @@ export default function LoginScreen() {
         body: JSON.stringify({ phone }),
       });
       if (res.ok) {
-        setStatus(`OTP sent to +91 ${phone}`);
+        setStatus(t('login.otpSent', { phone }));
         setShowOtp(true);
       } else {
         const text = await res.text();
-        setStatus(text || `Server error ${res.status}`);
+        setStatus(text || t('login.serverError', { code: res.status }));
         trackLoginFailed('otp_send_failed');
       }
     } catch (e) {
-      setStatus('Cannot connect to server. Check internet connection.');
+      setStatus(t('login.cannotConnect'));
       trackLoginFailed('network_error');
     }
     setLoading(false);
@@ -167,7 +170,7 @@ export default function LoginScreen() {
     // v42: Check both state and ref for the OTP value
     const otpToVerify = pendingOtpRef.current || otp;
     if (otpToVerify.length !== 6) {
-      setStatus('Enter the 6-digit OTP');
+      setStatus(t('login.enter6Otp'));
       return;
     }
 
@@ -180,7 +183,7 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-    setStatus('Verifying OTP...');
+    setStatus(t('login.verifyingOtp'));
     trackOtpVerifyAttempt();
     try {
       const res = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
@@ -189,7 +192,7 @@ export default function LoginScreen() {
         body: JSON.stringify({ phone: currentPhone, otp: otpToVerify }),
       });
       if (!res.ok) {
-        setStatus('Invalid OTP. Please try again.');
+        setStatus(t('login.invalidOtp'));
         trackLoginFailed('invalid_otp');
         setLoading(false);
         return;
@@ -197,7 +200,7 @@ export default function LoginScreen() {
       const data = await res.json();
       setCurrentToken(data.token || '');
       if (data.is_new_user) {
-        setStatus('Welcome! Please complete your profile.');
+        setStatus(t('login.welcomeProfile'));
         setShowSignup(true);
         trackSignupStarted();
       } else {
@@ -211,7 +214,7 @@ export default function LoginScreen() {
         );
       }
     } catch (e) {
-      setStatus('Network error. Please try again.');
+      setStatus(t('common.networkError'));
       trackLoginFailed('network_error');
     }
     setLoading(false);
@@ -224,7 +227,7 @@ export default function LoginScreen() {
     if (!phoneToVerify || phoneToVerify.length !== 10) return;
 
     setLoading(true);
-    setStatus('Auto-verifying OTP...');
+    setStatus(t('login.autoVerifyingOtp'));
     try {
       const res = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
         method: 'POST',
@@ -232,14 +235,14 @@ export default function LoginScreen() {
         body: JSON.stringify({ phone: phoneToVerify, otp: otpValue }),
       });
       if (!res.ok) {
-        setStatus('Invalid OTP. Please try again.');
+        setStatus(t('login.invalidOtp'));
         setLoading(false);
         return;
       }
       const data = await res.json();
       setCurrentToken(data.token || '');
       if (data.is_new_user) {
-        setStatus('Welcome! Please complete your profile.');
+        setStatus(t('login.welcomeProfile'));
         setShowSignup(true);
       } else {
         const user = data.user || {};
@@ -251,22 +254,26 @@ export default function LoginScreen() {
         );
       }
     } catch (e) {
-      setStatus('Network error. Please try again.');
+      setStatus(t('common.networkError'));
     }
     setLoading(false);
   };
 
   const onSignup = async () => {
     if (!shopkeeperName.trim()) {
-      showPopup('Missing Info', 'Please enter your name', 'warning');
+      showPopup(t('login.missingInfo'), t('login.pleaseEnterName'), 'warning');
       return;
     }
     if (!shopName.trim()) {
-      showPopup('Missing Info', 'Please enter your shop name', 'warning');
+      showPopup(
+        t('login.missingInfo'),
+        t('login.pleaseEnterShopName'),
+        'warning',
+      );
       return;
     }
     setLoading(true);
-    setStatus('Creating your account...');
+    setStatus(t('login.creatingAccount'));
     try {
       const res = await fetch(`${BASE_URL}/api/auth/signup`, {
         method: 'POST',
@@ -280,7 +287,7 @@ export default function LoginScreen() {
         }),
       });
       if (!res.ok) {
-        setStatus('Signup failed. Please try again.');
+        setStatus(t('login.signupFailed'));
         setLoading(false);
         return;
       }
@@ -295,7 +302,7 @@ export default function LoginScreen() {
         user.shopkeeper_name || shopkeeperName,
       );
     } catch (e) {
-      setStatus('Network error. Please try again.');
+      setStatus(t('common.networkError'));
       trackLoginFailed('signup_network_error');
     }
     setLoading(false);
@@ -318,14 +325,14 @@ export default function LoginScreen() {
           <View style={s.logoBox}>
             <Icon name="phone-in-talk" size={36} color={Colors.white} />
           </View>
-          <Text style={s.title}>Kiko AI</Text>
-          <Text style={s.subtitle}>Call Order Taker</Text>
-          <Text style={s.desc}>
-            AI-powered order extraction{'\n'}from phone calls
-          </Text>
+          <Text style={s.title}>{t('app.name')}</Text>
+          <Text style={s.subtitle}>{t('app.tagline')}</Text>
+          <Text style={s.desc}>{t('login.desc')}</Text>
+
+          <LanguagePills style={{ marginTop: Spacing.lg }} />
 
           <View style={s.inputWrap}>
-            <Text style={s.inputLabel}>Phone Number</Text>
+            <Text style={s.inputLabel}>{t('common.phoneNumber')}</Text>
             <View style={s.inputRow}>
               <Text style={s.prefix}>+91</Text>
               <TextInput
@@ -334,7 +341,7 @@ export default function LoginScreen() {
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
                 maxLength={10}
-                placeholder="Enter 10-digit number"
+                placeholder={t('login.phonePlaceholder')}
                 placeholderTextColor={Colors.textMuted}
                 maxFontSizeMultiplier={1.2}
               />
@@ -346,7 +353,9 @@ export default function LoginScreen() {
             disabled={loading}
             activeOpacity={0.7}
           >
-            <Text style={s.btnText}>{showOtp ? 'Resend OTP' : 'Send OTP'}</Text>
+            <Text style={s.btnText}>
+              {showOtp ? t('login.resendOtp') : t('login.sendOtp')}
+            </Text>
           </TouchableOpacity>
 
           {showOtp && (
@@ -360,14 +369,14 @@ export default function LoginScreen() {
               }}
             >
               <View style={s.inputWrap}>
-                <Text style={s.inputLabel}>Enter OTP</Text>
+                <Text style={s.inputLabel}>{t('login.enterOtpLabel')}</Text>
                 <TextInput
                   style={s.otpInput}
                   value={otp}
                   onChangeText={setOtp}
                   keyboardType="number-pad"
                   maxLength={6}
-                  placeholder="6-digit OTP"
+                  placeholder={t('login.otpPlaceholder')}
                   placeholderTextColor={Colors.textMuted}
                   maxFontSizeMultiplier={1.2}
                 />
@@ -378,7 +387,7 @@ export default function LoginScreen() {
                 disabled={loading}
                 activeOpacity={0.7}
               >
-                <Text style={s.btnText}>Verify OTP</Text>
+                <Text style={s.btnText}>{t('login.verifyOtp')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -386,25 +395,25 @@ export default function LoginScreen() {
           {showSignup && (
             <View style={{ marginTop: Spacing.xxl, width: '100%' }}>
               <View style={s.divider} />
-              <Text style={s.sectionTitle}>Complete Your Profile</Text>
+              <Text style={s.sectionTitle}>{t('login.completeProfile')}</Text>
               <View style={s.inputWrap}>
-                <Text style={s.inputLabel}>Your Name</Text>
+                <Text style={s.inputLabel}>{t('common.yourName')}</Text>
                 <TextInput
                   style={s.otpInput}
                   value={shopkeeperName}
                   onChangeText={setShopkeeperName}
-                  placeholder="Enter your name"
+                  placeholder={t('login.namePlaceholder')}
                   placeholderTextColor={Colors.textMuted}
                   maxFontSizeMultiplier={1.2}
                 />
               </View>
               <View style={s.inputWrap}>
-                <Text style={s.inputLabel}>Shop Name</Text>
+                <Text style={s.inputLabel}>{t('common.shopName')}</Text>
                 <TextInput
                   style={s.otpInput}
                   value={shopName}
                   onChangeText={setShopName}
-                  placeholder="Enter shop name"
+                  placeholder={t('login.shopNamePlaceholder')}
                   placeholderTextColor={Colors.textMuted}
                   maxFontSizeMultiplier={1.2}
                 />
@@ -415,7 +424,7 @@ export default function LoginScreen() {
                 disabled={loading}
                 activeOpacity={0.7}
               >
-                <Text style={s.btnText}>Create Account</Text>
+                <Text style={s.btnText}>{t('login.createAccount')}</Text>
               </TouchableOpacity>
             </View>
           )}

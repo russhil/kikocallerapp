@@ -479,6 +479,14 @@ class ClassifyRequest(BaseModel):
 class ExtractOrderRequest(BaseModel):
     transcript: str
     store_name: str = ""
+    # Optional output language. When omitted (or 'en'/'en-IN'), output stays in
+    # English script — preserving behavior for existing app versions.
+    target_language: Optional[str] = None
+
+
+class TranslateRequest(BaseModel):
+    texts: list[str] = []
+    target_language: str = "en"
 
 
 class SyncOrderRequest(BaseModel):
@@ -1356,8 +1364,28 @@ def _validate_extracted_order(order_json: str) -> str | None:
 
 @app.post("/api/extract-order")
 async def extract_order(req: ExtractOrderRequest, request: Request = None, user: dict = Depends(get_current_user)):
-    print(f"[ExtractOrder] Request: transcript_len={len(req.transcript)}", flush=True)
+    print(f"[ExtractOrder] Request: transcript_len={len(req.transcript)} target_language={req.target_language}", flush=True)
     try:
+        # Language rule: default keeps English-script output (unchanged for older
+        # app versions). When a non-English target_language is supplied, ask Gemini
+        # to produce all human-readable text in that language's native script.
+        _tl = (req.target_language or "").lower()
+        _lang_map = {
+            "hi": "Hindi", "hi-in": "Hindi",
+            "gu": "Gujarati", "gu-in": "Gujarati",
+            "mr": "Marathi", "mr-in": "Marathi",
+            "en": "English", "en-in": "English",
+        }
+        _lang_name = _lang_map.get(_tl)
+        if _lang_name and _lang_name != "English":
+            language_rule = (
+                f"3. ALL human-readable text (product names, notes, address, customer_name) "
+                f"must be written in {_lang_name} using its native script. "
+                f"Keep numbers, quantities units, and phone numbers as digits."
+            )
+        else:
+            language_rule = "3. ALL output text must be in English script (transliterate if needed)."
+
         system_prompt = f"""You are an order extraction assistant for an Indian retail shop. Extract all order information from this call transcript and return ONLY a valid JSON object in this exact schema:
 {{
   "customer_name": "string or null",
@@ -1423,6 +1451,82 @@ CRITICAL RULES:
         print(f"[ExtractOrder] ✗ Exception: {e}", flush=True)
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Order extraction failed: {e}")
+
+
+# ---------- Translate ----------
+
+@app.post("/api/translate")
+async def translate_texts(req: TranslateRequest, request: Request = None, user: dict = Depends(get_current_user)):
+    """Translate a batch of short strings into the target language.
+    Returns {"translations": [...]} with the same length/order as the input.
+    'en'/'en-IN' (or empty input) is a passthrough."""
+    import json as _json
+    texts = req.texts or []
+    _tl = (req.target_language or "en").lower()
+    _lang_map = {
+        "hi": "Hindi", "hi-in": "Hindi",
+        "gu": "Gujarati", "gu-in": "Gujarati",
+        "mr": "Marathi", "mr-in": "Marathi",
+        "en": "English", "en-in": "English",
+    }
+    lang_name = _lang_map.get(_tl, "English")
+
+    # Passthrough cases
+    if not texts or lang_name == "English":
+        return {"translations": texts}
+
+    print(f"[Translate] {len(texts)} items -> {lang_name}", flush=True)
+    try:
+        system_prompt = (
+            f"Translate each string in the JSON array below into {lang_name}, using its "
+            f"native script. Keep numbers, units, prices and phone numbers unchanged. "
+            f"Do not translate brand names you cannot translate — transliterate them into "
+            f"{lang_name} script instead. Return ONLY a JSON array of strings with EXACTLY "
+            f"the same length and order as the input, nothing else."
+        )
+        payload = {
+            "contents": [
+                {"parts": [{"text": f"{system_prompt}\n\nInput:\n{_json.dumps(texts, ensure_ascii=False)}"}]}
+            ]
+        }
+        data = await _call_gemini(EXTRACT_MODEL, payload)
+        text = _extract_gemini_text(data)
+        if not text:
+            print("[Translate] ✗ No text in response, returning originals", flush=True)
+            return {"translations": texts}
+
+        cleaned = text.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned.removeprefix("```json")
+        if cleaned.startswith("```"):
+            cleaned = cleaned.removeprefix("```")
+        if cleaned.endswith("```"):
+            cleaned = cleaned.removesuffix("```")
+        cleaned = cleaned.strip()
+
+        try:
+            out = _json.loads(cleaned)
+        except Exception as pe:
+            print(f"[Translate] ⚠ JSON parse failed: {pe}; returning originals", flush=True)
+            return {"translations": texts}
+
+        if not isinstance(out, list) or len(out) != len(texts):
+            print(f"[Translate] ⚠ Length mismatch ({len(out) if isinstance(out, list) else 'n/a'} vs {len(texts)}); returning originals", flush=True)
+            return {"translations": texts}
+
+        out = [str(x) if x is not None else "" for x in out]
+        print(f"[Translate] ✓ Translated {len(out)} items", flush=True)
+        _log_activity("api.translate", store_phone=user.get("phone"), entity_type="translate",
+                      metadata={"count": len(texts), "target_language": _tl}, request=request)
+        return {"translations": out}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Translate] ✗ Exception: {e}", flush=True)
+        traceback.print_exc()
+        # Fail soft: return originals so the app still shows something
+        return {"translations": texts}
 
 
 # ---------- Sync Recording to Supabase ----------

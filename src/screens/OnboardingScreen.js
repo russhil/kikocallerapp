@@ -1,4 +1,4 @@
-import React, {useRef, useState, useEffect} from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,11 @@ import {
   SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useNavigation} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
+import LanguagePills from '../components/LanguagePills';
+import { useLang } from '../i18n/LanguageContext';
 import {
   trackOnboardingStarted,
   trackOnboardingSlideViewed,
@@ -20,11 +22,12 @@ import {
   trackOnboardingCompleted,
 } from '../utils/analytics';
 
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 // --- Custom Animated Slides ---
 
-const Slide1Chaos = ({isFocused}) => {
+const Slide1Chaos = ({ isFocused }) => {
+  const { t } = useLang();
   const ringAnim = useRef(new Animated.Value(0)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
@@ -33,21 +36,49 @@ const Slide1Chaos = ({isFocused}) => {
       // Ring animation (rotate)
       const ring = Animated.loop(
         Animated.sequence([
-          Animated.timing(ringAnim, {toValue: 1, duration: 100, useNativeDriver: true}),
-          Animated.timing(ringAnim, {toValue: -1, duration: 100, useNativeDriver: true}),
-          Animated.timing(ringAnim, {toValue: 1, duration: 100, useNativeDriver: true}),
-          Animated.timing(ringAnim, {toValue: 0, duration: 100, useNativeDriver: true}),
+          Animated.timing(ringAnim, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(ringAnim, {
+            toValue: -1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(ringAnim, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(ringAnim, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+          }),
           Animated.delay(1000), // wait before ringing again
-        ])
+        ]),
       );
       // Shake animation (rotate slightly differently)
       const shake = Animated.loop(
         Animated.sequence([
-          Animated.timing(shakeAnim, {toValue: 1, duration: 50, useNativeDriver: true}),
-          Animated.timing(shakeAnim, {toValue: -1, duration: 50, useNativeDriver: true}),
-          Animated.timing(shakeAnim, {toValue: 0, duration: 50, useNativeDriver: true}),
+          Animated.timing(shakeAnim, {
+            toValue: 1,
+            duration: 50,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: -1,
+            duration: 50,
+            useNativeDriver: true,
+          }),
+          Animated.timing(shakeAnim, {
+            toValue: 0,
+            duration: 50,
+            useNativeDriver: true,
+          }),
           Animated.delay(1500),
-        ])
+        ]),
       );
 
       ring.start();
@@ -64,7 +95,7 @@ const Slide1Chaos = ({isFocused}) => {
     inputRange: [-1, 1],
     outputRange: ['-15deg', '15deg'],
   });
-  
+
   const shakeRotate = shakeAnim.interpolate({
     inputRange: [-1, 1],
     outputRange: ['-5deg', '5deg'],
@@ -79,37 +110,48 @@ const Slide1Chaos = ({isFocused}) => {
         </View>
 
         {/* Left Ringing Phone */}
-        <Animated.View style={[styles.floatingIcon, {left: 20, top: 20, transform: [{rotate: ringRotate}]}]}>
+        <Animated.View
+          style={[
+            styles.floatingIcon,
+            { left: 20, top: 20, transform: [{ rotate: ringRotate }] },
+          ]}
+        >
           <View style={styles.dangerCircle}>
-             <Icon name="phone-missed" size={28} color="#EF4444" />
+            <Icon name="phone-missed" size={28} color="#EF4444" />
           </View>
         </Animated.View>
 
         {/* Right Shaking Notes */}
-        <Animated.View style={[styles.floatingIcon, {right: 20, bottom: 20, transform: [{rotate: shakeRotate}]}]}>
+        <Animated.View
+          style={[
+            styles.floatingIcon,
+            { right: 20, bottom: 20, transform: [{ rotate: shakeRotate }] },
+          ]}
+        >
           <View style={styles.warningCircle}>
-             <Icon name="notebook-remove-outline" size={32} color="#F59E0B" />
+            <Icon name="notebook-remove-outline" size={32} color="#F59E0B" />
           </View>
         </Animated.View>
 
         {/* Top Thought Bubble */}
-        <View style={[styles.floatingIcon, {right: 40, top: -20}]}>
+        <View style={[styles.floatingIcon, { right: 40, top: -20 }]}>
           <Icon name="head-question-outline" size={36} color="#6B7280" />
         </View>
       </View>
 
-      <Text style={styles.title}>Phone Call Orders Manage Karna Mushkil?</Text>
-      
+      <Text style={styles.title}>{t('onboarding.slide1.title')}</Text>
+
       <View style={styles.textPoints}>
-        <Text style={styles.description}>• Missed calls = lost orders</Text>
-        <Text style={styles.description}>• Writing = mistakes</Text>
-        <Text style={styles.description}>• No history = confusion</Text>
+        <Text style={styles.description}>{t('onboarding.slide1.bullet1')}</Text>
+        <Text style={styles.description}>{t('onboarding.slide1.bullet2')}</Text>
+        <Text style={styles.description}>{t('onboarding.slide1.bullet3')}</Text>
       </View>
     </View>
   );
 };
 
-const Slide2Solution = ({isFocused}) => {
+const Slide2Solution = ({ isFocused }) => {
+  const { t } = useLang();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const arrowAnim = useRef(new Animated.Value(0)).current;
 
@@ -118,16 +160,32 @@ const Slide2Solution = ({isFocused}) => {
       // Pulse animation for AI
       const pulse = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, {toValue: 1.15, duration: 800, useNativeDriver: true}),
-          Animated.timing(pulseAnim, {toValue: 1, duration: 800, useNativeDriver: true}),
-        ])
+          Animated.timing(pulseAnim, {
+            toValue: 1.15,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ]),
       );
       // Flowing arrow animation (translateX)
       const flow = Animated.loop(
         Animated.sequence([
-          Animated.timing(arrowAnim, {toValue: 1, duration: 1500, useNativeDriver: true}),
-          Animated.timing(arrowAnim, {toValue: 0, duration: 0, useNativeDriver: true}), // snap back
-        ])
+          Animated.timing(arrowAnim, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(arrowAnim, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }), // snap back
+        ]),
       );
 
       pulse.start();
@@ -144,7 +202,7 @@ const Slide2Solution = ({isFocused}) => {
     inputRange: [0, 1],
     outputRange: [-20, 20],
   });
-  
+
   const arrowOpacity = arrowAnim.interpolate({
     inputRange: [0, 0.5, 1],
     outputRange: [0, 1, 0],
@@ -152,24 +210,38 @@ const Slide2Solution = ({isFocused}) => {
 
   return (
     <View style={styles.slideContent}>
-      <View style={[styles.visualContainer, {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20}]}>
-        
+      <View
+        style={[
+          styles.visualContainer,
+          {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+          },
+        ]}
+      >
         {/* Step 1: Call */}
         <View style={styles.stepBox}>
           <Icon name="phone-in-talk-outline" size={32} color="#111827" />
         </View>
 
         {/* Arrow Flow */}
-        <Animated.View style={{transform: [{translateX: arrowTranslate}], opacity: arrowOpacity}}>
+        <Animated.View
+          style={{
+            transform: [{ translateX: arrowTranslate }],
+            opacity: arrowOpacity,
+          }}
+        >
           <Icon name="arrow-right-thick" size={24} color="#3B82F6" />
         </Animated.View>
 
         {/* Step 2: AI */}
-        <Animated.View style={{transform: [{scale: pulseAnim}]}}>
+        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
           <LinearGradient
             colors={['#8B5CF6', '#3B82F6']}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.aiCircle}
           >
             <Icon name="robot-outline" size={40} color="#FFFFFF" />
@@ -177,7 +249,12 @@ const Slide2Solution = ({isFocused}) => {
         </Animated.View>
 
         {/* Arrow Flow */}
-        <Animated.View style={{transform: [{translateX: arrowTranslate}], opacity: arrowOpacity}}>
+        <Animated.View
+          style={{
+            transform: [{ translateX: arrowTranslate }],
+            opacity: arrowOpacity,
+          }}
+        >
           <Icon name="arrow-right-thick" size={24} color="#3B82F6" />
         </Animated.View>
 
@@ -185,21 +262,21 @@ const Slide2Solution = ({isFocused}) => {
         <View style={styles.stepBox}>
           <Icon name="clipboard-check-outline" size={32} color="#10B981" />
         </View>
-
       </View>
 
-      <Text style={styles.title}>Call Aaya → Order Ready!</Text>
-      
+      <Text style={styles.title}>{t('onboarding.slide2.title')}</Text>
+
       <View style={styles.textPoints}>
-        <Text style={styles.description}>• Call normal hi lo</Text>
-        <Text style={styles.description}>• AI automatically samjhega</Text>
-        <Text style={styles.description}>• Order ready ho jayega</Text>
+        <Text style={styles.description}>{t('onboarding.slide2.bullet1')}</Text>
+        <Text style={styles.description}>{t('onboarding.slide2.bullet2')}</Text>
+        <Text style={styles.description}>{t('onboarding.slide2.bullet3')}</Text>
       </View>
     </View>
   );
 };
 
-const Slide3Benefits = ({isFocused}) => {
+const Slide3Benefits = ({ isFocused }) => {
+  const { t } = useLang();
   const floatAnim = useRef(new Animated.Value(0)).current;
   const badgeScale = useRef(new Animated.Value(0)).current;
 
@@ -208,11 +285,19 @@ const Slide3Benefits = ({isFocused}) => {
       // Bobbing animation for icons
       const float = Animated.loop(
         Animated.sequence([
-          Animated.timing(floatAnim, {toValue: 1, duration: 2000, useNativeDriver: true}),
-          Animated.timing(floatAnim, {toValue: 0, duration: 2000, useNativeDriver: true}),
-        ])
+          Animated.timing(floatAnim, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(floatAnim, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ]),
       );
-      
+
       // Badge pop-in animation
       const badge = Animated.spring(badgeScale, {
         toValue: 1,
@@ -240,7 +325,6 @@ const Slide3Benefits = ({isFocused}) => {
   return (
     <View style={styles.slideContent}>
       <View style={styles.visualContainer}>
-        
         {/* Center Dashboard */}
         <View style={styles.dashboardMock}>
           <View style={styles.dashHeader} />
@@ -250,49 +334,74 @@ const Slide3Benefits = ({isFocused}) => {
         </View>
 
         {/* Floating Icons */}
-        <Animated.View style={[styles.floatingIcon, {left: -10, top: 0, transform: [{translateY: floatY}]}]}>
-           <View style={[styles.stepBox, {backgroundColor: '#F3E8FF'}]}>
-             <Icon name="cellphone" size={24} color="#8B5CF6" />
-           </View>
+        <Animated.View
+          style={[
+            styles.floatingIcon,
+            { left: -10, top: 0, transform: [{ translateY: floatY }] },
+          ]}
+        >
+          <View style={[styles.stepBox, { backgroundColor: '#F3E8FF' }]}>
+            <Icon name="cellphone" size={24} color="#8B5CF6" />
+          </View>
         </Animated.View>
 
-        <Animated.View style={[styles.floatingIcon, {right: -10, top: 20, transform: [{translateY: floatY}]}]}>
-           <View style={[styles.stepBox, {backgroundColor: '#DBEAFE'}]}>
-             <Icon name="history" size={24} color="#3B82F6" />
-           </View>
+        <Animated.View
+          style={[
+            styles.floatingIcon,
+            { right: -10, top: 20, transform: [{ translateY: floatY }] },
+          ]}
+        >
+          <View style={[styles.stepBox, { backgroundColor: '#DBEAFE' }]}>
+            <Icon name="history" size={24} color="#3B82F6" />
+          </View>
         </Animated.View>
 
-        <Animated.View style={[styles.floatingIcon, {left: 10, bottom: -10, transform: [{translateY: floatY}]}]}>
-           <View style={[styles.stepBox, {backgroundColor: '#D1FAE5'}]}>
-             <Icon name="whatsapp" size={24} color="#10B981" />
-           </View>
+        <Animated.View
+          style={[
+            styles.floatingIcon,
+            { left: 10, bottom: -10, transform: [{ translateY: floatY }] },
+          ]}
+        >
+          <View style={[styles.stepBox, { backgroundColor: '#D1FAE5' }]}>
+            <Icon name="whatsapp" size={24} color="#10B981" />
+          </View>
         </Animated.View>
 
-        <Animated.View style={[styles.floatingIcon, {right: 10, bottom: -20, transform: [{translateY: floatY}]}]}>
-           <View style={[styles.stepBox, {backgroundColor: '#FEE2E2'}]}>
-             <Icon name="rocket-launch-outline" size={24} color="#EF4444" />
-           </View>
+        <Animated.View
+          style={[
+            styles.floatingIcon,
+            { right: 10, bottom: -20, transform: [{ translateY: floatY }] },
+          ]}
+        >
+          <View style={[styles.stepBox, { backgroundColor: '#FEE2E2' }]}>
+            <Icon name="rocket-launch-outline" size={24} color="#EF4444" />
+          </View>
         </Animated.View>
 
         {/* Trust Badge Pop-up */}
-        <Animated.View style={[styles.trustBadge, {transform: [{scale: badgeScale}]}]}>
-          <Icon name="check-decagram" size={18} color="#10B981" style={{marginRight: 4}} />
-          <Text style={styles.trustText}>1000+ Shop Owners</Text>
+        <Animated.View
+          style={[styles.trustBadge, { transform: [{ scale: badgeScale }] }]}
+        >
+          <Icon
+            name="check-decagram"
+            size={18}
+            color="#10B981"
+            style={{ marginRight: 4 }}
+          />
+          <Text style={styles.trustText}>{t('onboarding.trustBadge')}</Text>
         </Animated.View>
-
       </View>
 
-      <Text style={styles.title}>Simple. Powerful. Reliable.</Text>
-      
+      <Text style={styles.title}>{t('onboarding.slide3.title')}</Text>
+
       <View style={styles.textPoints}>
-        <Text style={styles.description}>• No new system</Text>
-        <Text style={styles.description}>• No training</Text>
-        <Text style={styles.description}>• Sab automatic</Text>
+        <Text style={styles.description}>{t('onboarding.slide3.bullet1')}</Text>
+        <Text style={styles.description}>{t('onboarding.slide3.bullet2')}</Text>
+        <Text style={styles.description}>{t('onboarding.slide3.bullet3')}</Text>
       </View>
     </View>
   );
 };
-
 
 // --- Main Component ---
 
@@ -303,6 +412,7 @@ const SLIDES = [
 ];
 
 export default function OnboardingScreen() {
+  const { t } = useLang();
   const nav = useNavigation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -337,13 +447,13 @@ export default function OnboardingScreen() {
 
   const scrollToNext = () => {
     if (currentIndex < SLIDES.length - 1) {
-      slidesRef.current.scrollToIndex({index: currentIndex + 1});
+      slidesRef.current.scrollToIndex({ index: currentIndex + 1 });
     } else {
       completeOnboarding();
     }
   };
 
-  const onViewableItemsChanged = useRef(({viewableItems}) => {
+  const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems && viewableItems.length > 0) {
       const newIndex = viewableItems[0].index;
       setCurrentIndex(newIndex);
@@ -351,13 +461,13 @@ export default function OnboardingScreen() {
     }
   }).current;
 
-  const viewConfig = useRef({viewAreaCoveragePercentThreshold: 50}).current;
+  const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-  const renderItem = ({item, index}) => {
+  const renderItem = ({ item, index }) => {
     const isFocused = index === currentIndex;
     const { Component } = item;
     return (
-      <View style={[styles.slideWrapper, {width}]}>
+      <View style={[styles.slideWrapper, { width }]}>
         <Component isFocused={isFocused} />
       </View>
     );
@@ -387,7 +497,10 @@ export default function OnboardingScreen() {
           return (
             <Animated.View
               key={i.toString()}
-              style={[styles.dot, {width: dotWidth, opacity, backgroundColor}]}
+              style={[
+                styles.dot,
+                { width: dotWidth, opacity, backgroundColor },
+              ]}
             />
           );
         })}
@@ -398,24 +511,31 @@ export default function OnboardingScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={skipOnboarding} hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
-          <Text style={styles.skipText}>Skip</Text>
+        <TouchableOpacity
+          onPress={skipOnboarding}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
+          <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
         </TouchableOpacity>
       </View>
+      <LanguagePills style={{ marginBottom: 8, paddingHorizontal: 24 }} />
 
-      <View style={{flex: 1}}>
+      <View style={{ flex: 1 }}>
         <Animated.FlatList
           ref={slidesRef}
           data={SLIDES}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           renderItem={renderItem}
           horizontal
           showsHorizontalScrollIndicator={false}
           pagingEnabled
           bounces={false}
-          onScroll={Animated.event([{nativeEvent: {contentOffset: {x: scrollX}}}], {
-            useNativeDriver: false,
-          })}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            {
+              useNativeDriver: false,
+            },
+          )}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewConfig}
           scrollEventThrottle={32}
@@ -425,18 +545,29 @@ export default function OnboardingScreen() {
       <View style={styles.bottomContainer}>
         {renderDots()}
 
-        <TouchableOpacity style={styles.buttonContainer} onPress={scrollToNext} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.buttonContainer}
+          onPress={scrollToNext}
+          activeOpacity={0.8}
+        >
           <LinearGradient
             colors={['#8B5CF6', '#3B82F6']}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 0}}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
             style={styles.button}
           >
             <Text style={styles.buttonText}>
-              {currentIndex === SLIDES.length - 1 ? 'Start Taking Orders' : 'Next'}
+              {currentIndex === SLIDES.length - 1
+                ? t('onboarding.startButton')
+                : t('common.next')}
             </Text>
             {currentIndex !== SLIDES.length - 1 && (
-              <Icon name="arrow-right" size={20} color="#FFFFFF" style={{marginLeft: 8}} />
+              <Icon
+                name="arrow-right"
+                size={20}
+                color="#FFFFFF"
+                style={{ marginLeft: 8 }}
+              />
             )}
           </LinearGradient>
         </TouchableOpacity>
@@ -473,7 +604,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
+
   // Visual containers
   visualContainer: {
     width: 250,
@@ -524,7 +655,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#3B82F6',
-    shadowOffset: {width: 0, height: 6},
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 8,
@@ -539,7 +670,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
@@ -553,7 +684,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     padding: 12,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 10},
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
     shadowRadius: 20,
     elevation: 5,
@@ -641,7 +772,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#3B82F6',
-    shadowOffset: {width: 0, height: 6},
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
     elevation: 8,
