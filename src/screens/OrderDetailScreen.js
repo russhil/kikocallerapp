@@ -1,10 +1,11 @@
 import React, {useState, useEffect} from 'react';
-import {View, Text, TouchableOpacity, ScrollView, StyleSheet} from 'react-native';
+import {View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useRoute, useNavigation} from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Colors, FontSizes, FontWeights, BorderRadius, Spacing} from '../theme';
-import {sendWhatsApp, shareOrderViaWhatsApp, composeMessage, formatPrice, formatProductPrice} from '../utils/whatsappHelper';
+import {sendWhatsApp, shareOrderViaWhatsApp, shareReceiptViaWhatsApp, composeMessage, formatPrice, formatProductPrice} from '../utils/whatsappHelper';
+import {generateInvoicePDF} from '../utils/pdfGenerator';
 import CustomPopup from '../components/CustomPopup';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {syncOrder} from '../api/syncApi';
@@ -23,6 +24,7 @@ export default function OrderDetailScreen() {
   const {orderId} = route.params;
   const [order, setOrder] = useState(null);
   const [popup, setPopup] = useState({visible: false, title: '', message: '', icon: 'info', buttons: []});
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const showPopup = (title, message, icon, buttons) => {
     setPopup({visible: true, title, message, icon: icon || 'info', buttons: buttons || [{text: 'OK', onPress: () => setPopup(p => ({...p, visible: false}))}]});
@@ -96,6 +98,33 @@ export default function OrderDetailScreen() {
       showPopup('Sent', 'Order sent via WhatsApp!', 'check');
     } catch (e) {
       showPopup('Error', 'Could not open WhatsApp', 'error');
+    }
+  };
+
+  const shareReceipt = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      const sn = await AsyncStorage.getItem('shopName');
+      const gn = await AsyncStorage.getItem('gstNumber');
+      const sa = await AsyncStorage.getItem('storeAddress');
+      const se = await AsyncStorage.getItem('storeEmail');
+      const sp = await AsyncStorage.getItem('storePhone');
+      
+      const storeSettings = {
+        shopName: sn || '',
+        gstNumber: gn || '',
+        storeAddress: sa || '',
+        storeEmail: se || '',
+        storePhone: sp || ''
+      };
+
+      const pdfPath = await generateInvoicePDF(order, storeSettings);
+      await shareReceiptViaWhatsApp(order, pdfPath, storeSettings);
+    } catch (e) {
+      showPopup('Error', 'Failed to generate or share receipt.', 'error');
+      console.error(e);
+    } finally {
+      setIsGeneratingPDF(false);
     }
   };
 
@@ -200,6 +229,14 @@ export default function OrderDetailScreen() {
           </TouchableOpacity>
         </View>
 
+        <TouchableOpacity style={s.receiptBtn} onPress={shareReceipt} disabled={isGeneratingPDF} activeOpacity={0.7}>
+          {isGeneratingPDF ? (
+             <ActivityIndicator color={Colors.primary} size="small" />
+          ) : (
+             <Text style={s.receiptBtnText}>📄 Share Receipt</Text>
+          )}
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[s.dangerBtn, {borderColor: order.isCancelled ? Colors.success : Colors.error}]}
           onPress={order.isCancelled ? restoreOrder : cancelOrder}
@@ -287,4 +324,6 @@ const s = StyleSheet.create({
 
   dangerBtn: {borderWidth: 1.5, borderRadius: BorderRadius.lg, paddingVertical: 14, alignItems: 'center', marginTop: Spacing.md},
   dangerBtnText: {fontSize: FontSizes.body, fontWeight: FontWeights.bold},
+  receiptBtn: {borderWidth: 1.5, borderColor: Colors.primary, backgroundColor: Colors.primary + '14', borderRadius: BorderRadius.lg, paddingVertical: 14, alignItems: 'center', marginTop: Spacing.md},
+  receiptBtnText: {color: Colors.primary, fontSize: FontSizes.body, fontWeight: FontWeights.bold},
 });
