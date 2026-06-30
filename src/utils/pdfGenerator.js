@@ -1,17 +1,35 @@
-import RNHTMLtoPDF from 'react-native-html-to-pdf';
+// NOTE: react-native-html-to-pdf@1.3.0 exports a NAMED `generatePDF` (no default
+// export); a default import + `.convert` is undefined → the receipt fails.
+import { generatePDF } from 'react-native-html-to-pdf';
 import { formatPrice, formatProductPrice } from './whatsappHelper';
 
 function formatDate(ts) {
   if (!ts) return '';
   const d = new Date(ts);
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
   const h = d.getHours() % 12 || 12;
   const m = String(d.getMinutes()).padStart(2, '0');
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${h}:${m} ${d.getHours() >= 12 ? 'PM' : 'AM'}`;
+  return `${d.getDate()} ${
+    months[d.getMonth()]
+  } ${d.getFullYear()}, ${h}:${m} ${d.getHours() >= 12 ? 'PM' : 'AM'}`;
 }
 
 export async function generateInvoicePDF(order, storeSettings = {}) {
-  const { shopName, gstNumber, storeAddress, storeEmail, storePhone } = storeSettings;
+  const { shopName, gstNumber, storeAddress, storeEmail, storePhone } =
+    storeSettings;
   const storeDisplay = shopName || order.storeName || 'Store';
 
   let itemsHtml = '';
@@ -35,7 +53,8 @@ export async function generateInvoicePDF(order, storeSettings = {}) {
     `;
   });
 
-  const finalTotal = order.totalAmount && order.totalAmount > 0 ? order.totalAmount : subtotal;
+  const finalTotal =
+    order.totalAmount && order.totalAmount > 0 ? order.totalAmount : subtotal;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -75,7 +94,11 @@ export async function generateInvoicePDF(order, storeSettings = {}) {
         <div class="header">
           <div class="store-details">
             <h1>${storeDisplay}</h1>
-            ${storeAddress ? `<p>${storeAddress.replace(/\n/g, '<br>')}</p>` : ''}
+            ${
+              storeAddress
+                ? `<p>${storeAddress.replace(/\n/g, '<br>')}</p>`
+                : ''
+            }
             ${storePhone ? `<p>Phone: ${storePhone}</p>` : ''}
             ${storeEmail ? `<p>Email: ${storeEmail}</p>` : ''}
             ${gstNumber ? `<p><strong>GST:</strong> ${gstNumber}</p>` : ''}
@@ -95,7 +118,11 @@ export async function generateInvoicePDF(order, storeSettings = {}) {
           </div>
           <div class="details-box">
             <h3>Delivery To</h3>
-            ${order.address ? `<p>${order.address.replace(/\n/g, '<br>')}</p>` : '<p>Same as billing / Pickup</p>'}
+            ${
+              order.address
+                ? `<p>${order.address.replace(/\n/g, '<br>')}</p>`
+                : '<p>Same as billing / Pickup</p>'
+            }
           </div>
         </div>
 
@@ -115,12 +142,16 @@ export async function generateInvoicePDF(order, storeSettings = {}) {
         </table>
 
         <div class="summary-box">
-          ${subtotal > 0 && finalTotal !== subtotal ? `
+          ${
+            subtotal > 0 && finalTotal !== subtotal
+              ? `
           <div class="summary-row">
             <span>Subtotal</span>
             <span>${formatPrice(subtotal)}</span>
           </div>
-          ` : ''}
+          `
+              : ''
+          }
           <div class="summary-row summary-total">
             <span>Grand Total</span>
             <span>${finalTotal > 0 ? formatPrice(finalTotal) : '-'}</span>
@@ -140,12 +171,12 @@ export async function generateInvoicePDF(order, storeSettings = {}) {
     html: htmlContent,
     fileName: `Order_${order.orderId}`,
     directory: 'Documents',
-    width: 420,  // A5 width
+    width: 420, // A5 width
     height: 595, // A5 height
   };
 
   try {
-    const file = await RNHTMLtoPDF.convert(options);
+    const file = await generatePDF(options);
     return file.filePath;
   } catch (error) {
     console.error('PDF Generation Error:', error);

@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from 'react';
 import {
   View,
   Text,
@@ -22,6 +28,7 @@ import {
 import { BASE_URL } from '../config';
 import { syncOrder, syncRecording } from '../api/syncApi';
 import CustomPopup from '../components/CustomPopup';
+import { useLang } from '../i18n/LanguageContext';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   trackRecordingsScreenViewed,
@@ -53,6 +60,7 @@ const nativeError = (tag, message) => {
 
 export default function RecordingsScreen() {
   const nav = useNavigation();
+  const { t } = useLang();
   const [recordings, setRecordings] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [processingIds, setProcessingIds] = useState(new Set());
@@ -90,7 +98,7 @@ export default function RecordingsScreen() {
       icon: icon || 'info',
       buttons: buttons || [
         {
-          text: 'OK',
+          text: t('common.ok'),
           onPress: () => setPopup(p => ({ ...p, visible: false })),
         },
       ],
@@ -112,7 +120,10 @@ export default function RecordingsScreen() {
       const files = await RecordingMonitorModule.scanRecordings();
       const allFiles = files || [];
       setTotalScanned(allFiles.length);
-      nativeLog('RecScreen', `Scan returned ${allFiles.length} files, showing first ${PAGE_SIZE}`);
+      nativeLog(
+        'RecScreen',
+        `Scan returned ${allFiles.length} files, showing first ${PAGE_SIZE}`,
+      );
       const list = allFiles.map(f => {
         const prev = savedState[f.path] || {};
         return {
@@ -133,14 +144,16 @@ export default function RecordingsScreen() {
       // Reset pagination to first page on fresh scan
       setVisibleCount(PAGE_SIZE);
       // Auto-process unprocessed NEW recordings one at a time (only first page)
-      const unprocessedNew = list.slice(0, PAGE_SIZE).filter(r => !r.isProcessed && !r.isOld);
+      const unprocessedNew = list
+        .slice(0, PAGE_SIZE)
+        .filter(r => !r.isProcessed && !r.isOld);
       for (const r of unprocessedNew) {
         await processRecording(r, false, true);
       }
     } catch (e) {
       showPopup(
-        'Scan Error',
-        e.message || 'Failed to scan recordings',
+        t('recordings.scanError'),
+        e.message || t('recordings.scanFailed'),
         'error',
       );
     }
@@ -171,7 +184,9 @@ export default function RecordingsScreen() {
     if (lockValue && !forceOrder) {
       const lockTime = parseInt(lockValue, 10);
       if (Date.now() - lockTime < 5 * 60 * 1000) {
-        console.log('Skipping: Recording is currently being processed globally.');
+        console.log(
+          'Skipping: Recording is currently being processed globally.',
+        );
         return;
       }
     }
@@ -246,15 +261,21 @@ export default function RecordingsScreen() {
 
       // Deduplication check
       if (!forceOrder) {
-        const dedupKey = `ord_dedup_${callPhone || 'unknown'}_${recording.lastModified}`;
+        const dedupKey = `ord_dedup_${callPhone || 'unknown'}_${
+          recording.lastModified
+        }`;
         const isDuplicate = await AsyncStorage.getItem(dedupKey);
         if (isDuplicate) {
-          console.log('Skipping: duplicate call/timestamp detected via global dedupKey');
+          console.log(
+            'Skipping: duplicate call/timestamp detected via global dedupKey',
+          );
           await saveRecordingState(recording.path, { isProcessed: true });
           setRecordings(prev =>
             prev.map(r =>
-              r.path === recording.path ? { ...r, isProcessed: true, processingStep: null } : r
-            )
+              r.path === recording.path
+                ? { ...r, isProcessed: true, processingStep: null }
+                : r,
+            ),
           );
           return;
         }
@@ -275,28 +296,28 @@ export default function RecordingsScreen() {
       const shopName = (await AsyncStorage.getItem('shopName')) || '';
 
       // Step 1: Get raw audio base64 (M4A/MP4/AMR) skipping native PCM decode
-      updateStep('Reading audio...');
+      updateStep(t('recordings.stepReading'));
       let base64;
       try {
         base64 = await RecordingMonitorModule.getFileBase64(recording.path);
       } catch (e) {
-        updateStep('Read failed');
+        updateStep(t('recordings.stepReadFailed'));
         showPopup(
-          'Error',
-          'Failed to read audio file: ' + (e.message || e),
+          t('common.error'),
+          t('recordings.readAudioFailed', { error: e.message || e }),
           'error',
         );
         return;
       }
 
       if (!base64 || base64.length === 0) {
-        updateStep('Read failed');
-        showPopup('Error', 'Audio file is empty', 'error');
+        updateStep(t('recordings.stepReadFailed'));
+        showPopup(t('common.error'), t('recordings.audioEmpty'), 'error');
         return;
       }
 
       // Step 2: Transcribe via backend - try Multipart first, then Base64 fallback
-      updateStep('Transcribing...');
+      updateStep(t('recordings.stepTranscribing'));
       let transcript;
       try {
         // Try multipart upload to dedicated endpoint
@@ -325,7 +346,7 @@ export default function RecordingsScreen() {
             );
           }
         } else if (res.status === 413) {
-          updateStep('File too large');
+          updateStep(t('recordings.stepFileTooLarge'));
           nativeError('Rec_Transcribe', 'Multipart payload too large (413)');
         } else {
           const errText = await res.text().catch(() => 'N/A');
@@ -379,16 +400,16 @@ export default function RecordingsScreen() {
       }
 
       if (!transcript) {
-        updateStep('Transcription failed');
+        updateStep(t('recordings.stepTranscriptionFailed'));
         trackTranscribeFailed(recording.filename, 'no_transcript');
-        showPopup('Error', 'Failed to transcribe audio', 'error');
+        showPopup(t('common.error'), t('recordings.transcribeFailed'), 'error');
         return;
       }
 
       // Step 3: Classify
       let classification = forceOrder ? 'ORDER_CALL' : null;
       if (!forceOrder) {
-        updateStep('Classifying...');
+        updateStep(t('recordings.stepClassifying'));
         try {
           const res = await fetch(`${BASE_URL}/api/classify`, {
             method: 'POST',
@@ -402,8 +423,13 @@ export default function RecordingsScreen() {
           classification = data.classification;
           const confidence = data.confidence || 0.5;
           if (classification === 'PERSONAL_CALL' && confidence >= 0.7) {
-            updateStep('Personal call');
-            await AsyncStorage.setItem(`ord_dedup_${callPhoneRef || 'unknown'}_${recording.lastModified}`, 'true');
+            updateStep(t('recordings.stepPersonalCall'));
+            await AsyncStorage.setItem(
+              `ord_dedup_${callPhoneRef || 'unknown'}_${
+                recording.lastModified
+              }`,
+              'true',
+            );
             await saveRecordingState(recording.path, {
               isProcessed: true,
               classification,
@@ -433,7 +459,7 @@ export default function RecordingsScreen() {
       }
 
       // Step 4: Extract order
-      updateStep('Extracting order...');
+      updateStep(t('recordings.stepExtracting'));
       let orderJson;
       try {
         const res = await fetch(`${BASE_URL}/api/extract-order`, {
@@ -454,7 +480,7 @@ export default function RecordingsScreen() {
       } catch (e) {}
 
       if (orderJson) {
-        updateStep('Saving order...');
+        updateStep(t('recordings.stepSaving'));
         try {
           let cleanJson = orderJson;
           if (typeof cleanJson === 'string') {
@@ -551,7 +577,11 @@ export default function RecordingsScreen() {
             orderSource: 'call',
             paymentStatus: 'pending',
             deliveryStatus: 'pending',
-            createdAt: recording.lastModified || Date.now(),
+            // Order date = when processed/received (not the recording's old
+            // file mtime), so it sorts correctly on the app + dashboard.
+            createdAt: Date.now(),
+            recordedAt: recording.lastModified || null,
+            lang: 'en',
           };
 
           orders.unshift(newOrder);
@@ -577,8 +607,11 @@ export default function RecordingsScreen() {
             ),
           );
 
-          await AsyncStorage.setItem(`ord_dedup_${callPhoneRef || 'unknown'}_${recording.lastModified}`, 'true');
-          updateStep('Syncing...');
+          await AsyncStorage.setItem(
+            `ord_dedup_${callPhoneRef || 'unknown'}_${recording.lastModified}`,
+            'true',
+          );
+          updateStep(t('recordings.stepSyncing'));
           try {
             const recSyncObj = {
               filename: recording.filename,
@@ -600,8 +633,12 @@ export default function RecordingsScreen() {
             nativeLog(TAG, 'Sync error: ' + syncErr.message);
           }
 
-          updateStep('Done!');
-          trackOrderCreated(newOrder.orderId, (newOrder.products || []).length, newOrder.totalAmount);
+          updateStep(t('recordings.stepDone'));
+          trackOrderCreated(
+            newOrder.orderId,
+            (newOrder.products || []).length,
+            newOrder.totalAmount,
+          );
           trackTranscribeSuccess(recording.filename, 'ORDER_CALL');
           try {
             await RecordingMonitorModule.showNotification(
@@ -611,15 +648,15 @@ export default function RecordingsScreen() {
             );
           } catch (e) {}
           showPopup(
-            'Order Created',
-            `Order #${newOrder.orderId} created successfully!\n\nGo to Home screen to view and share via WhatsApp.`,
+            t('recordings.orderCreatedTitle'),
+            t('recordings.orderCreatedMsg', { orderId: newOrder.orderId }),
             'check',
           );
         } catch (e) {
-          updateStep('Save failed');
+          updateStep(t('recordings.stepSaveFailed'));
           showPopup(
-            'Error',
-            'Failed to save order: ' + (e.message || ''),
+            t('common.error'),
+            t('recordings.saveOrderFailed', { error: e.message || '' }),
             'error',
           );
         }
@@ -643,8 +680,11 @@ export default function RecordingsScreen() {
               : r,
           ),
         );
-        await AsyncStorage.setItem(`ord_dedup_${callPhoneRef || 'unknown'}_${recording.lastModified}`, 'true');
-        updateStep('No order found');
+        await AsyncStorage.setItem(
+          `ord_dedup_${callPhoneRef || 'unknown'}_${recording.lastModified}`,
+          'true',
+        );
+        updateStep(t('recordings.stepNoOrder'));
         trackTranscribeSuccess(recording.filename, 'PERSONAL_CALL');
         try {
           await RecordingMonitorModule.showNotification(
@@ -655,7 +695,7 @@ export default function RecordingsScreen() {
         } catch (e) {}
       }
     } catch (e) {
-      updateStep('Error');
+      updateStep(t('common.error'));
       try {
         await RecordingMonitorModule.showNotification(
           'Processing Failed',
@@ -689,19 +729,17 @@ export default function RecordingsScreen() {
   const processAll = () => {
     const unprocessedNew = recordings.filter(r => !r.isProcessed && !r.isOld);
     if (unprocessedNew.length === 0) {
-      showPopup('Info', 'No new recordings available to process.', 'info');
+      showPopup(t('recordings.info'), t('recordings.noNewRecordings'), 'info');
       return;
     }
     showPopup(
-      'Process All',
-      `Process ${unprocessedNew.length} new recording${
-        unprocessedNew.length > 1 ? 's' : ''
-      }?\n\nThis may take several minutes.`,
+      t('recordings.processAllTitle'),
+      t('recordings.processAllConfirm', { count: unprocessedNew.length }),
       'question',
       [
-        { text: 'Cancel', style: 'outline', onPress: hidePopup },
+        { text: t('common.cancel'), style: 'outline', onPress: hidePopup },
         {
-          text: 'Process',
+          text: t('recordings.process'),
           onPress: async () => {
             hidePopup();
             trackProcessAllStarted(unprocessedNew.length);
@@ -827,7 +865,7 @@ export default function RecordingsScreen() {
                     { color: isOrder ? Colors.success : Colors.textMuted },
                   ]}
                 >
-                  {isOrder ? 'Order' : 'Personal'}
+                  {isOrder ? t('common.order') : t('recordings.personal')}
                 </Text>
               </View>
             )}
@@ -839,7 +877,9 @@ export default function RecordingsScreen() {
             onPress={() => nav.navigate('OrderDetail', { orderId: r.orderId })}
             hitSlop={{ top: 8, bottom: 8 }}
           >
-            <Text style={s.orderLinkText}>View Order #{r.orderId}</Text>
+            <Text style={s.orderLinkText}>
+              {t('recordings.viewOrder', { orderId: r.orderId })}
+            </Text>
             <Text style={s.orderLinkArrow}>→</Text>
           </TouchableOpacity>
         )}
@@ -857,7 +897,9 @@ export default function RecordingsScreen() {
             onPress={() => processRecording(r, false, false)}
             activeOpacity={0.7}
           >
-            <Text style={s.processBtnText}>Process Recording</Text>
+            <Text style={s.processBtnText}>
+              {t('recordings.processRecording')}
+            </Text>
           </TouchableOpacity>
         )}
 
@@ -865,13 +907,17 @@ export default function RecordingsScreen() {
           r.classification === 'SKIPPED_DIRECTION' &&
           !isProcessing && (
             <View style={s.skippedCont}>
-              <Text style={s.skippedText}>Skipped (Outgoing Call)</Text>
+              <Text style={s.skippedText}>
+                {t('recordings.skippedOutgoing')}
+              </Text>
               <TouchableOpacity
                 style={s.manualOverrideBtn}
                 onPress={() => processRecording(r, false, false)}
                 activeOpacity={0.7}
               >
-                <Text style={s.manualOverrideText}>Process Manually</Text>
+                <Text style={s.manualOverrideText}>
+                  {t('recordings.processManually')}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -885,7 +931,9 @@ export default function RecordingsScreen() {
               onPress={() => processRecording(r, true, false)}
               activeOpacity={0.7}
             >
-              <Text style={s.reprocessBtnText}>Reprocess as Order</Text>
+              <Text style={s.reprocessBtnText}>
+                {t('recordings.reprocessAsOrder')}
+              </Text>
             </TouchableOpacity>
           )}
       </View>
@@ -909,14 +957,14 @@ export default function RecordingsScreen() {
         >
           <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={s.appBarTitle}>Call Recordings</Text>
+        <Text style={s.appBarTitle}>{t('recordings.title')}</Text>
         <View style={{ flex: 1 }} />
         <TouchableOpacity
           style={s.scanBtnHeader}
           onPress={scanRecordings}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text style={s.scanBtnText}>Refresh</Text>
+          <Text style={s.scanBtnText}>{t('recordings.refresh')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -924,26 +972,26 @@ export default function RecordingsScreen() {
       <View style={s.statsBar}>
         <View style={s.statItem}>
           <Text style={s.statNum}>{visibleRecordings.length}</Text>
-          <Text style={s.statLabel}>Showing</Text>
+          <Text style={s.statLabel}>{t('recordings.showing')}</Text>
         </View>
         <View style={s.statDivider} />
         <View style={s.statItem}>
           <Text style={[s.statNum, { color: Colors.success }]}>
             {processed}
           </Text>
-          <Text style={s.statLabel}>Processed</Text>
+          <Text style={s.statLabel}>{t('recordings.processed')}</Text>
         </View>
         <View style={s.statDivider} />
         <View style={s.statItem}>
           <Text style={[s.statNum, { color: Colors.primary }]}>
             {unprocessed}
           </Text>
-          <Text style={s.statLabel}>Pending</Text>
+          <Text style={s.statLabel}>{t('common.pending')}</Text>
         </View>
       </View>
       {totalScanned > 0 && (
         <Text style={s.totalScanText}>
-          {totalScanned} total recordings found on device
+          {t('recordings.totalFound', { count: totalScanned })}
         </Text>
       )}
 
@@ -954,11 +1002,10 @@ export default function RecordingsScreen() {
           activeOpacity={0.7}
         >
           <Text style={s.processAllText}>
-            Process All New ({unprocessedNew})
+            {t('recordings.processAllNew', { count: unprocessedNew })}
           </Text>
         </TouchableOpacity>
       )}
-
 
       {recordings.length === 0 && !scanning ? (
         <View style={s.emptyState}>
@@ -970,17 +1017,14 @@ export default function RecordingsScreen() {
               style={{ opacity: 0.5 }}
             />
           </View>
-          <Text style={s.emptyTitle}>No recordings found</Text>
-          <Text style={s.emptyDesc}>
-            Make sure call recording is enabled{'\n'}and audio file permissions
-            are granted
-          </Text>
+          <Text style={s.emptyTitle}>{t('recordings.emptyTitle')}</Text>
+          <Text style={s.emptyDesc}>{t('recordings.emptyDesc')}</Text>
           <TouchableOpacity
             style={s.emptyBtn}
             onPress={scanRecordings}
             activeOpacity={0.7}
           >
-            <Text style={s.emptyBtnText}>Scan Again</Text>
+            <Text style={s.emptyBtnText}>{t('recordings.scanAgain')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -1010,12 +1054,15 @@ export default function RecordingsScreen() {
               >
                 <Icon name="chevron-down" size={18} color={Colors.primary} />
                 <Text style={s.loadMoreText}>
-                  Load More ({visibleCount} of {recordings.length})
+                  {t('recordings.loadMore', {
+                    shown: visibleCount,
+                    total: recordings.length,
+                  })}
                 </Text>
               </TouchableOpacity>
             ) : recordings.length > PAGE_SIZE ? (
               <Text style={s.allLoadedText}>
-                All {recordings.length} recordings loaded
+                {t('recordings.allLoaded', { total: recordings.length })}
               </Text>
             ) : null
           }

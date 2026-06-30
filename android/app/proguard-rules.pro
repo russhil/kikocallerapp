@@ -36,6 +36,10 @@
 # ── Prevent stripping of MediaCodec / MediaExtractor usage ──
 -keep class android.media.** { *; }
 
-# ── react-native-html-to-pdf / PDFBox ──
--dontwarn com.tom_roush.pdfbox.**
+# ── react-native-html-to-pdf / PDFBox-Android ──
+# PDFBox references an optional JPEG2000 decoder (com.gemalto.jp2) that isn't
+# bundled and isn't used by our HTML-table PDFs — safe to ignore.
 -dontwarn com.gemalto.jp2.**
+-dontwarn com.tom_roush.pdfbox.**
+-keep class com.tom_roush.pdfbox.** { *; }
+-keep class com.htmltopdf.** { *; }

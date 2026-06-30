@@ -1,22 +1,22 @@
-import {BASE_URL} from '../config';
+import { BASE_URL } from '../config';
 
 export async function sendOtp(phone) {
   try {
     const res = await fetch(`${BASE_URL}/api/auth/send-otp`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({phone}),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
     });
     const body = await res.text();
     if (!res.ok) {
-      return {success: false, reason: `Server error ${res.status}: ${body}`};
+      return { success: false, reason: `Server error ${res.status}: ${body}` };
     }
-    return {success: true};
+    return { success: true };
   } catch (e) {
     if (e.name === 'TypeError') {
-      return {success: false, reason: 'No internet connection.'};
+      return { success: false, reason: 'No internet connection.' };
     }
-    return {success: false, reason: `Network error: ${e.message}`};
+    return { success: false, reason: `Network error: ${e.message}` };
   }
 }
 
@@ -24,8 +24,8 @@ export async function verifyOtp(phone, otp) {
   try {
     const res = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({phone, otp}),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, otp }),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -49,7 +49,10 @@ export async function signup(token, shopName, shopkeeperName) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({shop_name: shopName, shopkeeper_name: shopkeeperName}),
+      body: JSON.stringify({
+        shop_name: shopName,
+        shopkeeper_name: shopkeeperName,
+      }),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -65,10 +68,28 @@ export async function signup(token, shopName, shopkeeperName) {
   }
 }
 
+// Validate a stored token. Returns:
+//  'valid'   — token works
+//  'invalid' — server rejected it (401/403) → caller should force re-login
+//  'error'   — network/server hiccup → caller should KEEP the token (transient)
+export async function validateToken(token) {
+  if (!token) return 'invalid';
+  try {
+    const res = await fetch(`${BASE_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401 || res.status === 403) return 'invalid';
+    if (!res.ok) return 'error';
+    return 'valid';
+  } catch (e) {
+    return 'error';
+  }
+}
+
 export async function getMe(token) {
   try {
     const res = await fetch(`${BASE_URL}/api/auth/me`, {
-      headers: {Authorization: `Bearer ${token}`},
+      headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return null;
     const data = await res.json();
