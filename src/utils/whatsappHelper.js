@@ -1,4 +1,5 @@
 import {Linking} from 'react-native';
+import Share from 'react-native-share';
 
 export function formatPrice(amount) {
   if (!amount || amount === 0) return '';
@@ -69,4 +70,42 @@ export async function shareOrderViaWhatsApp(order) {
   const message = composeMessage(order);
   const encoded = encodeURIComponent(message);
   await Linking.openURL(`https://api.whatsapp.com/send?text=${encoded}`);
+}
+
+export async function shareReceiptViaWhatsApp(order, pdfPath, storeSettings = {}) {
+  const storeDisplay = storeSettings.shopName || order.storeName || 'Store';
+  const defaultMessage = `Thank you for your order with ${storeDisplay}.
+Your order has been confirmed.
+Please find your receipt attached.
+Thank you for choosing us!`;
+
+  let phone = order.customerPhone || '';
+  if (phone) {
+    phone = phone.replace(/[^\d]/g, '');
+    if (phone.length === 10) phone = '91' + phone;
+  }
+
+  const shareOptions = {
+    title: 'Share Receipt',
+    message: defaultMessage,
+    url: `file://${pdfPath}`,
+    social: Share.Social.WHATSAPP,
+    whatsAppNumber: phone || undefined, 
+  };
+
+  try {
+    await Share.shareSingle(shareOptions);
+  } catch (error) {
+    console.log('Direct WhatsApp share failed, trying fallback', error);
+    // Fallback to standard share if WhatsApp is not installed or shareSingle fails
+    try {
+      await Share.open({
+        title: 'Share Receipt',
+        message: defaultMessage,
+        url: `file://${pdfPath}`,
+      });
+    } catch (e) {
+      console.log('Share fallback failed', e);
+    }
+  }
 }

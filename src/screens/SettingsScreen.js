@@ -21,6 +21,10 @@ export default function SettingsScreen() {
   const nav = useNavigation();
   const {logout} = useContext(AuthContext);
   const [shopName, setShopName] = useState('');
+  const [gstNumber, setGstNumber] = useState('');
+  const [storeAddress, setStoreAddress] = useState('');
+  const [storeEmail, setStoreEmail] = useState('');
+  const [storePhone, setStorePhone] = useState('');
   const [language, setLanguage] = useState('auto');
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [customPath, setCustomPath] = useState('');
@@ -38,9 +42,17 @@ export default function SettingsScreen() {
 
   const loadSettings = async () => {
     const sn = await AsyncStorage.getItem('shopName');
+    const gn = await AsyncStorage.getItem('gstNumber');
+    const sa = await AsyncStorage.getItem('storeAddress');
+    const se = await AsyncStorage.getItem('storeEmail');
+    const sp = await AsyncStorage.getItem('storePhone');
     const lang = await AsyncStorage.getItem('defaultLanguage');
     const cp = await AsyncStorage.getItem('customScanPath');
     if (sn) setShopName(sn);
+    if (gn) setGstNumber(gn);
+    if (sa) setStoreAddress(sa);
+    if (se) setStoreEmail(se);
+    if (sp) setStorePhone(sp);
     if (lang) setLanguage(lang);
     if (cp) {
       setCustomPath(cp);
@@ -52,6 +64,10 @@ export default function SettingsScreen() {
 
   const saveSettings = async () => {
     await AsyncStorage.setItem('shopName', shopName);
+    await AsyncStorage.setItem('gstNumber', gstNumber);
+    await AsyncStorage.setItem('storeAddress', storeAddress);
+    await AsyncStorage.setItem('storeEmail', storeEmail);
+    await AsyncStorage.setItem('storePhone', storePhone);
     await AsyncStorage.setItem('defaultLanguage', language);
     await AsyncStorage.setItem('customScanPath', customPath);
     if (NativeModules.RecordingMonitorModule?.setCustomScanPath) {
@@ -107,6 +123,18 @@ export default function SettingsScreen() {
         <View style={s.card}>
           <Text style={s.fieldLabel}>Shop Name</Text>
           <TextInput style={s.input} value={shopName} onChangeText={setShopName} placeholder="Enter your shop name" placeholderTextColor={Colors.textMuted} maxFontSizeMultiplier={1.2}/>
+          
+          <Text style={[s.fieldLabel, {marginTop: Spacing.md}]}>GST Number (Optional)</Text>
+          <TextInput style={s.input} value={gstNumber} onChangeText={setGstNumber} placeholder="e.g. 27AAAAA0000A1Z5" placeholderTextColor={Colors.textMuted} maxFontSizeMultiplier={1.2}/>
+
+          <Text style={[s.fieldLabel, {marginTop: Spacing.md}]}>Store Address (Optional)</Text>
+          <TextInput style={[s.input, {height: 80, textAlignVertical: 'top', paddingTop: Spacing.md}]} value={storeAddress} onChangeText={setStoreAddress} placeholder="Enter full address" placeholderTextColor={Colors.textMuted} multiline={true} maxFontSizeMultiplier={1.2}/>
+
+          <Text style={[s.fieldLabel, {marginTop: Spacing.md}]}>Store Email (Optional)</Text>
+          <TextInput style={s.input} value={storeEmail} onChangeText={setStoreEmail} placeholder="contact@shop.com" keyboardType="email-address" placeholderTextColor={Colors.textMuted} maxFontSizeMultiplier={1.2}/>
+
+          <Text style={[s.fieldLabel, {marginTop: Spacing.md}]}>Store Phone (Optional)</Text>
+          <TextInput style={s.input} value={storePhone} onChangeText={setStorePhone} placeholder="+91..." keyboardType="phone-pad" placeholderTextColor={Colors.textMuted} maxFontSizeMultiplier={1.2}/>
         </View>
 
         {/* Language */}
