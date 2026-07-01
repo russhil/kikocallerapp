@@ -829,7 +829,7 @@
         lastPurchaseFired = now;
         var eventId = 'ordertaker_purchase_' + now;
         if (typeof fbq === 'function') {
-          fbq('track', 'Purchase', { currency: 'INR', value: 1.00 }, { eventID: eventId });
+          fbq('trackCustom', 'ordertakerpurchase', { currency: 'INR', value: 1.00 }, { eventID: eventId });
         }
         if (typeof gtag === 'function') {
           gtag('event', 'ordertakerpurchase', {
