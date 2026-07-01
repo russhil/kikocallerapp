@@ -800,6 +800,7 @@
   var PLAY_STORE_LINK = "https://play.google.com/store/apps/details?id=com.kikocall";
   document.querySelectorAll('a[data-cta]').forEach(function(a){
     if(a.getAttribute('href') === '#') a.setAttribute('href', PLAY_STORE_LINK);
+    a.setAttribute('target', '_blank');
   });
 
   /* Reveal-on-scroll (skipped automatically when reduce-motion is on) */
