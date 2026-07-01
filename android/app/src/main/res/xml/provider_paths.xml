@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <cache-path name="logs" path="logs/"/>
+    <!-- react-native-html-to-pdf writes receipts to getExternalFilesDir()/Documents.
+         react-native-share resolves file:// paths through this provider
+         (${applicationId}.provider); without these roots getUriForFile() returns
+         null and Share crashes with "Failed to find configured root". -->
+    <external-files-path name="external_files" path="."/>
+    <external-path name="external_storage" path="."/>
+    <files-path name="internal_files" path="."/>
+    <cache-path name="cache" path="."/>
 </paths>
