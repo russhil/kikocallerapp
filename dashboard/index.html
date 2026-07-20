@@ -109,6 +109,10 @@
                     <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                     Active Sellers
                 </button>
+                <button onclick="switchTab('tab-seller-retention')" data-tab="tab-seller-retention" class="sidebar-link w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    Seller Retention
+                </button>
             </nav>
             <!-- Realtime Indicator -->
             <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
@@ -188,6 +192,7 @@
                     <button onclick="switchTab('tab-first-otp')" data-tab="tab-first-otp" class="mobile-tab-btn px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">First OTP</button>
                     <button onclick="switchTab('tab-crm')" data-tab="tab-crm" class="mobile-tab-btn px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">CRM</button>
                     <button onclick="switchTab('tab-active-sellers')" data-tab="tab-active-sellers" class="mobile-tab-btn px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">Active Sellers</button>
+                      <button onclick="switchTab('tab-seller-retention')" data-tab="tab-seller-retention" class="mobile-tab-btn px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">Seller Retention</button>
                     <button onclick="switchTab('tab-seller-retention')" data-tab="tab-seller-retention" class="mobile-tab-btn px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">Seller Retention</button>
                 </div>
             </header>
@@ -576,6 +581,74 @@
                             </table>
                         </div>
                         <div id="pagination-active-sellers" class="p-4 border-t border-gray-100 flex items-center justify-between bg-white hidden"></div>
+                    </div>
+                </div>
+
+                <!-- ============================================================ -->
+                <!-- SELLER RETENTION (NATIVE)                                     -->
+                <!-- ============================================================ -->
+                <div id="tab-seller-retention" class="tab-content hidden space-y-6">
+                    <!-- KPI Cards -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                        <div class="p-5 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl border border-indigo-100 shadow-sm">
+                            <p class="text-xs font-bold text-indigo-800/70 uppercase tracking-wider mb-1">App Installs</p>
+                            <h3 id="retention-kpi-installs" class="text-2xl md:text-3xl font-black text-indigo-900 tracking-tight">—</h3>
+                            <p class="text-xs text-indigo-600 mt-1">auth.first_otp attempts</p>
+                        </div>
+                        <div class="p-5 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100 shadow-sm">
+                            <p class="text-xs font-bold text-emerald-800/70 uppercase tracking-wider mb-1">OTP Success</p>
+                            <h3 id="retention-kpi-otp" class="text-2xl md:text-3xl font-black text-emerald-900 tracking-tight">—</h3>
+                            <p class="text-xs text-emerald-600 mt-1">Registered sellers</p>
+                        </div>
+                        <div class="p-5 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-100 shadow-sm">
+                            <p class="text-xs font-bold text-amber-800/70 uppercase tracking-wider mb-1">Activated (1+ Orders)</p>
+                            <h3 id="retention-kpi-activated" class="text-2xl md:text-3xl font-black text-amber-900 tracking-tight">—</h3>
+                            <p class="text-xs text-amber-600 mt-1">Placed at least 1 order</p>
+                        </div>
+                        <div class="p-5 bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-100 shadow-sm">
+                            <p class="text-xs font-bold text-rose-800/70 uppercase tracking-wider mb-1">Day-7 Retention</p>
+                            <h3 id="retention-kpi-d7" class="text-2xl md:text-3xl font-black text-rose-900 tracking-tight">—</h3>
+                            <p class="text-xs text-rose-600 mt-1">Active on 7+ unique days</p>
+                        </div>
+                    </div>
+                    <!-- Funnel Chart -->
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <div class="flex items-center justify-between mb-5">
+                            <div>
+                                <h3 class="text-base font-bold text-gray-900">Seller Conversion Funnel</h3>
+                                <p class="text-xs text-gray-400 mt-0.5">Click any bar to drill into that segment below</p>
+                            </div>
+                        </div>
+                        <div class="h-72 w-full"><canvas id="retentionFunnelChart"></canvas></div>
+                    </div>
+                    <!-- Drilldown Table -->
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+                        <div class="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h3 id="retention-table-title" class="text-base font-bold text-gray-900">All Registered Sellers</h3>
+                                <p class="text-xs text-gray-400 mt-0.5">Click funnel bar to filter by stage</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <input type="text" id="retention-search" placeholder="Search phone, shop, city..." class="px-3 py-2 border border-gray-200 rounded-lg text-sm w-52 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                                <button onclick="exportExcel('retention')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors flex items-center gap-2 shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                    Export CSV
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto flex-1">
+                            <table class="data-table">
+                                <thead class="sticky top-0 bg-white shadow-sm z-10">
+                                    <tr>
+                                        <th>Sr.</th><th>Phone</th><th>Shop Name</th><th>City</th><th>Total Orders</th><th>GMV (&#8377;)</th><th>First Order</th><th>Last Order</th><th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="retention-drilldown-body">
+                                    <tr><td colspan="9" class="text-center text-gray-400 py-8">Loading data...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="pagination-retention" class="p-4 border-t border-gray-100 flex items-center justify-between bg-white hidden"></div>
                     </div>
                 </div>
 
