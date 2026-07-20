@@ -1843,7 +1843,14 @@ window.sortRetentionTable = function(col) {
 function calculateRetentionMetrics() {
     // Use filtered users/activity so global Date/Search filters work on the funnel,
     // but use _rawOrders to calculate lifetime stats for those users.
-    const allUsers  = globalData.users  || [];
+    const start = window._globalStart ? parseTs(window._globalStart) : (Date.now() - 30 * 86400000);
+    const end = window._globalEnd ? parseTs(window._globalEnd) : Date.now();
+    // Filter users to only those who registered within the global date range
+    const allUsers = (globalData.users || []).filter(u => {
+        if (!u.created_at) return false;
+        const ts = typeof u.created_at === 'number' ? u.created_at : parseTs(u.created_at);
+        return ts >= start && ts <= end;
+    });
     const allOrders = globalData._rawOrders || [];
     const allActivity = globalData.activity || [];
 
@@ -2157,7 +2164,7 @@ function renderRetentionDrilldown(metrics) {
         return `<tr>
             <td class="font-mono text-gray-400 text-xs">${sr}</td>
             <td class="font-bold text-gray-900">${r.shopName}</td>
-            <td class="text-xs text-gray-500 whitespace-nowrap">${r.registered ? formatDate(r.registered).split(' ')[0] : '—'}</td>
+            <td class="text-xs text-gray-500 whitespace-nowrap">${r.registered ? fmtDate(r.registered).split(' ')[0] : '—'}</td>
             <td class="font-medium">${r.phone}</td>
             <td>${r.city}</td>
             <td class="font-semibold text-center">${r.activeDays}</td>
@@ -2165,8 +2172,8 @@ function renderRetentionDrilldown(metrics) {
             <td class="font-medium">${gmvStr}</td>
             <td class="text-xs">${aovStr}</td>
             <td class="text-xs text-center">${aopdStr}</td>
-            <td class="text-xs text-gray-500 whitespace-nowrap">${r.firstOrder ? formatDate(r.firstOrder).split(' ')[0] : '—'}</td>
-            <td class="text-xs text-gray-500 whitespace-nowrap">${r.lastOrder ? formatDate(r.lastOrder).split(' ')[0] : '—'}</td>
+            <td class="text-xs text-gray-500 whitespace-nowrap">${r.firstOrder ? fmtDate(r.firstOrder).split(' ')[0] : '—'}</td>
+            <td class="text-xs text-gray-500 whitespace-nowrap">${r.lastOrder ? fmtDate(r.lastOrder).split(' ')[0] : '—'}</td>
             <td class="font-mono text-center">${r.daysSinceLast !== null ? r.daysSinceLast : '—'}</td>
             <td class="whitespace-nowrap">${statusBadge}</td>
             <td>${priorityBadge}</td>
@@ -2210,9 +2217,9 @@ window.exportExcel = function(type) {
     const rows = getSellerRowsForStage(_retentionCurrentStage, metrics);
     let csv = 'Sr,Seller,Registration Date,Phone,City,Active Days,Lifetime Orders,Lifetime GMV,Avg Order Value,Avg Orders/Day,First Order,Last Order,Days Since Last Order,Status,Priority\n';
     rows.forEach((r, i) => {
-        const reg = r.registered ? formatDate(r.registered).split(' ')[0] : '';
-        const first = r.firstOrder ? formatDate(r.firstOrder).split(' ')[0] : '';
-        const last  = r.lastOrder  ? formatDate(r.lastOrder).split(' ')[0]  : '';
+        const reg = r.registered ? fmtDate(r.registered).split(' ')[0] : '';
+        const first = r.firstOrder ? fmtDate(r.firstOrder).split(' ')[0] : '';
+        const last  = r.lastOrder  ? fmtDate(r.lastOrder).split(' ')[0]  : '';
         csv += `${i+1},"${r.shopName}","${reg}","${r.phone}","${r.city}",${r.activeDays},${r.totalOrders},${Math.round(r.gmv)},${Math.round(r.avgOrderValue)},${r.avgOrdersPerDay.toFixed(1)},"${first}","${last}",${r.daysSinceLast !== null ? r.daysSinceLast : ''},"${r.status}","${r.priority}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv' });
