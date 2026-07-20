@@ -2144,6 +2144,26 @@ function renderRetentionDrilldown(metrics) {
         searchEl2.addEventListener('input', () => { _retentionPage = 1; renderRetentionDrilldown(metrics); });
         searchEl2.dataset.bound = 'true';
     }
+
+    const filterStatusEl = document.getElementById('retention-filter-status');
+    if (filterStatusEl && !filterStatusEl.dataset.bound) {
+        filterStatusEl.addEventListener('change', (e) => {
+            _retentionFilterStatus = e.target.value;
+            _retentionPage = 1;
+            renderRetentionDrilldown(metrics);
+        });
+        filterStatusEl.dataset.bound = 'true';
+    }
+
+    const filterPriorityEl = document.getElementById('retention-filter-priority');
+    if (filterPriorityEl && !filterPriorityEl.dataset.bound) {
+        filterPriorityEl.addEventListener('change', (e) => {
+            _retentionFilterPriority = e.target.value;
+            _retentionPage = 1;
+            renderRetentionDrilldown(metrics);
+        });
+        filterPriorityEl.dataset.bound = 'true';
+    }
 }
 
 window.exportExcel = function(type) {
