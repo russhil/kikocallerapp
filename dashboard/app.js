@@ -2111,12 +2111,12 @@ function renderRetentionDrilldown(metrics) {
     }).join('');
 
     // Render pagination
-    renderPagination('pagination-retention', total, _retentionPage, 'retention', () => renderRetentionDrilldown(metrics));
+    renderPagination('pagination-retention', total, _retentionPage, 'retention', () => renderRetentionTab());
 
     // Bind search (once)
     const searchEl2 = document.getElementById('retention-search');
     if (searchEl2 && !searchEl2.dataset.bound) {
-        searchEl2.addEventListener('input', () => { _retentionPage = 1; renderRetentionDrilldown(metrics); });
+        searchEl2.addEventListener('input', () => { _retentionPage = 1; renderRetentionTab(); });
         searchEl2.dataset.bound = 'true';
     }
 
@@ -2125,7 +2125,7 @@ function renderRetentionDrilldown(metrics) {
         filterStatusEl.addEventListener('change', (e) => {
             _retentionFilterStatus = e.target.value;
             _retentionPage = 1;
-            renderRetentionDrilldown(metrics);
+            renderRetentionTab();
         });
         filterStatusEl.dataset.bound = 'true';
     }
@@ -2135,7 +2135,7 @@ function renderRetentionDrilldown(metrics) {
         filterPriorityEl.addEventListener('change', (e) => {
             _retentionFilterPriority = e.target.value;
             _retentionPage = 1;
-            renderRetentionDrilldown(metrics);
+            renderRetentionTab();
         });
         filterPriorityEl.dataset.bound = 'true';
     }
