@@ -2079,16 +2079,57 @@ function renderRetentionDrilldown(metrics) {
 
     let rows = getSellerRowsForStage(_retentionCurrentStage, metrics);
 
+    // Filter by Dropdowns
+    if (typeof _retentionFilterStatus !== 'undefined' && _retentionFilterStatus !== 'all') {
+        rows = rows.filter(r => r.status === _retentionFilterStatus);
+    }
+    if (typeof _retentionFilterPriority !== 'undefined' && _retentionFilterPriority !== 'all') {
+        rows = rows.filter(r => r.priority === _retentionFilterPriority);
+    }
+
     // Apply search
     const searchEl = document.getElementById('retention-search');
     const q = searchEl ? searchEl.value.toLowerCase().trim() : '';
     if (q) rows = rows.filter(r => r.phone.includes(q) || r.shopName.toLowerCase().includes(q) || r.city.toLowerCase().includes(q));
 
+    // Sort rows
+    if (typeof _retentionSortCol !== 'undefined') {
+        rows.sort((a, b) => {
+            let valA = a[_retentionSortCol];
+            let valB = b[_retentionSortCol];
+            
+            // Handle nulls and undefined
+            if (valA === null || valA === undefined) valA = '';
+            if (valB === null || valB === undefined) valB = '';
+            
+            // String comparison
+            if (typeof valA === 'string' && typeof valB === 'string') {
+                const cmp = valA.localeCompare(valB);
+                return _retentionSortAsc ? cmp : -cmp;
+            }
+            
+            // Numeric/Date comparison
+            if (_retentionSortAsc) return valA > valB ? 1 : valA < valB ? -1 : 0;
+            else return valA < valB ? 1 : valA > valB ? -1 : 0;
+        });
+
+        // Update UI headers
+        document.querySelectorAll('span[id^="retention-sort-"]').forEach(el => {
+            el.innerText = '↕';
+            el.className = 'text-gray-300 text-xs font-mono ml-1';
+        });
+        const activeSortEl = document.getElementById(`retention-sort-${_retentionSortCol}`);
+        if (activeSortEl) {
+            activeSortEl.innerText = _retentionSortAsc ? '↑' : '↓';
+            activeSortEl.className = 'text-brand-600 text-xs font-mono ml-1 font-bold';
+        }
+    }
+
     const total = rows.length;
     const paged = rows.slice((_retentionPage - 1) * _perPage, _retentionPage * _perPage);
 
     if (!paged.length) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-gray-400 py-8">No sellers found for this stage.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center text-gray-400 py-8">No sellers found.</td></tr>';
         const paginationEl = document.getElementById('pagination-retention');
         if (paginationEl) paginationEl.classList.add('hidden');
         return;
