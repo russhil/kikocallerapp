@@ -628,8 +628,22 @@
                                 <h3 id="retention-table-title" class="text-base font-bold text-gray-900">All Registered Sellers</h3>
                                 <p class="text-xs text-gray-400 mt-0.5">Click funnel bar to filter by stage</p>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <input type="text" id="retention-search" placeholder="Search phone, shop, city..." class="px-3 py-2 border border-gray-200 rounded-lg text-sm w-52 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+                            <div class="flex items-center gap-3 flex-wrap justify-end">
+                                <select id="retention-filter-status" class="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-brand-500">
+                                    <option value="all">All Statuses</option>
+                                    <option value="Active">🟢 Active</option>
+                                    <option value="At Risk">🟡 At Risk</option>
+                                    <option value="Dormant">🟠 Dormant</option>
+                                    <option value="Churned">🔴 Churned</option>
+                                    <option value="Never Ordered">⚫ Never Ordered</option>
+                                </select>
+                                <select id="retention-filter-priority" class="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-brand-500">
+                                    <option value="all">All Priorities</option>
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                </select>
+                                <input type="text" id="retention-search" placeholder="Search phone, shop, city..." class="px-3 py-2 border border-gray-200 rounded-lg text-sm w-48 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
                                 <button onclick="exportExcel('retention')" class="bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors flex items-center gap-2 shrink-0">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                                     Export CSV
@@ -640,7 +654,33 @@
                             <table class="data-table">
                                 <thead class="sticky top-0 bg-white shadow-sm z-10">
                                     <tr>
-                                        <th>Sr.</th><th>Seller</th><th>Phone</th><th>City</th><th>Active Days</th><th>Lifetime Orders</th><th>Lifetime GMV</th><th>Avg Order Value</th><th>Avg Orders/Day</th><th>First Order</th><th>Last Order</th><th>Days Since Last Order</th><th>Status</th><th>Priority</th>
+                                        <th>Sr.</th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('shopName')">
+        <div class="flex items-center justify-between gap-1">Seller <span id="retention-sort-shopName" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('phone')">
+        <div class="flex items-center justify-between gap-1">Phone <span id="retention-sort-phone" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('city')">
+        <div class="flex items-center justify-between gap-1">City <span id="retention-sort-city" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('activeDays')">
+        <div class="flex items-center justify-between gap-1">Active Days <span id="retention-sort-activeDays" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('totalOrders')">
+        <div class="flex items-center justify-between gap-1">Lifetime Orders <span id="retention-sort-totalOrders" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('gmv')">
+        <div class="flex items-center justify-between gap-1">Lifetime GMV <span id="retention-sort-gmv" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('avgOrderValue')">
+        <div class="flex items-center justify-between gap-1">Avg Order Value <span id="retention-sort-avgOrderValue" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('avgOrdersPerDay')">
+        <div class="flex items-center justify-between gap-1">Avg Orders/Day <span id="retention-sort-avgOrdersPerDay" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('firstOrder')">
+        <div class="flex items-center justify-between gap-1">First Order <span id="retention-sort-firstOrder" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('lastOrder')">
+        <div class="flex items-center justify-between gap-1">Last Order <span id="retention-sort-lastOrder" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('daysSinceLast')">
+        <div class="flex items-center justify-between gap-1">Days Since Last Order <span id="retention-sort-daysSinceLast" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('status')">
+        <div class="flex items-center justify-between gap-1">Status <span id="retention-sort-status" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('priority')">
+        <div class="flex items-center justify-between gap-1">Priority <span id="retention-sort-priority" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th>
                                     </tr>
                                 </thead>
                                 <tbody id="retention-drilldown-body">
