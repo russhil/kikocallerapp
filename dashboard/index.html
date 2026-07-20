@@ -619,7 +619,7 @@
                                 <p class="text-xs text-gray-400 mt-0.5">Click any bar to drill into that segment below</p>
                             </div>
                         </div>
-                        <div class="h-72 w-full"><canvas id="retentionFunnelChart"></canvas></div>
+                        <div id="retentionFunnelContainer" class="w-full flex flex-col items-center justify-center py-6 gap-2"></div>
                     </div>
                     <!-- Drilldown Table -->
                     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
@@ -656,6 +656,8 @@
                                     <tr>
                                         <th>Sr.</th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('shopName')">
         <div class="flex items-center justify-between gap-1">Seller <span id="retention-sort-shopName" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
+    </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('registered')">
+        <div class="flex items-center justify-between gap-1">Registration Date <span id="retention-sort-registered" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
     </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('phone')">
         <div class="flex items-center justify-between gap-1">Phone <span id="retention-sort-phone" class="text-gray-300 text-xs font-mono ml-1">↕</span></div>
     </th><th class="cursor-pointer hover:bg-gray-50 transition-colors select-none" onclick="sortRetentionTable('city')">

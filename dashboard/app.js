@@ -1814,6 +1814,21 @@ window.openCRMWithFilter = openCRMWithFilter;
 let _retentionFunnelChart = null;
 let _retentionCurrentStage = 'all'; // tracks which funnel stage is drilled into
 let _retentionPage = 1;
+let _retentionSortCol = 'firstOrder';
+let _retentionSortAsc = false; // default newest to oldest
+let _retentionFilterStatus = 'all';
+let _retentionFilterPriority = 'all';
+
+window.sortRetentionTable = function(col) {
+    if (_retentionSortCol === col) {
+        _retentionSortAsc = !_retentionSortAsc; // toggle
+    } else {
+        _retentionSortCol = col;
+        _retentionSortAsc = false; // default desc for new column
+    }
+    _retentionPage = 1;
+    renderRetentionDrilldown(calculateRetentionMetrics());
+};
 
 /**
  * calculateRetentionMetrics()
@@ -1959,6 +1974,7 @@ function getSellerRowsForStage(stage, metrics) {
         return {
             phone,
             shopName:      u.shop_name || '—',
+            registered:    u.created_at ? parseTs(u.created_at) : null,
             city:          u.city || u.state || '—',
             activeDays,
             totalOrders,
@@ -1994,82 +2010,62 @@ function renderRetentionTab() {
         ? Math.round((active7dPhones.size / activatedPhones.size) * 100) : 0;
     setKpi('retention-kpi-d7', `${active7dPhones.size} (${d7Pct}%)`);
 
-    // ----- Funnel Chart -----
+    // ----- HTML Funnel Chart -----
     const funnelLabels = [
         'App Installs',
         'OTP Success',
         'Activated (1+ Orders)',
         'Retained Day 2+',
         'Active 7+ Days',
-        'Long-term (30+ Days)',
-        'Churned (7d inactive)',
+        'Genuine Long-Term',
+        'Churned'
     ];
-    const funnelCounts = [
+    const funnelKeys = ['all', 'otp', 'activated', 'retained2', 'active7', 'longterm', 'churned'];
+    const funnelData = [
         installPhones.size,
         otpSuccessPhones.size,
         activatedPhones.size,
         retainedDay2Phones.size,
         active7dPhones.size,
         longTermPhones.size,
-        churnedPhones.size,
+        churnedPhones.size
     ];
-    const funnelStageKeys = ['installs','otp','activated','day2','day7','longterm','churned'];
-    const funnelColors = [
-        'rgba(99,102,241,0.85)',
-        'rgba(16,185,129,0.85)',
-        'rgba(245,158,11,0.85)',
-        'rgba(59,130,246,0.85)',
-        'rgba(168,85,247,0.85)',
-        'rgba(20,184,166,0.85)',
-        'rgba(239,68,68,0.85)',
-    ];
+    const maxVal = Math.max(...funnelData, 1);
 
-    const ctx = document.getElementById('retentionFunnelChart');
-    if (ctx) {
-        if (_retentionFunnelChart) _retentionFunnelChart.destroy();
-        _retentionFunnelChart = new Chart(ctx.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: funnelLabels,
-                datasets: [{
-                    label: 'Sellers',
-                    data: funnelCounts,
-                    backgroundColor: funnelColors,
-                    borderRadius: 8,
-                    borderSkipped: false,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                onClick: (evt, elements) => {
-                    if (elements && elements.length > 0) {
-                        const idx = elements[0].index;
-                        _retentionCurrentStage = funnelStageKeys[idx];
-                        _retentionPage = 1;
-                        const label = funnelLabels[idx];
-                        const titleEl = document.getElementById('retention-table-title');
-                        if (titleEl) titleEl.innerText = `Drilldown: ${label}`;
-                        renderRetentionDrilldown(metrics);
-                    }
-                },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: ctx => `${ctx.parsed.y.toLocaleString('en-IN')} sellers`,
-                        }
-                    }
-                },
-                scales: {
-                    y: { beginAtZero: true, grid: { borderDash: [4, 4], color: '#f1f5f9' }, border: { display: false }, ticks: { precision: 0, font: { size: 11 } } },
-                    x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 11 } } },
-                }
-            }
-        });
+    const funnelColors = ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#4ade80', '#2dd4bf', '#94a3b8'];
+    
+    const container = document.getElementById('retentionFunnelContainer');
+    if (container) {
+        container.innerHTML = funnelData.map((val, idx) => {
+            const widthPct = Math.max((val / maxVal) * 100, 15); // min 15% width so text fits
+            const bg = funnelColors[idx % funnelColors.length];
+            const isSelected = _retentionCurrentStage === funnelKeys[idx];
+            const outline = isSelected ? 'outline outline-2 outline-offset-2 outline-brand-600' : '';
+            return `
+                <div class="group relative flex flex-col items-center w-full cursor-pointer transition-transform hover:scale-105" 
+                     onclick="window.setRetentionStage('${funnelKeys[idx]}')">
+                    <div class="h-8 md:h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-sm transition-all ${outline}" 
+                         style="width: ${widthPct}%; background-color: ${bg};">
+                        ${val.toLocaleString('en-IN')}
+                    </div>
+                    <div class="text-[10px] text-gray-500 font-medium uppercase tracking-wide mt-1 mb-2">${funnelLabels[idx]}</div>
+                </div>
+            `;
+        }).join('');
     }
 
-    // Render initial drilldown (OTP success = registered sellers by default)
+    // Attach global window func if not exists
+    if (!window.setRetentionStage) {
+        window.setRetentionStage = function(key) {
+            _retentionCurrentStage = key;
+            const labels = {'all':'App Installs','otp':'OTP Success','activated':'Activated (1+ Orders)','retained2':'Retained Day 2+','active7':'Active 7+ Days','longterm':'Genuine Long-Term','churned':'Churned'};
+            const titleEl = document.getElementById('retention-table-title');
+            if (titleEl) titleEl.innerText = 'Drilldown: ' + (labels[key] || 'All Registered Sellers');
+            _retentionPage = 1;
+            renderRetentionTab(); // re-render to update outline and table
+        };
+    }
+
     renderRetentionDrilldown(metrics);
 }
 
@@ -2161,6 +2157,7 @@ function renderRetentionDrilldown(metrics) {
         return `<tr>
             <td class="font-mono text-gray-400 text-xs">${sr}</td>
             <td class="font-bold text-gray-900">${r.shopName}</td>
+            <td class="text-xs text-gray-500 whitespace-nowrap">${r.registered ? formatDate(r.registered).split(' ')[0] : '—'}</td>
             <td class="font-medium">${r.phone}</td>
             <td>${r.city}</td>
             <td class="font-semibold text-center">${r.activeDays}</td>
@@ -2168,8 +2165,8 @@ function renderRetentionDrilldown(metrics) {
             <td class="font-medium">${gmvStr}</td>
             <td class="text-xs">${aovStr}</td>
             <td class="text-xs text-center">${aopdStr}</td>
-            <td class="text-xs text-gray-500 whitespace-nowrap">${r.firstOrder ? new Date(r.firstOrder).toLocaleDateString('en-IN', {month:'short', day:'numeric'}) : '—'}</td>
-            <td class="text-xs text-gray-500 whitespace-nowrap">${r.lastOrder ? new Date(r.lastOrder).toLocaleDateString('en-IN', {month:'short', day:'numeric'}) : '—'}</td>
+            <td class="text-xs text-gray-500 whitespace-nowrap">${r.firstOrder ? formatDate(r.firstOrder).split(' ')[0] : '—'}</td>
+            <td class="text-xs text-gray-500 whitespace-nowrap">${r.lastOrder ? formatDate(r.lastOrder).split(' ')[0] : '—'}</td>
             <td class="font-mono text-center">${r.daysSinceLast !== null ? r.daysSinceLast : '—'}</td>
             <td class="whitespace-nowrap">${statusBadge}</td>
             <td>${priorityBadge}</td>
@@ -2211,11 +2208,12 @@ window.exportExcel = function(type) {
     if (type !== 'retention') return;
     const metrics = calculateRetentionMetrics();
     const rows = getSellerRowsForStage(_retentionCurrentStage, metrics);
-    let csv = 'Sr,Seller,Phone,City,Active Days,Lifetime Orders,Lifetime GMV,Avg Order Value,Avg Orders/Day,First Order,Last Order,Days Since Last Order,Status,Priority\n';
+    let csv = 'Sr,Seller,Registration Date,Phone,City,Active Days,Lifetime Orders,Lifetime GMV,Avg Order Value,Avg Orders/Day,First Order,Last Order,Days Since Last Order,Status,Priority\n';
     rows.forEach((r, i) => {
-        const first = r.firstOrder ? new Date(r.firstOrder).toLocaleDateString('en-IN') : '';
-        const last  = r.lastOrder  ? new Date(r.lastOrder).toLocaleDateString('en-IN')  : '';
-        csv += `${i+1},"${r.shopName}","${r.phone}","${r.city}",${r.activeDays},${r.totalOrders},${Math.round(r.gmv)},${Math.round(r.avgOrderValue)},${r.avgOrdersPerDay.toFixed(1)},"${first}","${last}",${r.daysSinceLast !== null ? r.daysSinceLast : ''},"${r.status}","${r.priority}"\n`;
+        const reg = r.registered ? formatDate(r.registered).split(' ')[0] : '';
+        const first = r.firstOrder ? formatDate(r.firstOrder).split(' ')[0] : '';
+        const last  = r.lastOrder  ? formatDate(r.lastOrder).split(' ')[0]  : '';
+        csv += `${i+1},"${r.shopName}","${reg}","${r.phone}","${r.city}",${r.activeDays},${r.totalOrders},${Math.round(r.gmv)},${Math.round(r.avgOrderValue)},${r.avgOrdersPerDay.toFixed(1)},"${first}","${last}",${r.daysSinceLast !== null ? r.daysSinceLast : ''},"${r.status}","${r.priority}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
