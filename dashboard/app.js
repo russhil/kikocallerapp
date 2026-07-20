@@ -1826,9 +1826,11 @@ let _retentionPage = 1;
  * The drilldown table then reflects who is in each stage.
  */
 function calculateRetentionMetrics() {
-    const allUsers  = globalData._rawUsers  || [];
+    // Use filtered users/activity so global Date/Search filters work on the funnel,
+    // but use _rawOrders to calculate lifetime stats for those users.
+    const allUsers  = globalData.users  || [];
     const allOrders = globalData._rawOrders || [];
-    const allActivity = globalData._rawActivity || [];
+    const allActivity = globalData.activity || [];
 
     // Map: phone → user record
     const userMap = new Map();
@@ -1926,23 +1928,48 @@ function getSellerRowsForStage(stage, metrics) {
     return [...phones].map(phone => {
         const u  = userMap.get(phone) || {};
         const sd = sellerOrders.get(phone) || { orders: [], firstOrderTs: null, lastOrderTs: null, activeDates: new Set() };
+        
         const totalGMV = sd.orders.reduce((s, o) => s + (parseFloat(o.total_amount) || 0), 0);
+        const totalOrders = sd.orders.length;
+        const activeDays = sd.activeDates.size;
         const daysSinceLast = sd.lastOrderTs ? Math.floor((Date.now() - sd.lastOrderTs) / 86400000) : null;
+        
+        const avgOrderValue = totalOrders > 0 ? (totalGMV / totalOrders) : 0;
+        const avgOrdersPerDay = activeDays > 0 ? (totalOrders / activeDays) : 0;
+
         let status = 'Never Ordered';
-        if (sd.orders.length > 0) {
-            status = daysSinceLast !== null && daysSinceLast > 7 ? 'Churned' : 'Active';
+        let priority = 'Low';
+
+        if (totalOrders > 0 && daysSinceLast !== null) {
+            if (daysSinceLast <= 3) {
+                status = 'Active';
+                priority = 'Low';
+            } else if (daysSinceLast <= 7) {
+                status = 'At Risk';
+                priority = 'High';
+            } else if (daysSinceLast <= 30) {
+                status = 'Dormant';
+                priority = 'Medium';
+            } else {
+                status = 'Churned';
+                priority = 'Low';
+            }
         }
+
         return {
             phone,
             shopName:      u.shop_name || '—',
             city:          u.city || u.state || '—',
-            totalOrders:   sd.orders.length,
+            activeDays,
+            totalOrders,
             gmv:           totalGMV,
+            avgOrderValue,
+            avgOrdersPerDay,
             firstOrder:    sd.firstOrderTs,
             lastOrder:     sd.lastOrderTs,
-            activeDays:    sd.activeDates.size,
             daysSinceLast,
             status,
+            priority
         };
     });
 }
@@ -2069,22 +2096,42 @@ function renderRetentionDrilldown(metrics) {
 
     tbody.innerHTML = paged.map((r, i) => {
         const sr = (_retentionPage - 1) * _perPage + i + 1;
-        const statusBadge = r.status === 'Active'
-            ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">🟢 Active</span>'
-            : r.status === 'Churned'
-                ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">🔴 Churned</span>'
-                : '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">⚫ No Orders</span>';
+        let statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">⚫ Never Ordered</span>';
+        if (r.status === 'Active') {
+            statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">🟢 Active</span>';
+        } else if (r.status === 'At Risk') {
+            statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">🟡 At Risk</span>';
+        } else if (r.status === 'Dormant') {
+            statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">🟠 Dormant</span>';
+        } else if (r.status === 'Churned') {
+            statusBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">🔴 Churned</span>';
+        }
+
+        const priorityBadge = r.priority === 'High' 
+            ? '<span class="text-xs font-bold text-red-600">High</span>' 
+            : r.priority === 'Medium' 
+                ? '<span class="text-xs font-semibold text-orange-500">Medium</span>' 
+                : '<span class="text-xs text-gray-400">Low</span>';
+
         const gmvStr = r.gmv > 0 ? `₹${Math.round(r.gmv).toLocaleString('en-IN')}` : '—';
+        const aovStr = r.avgOrderValue > 0 ? `₹${Math.round(r.avgOrderValue).toLocaleString('en-IN')}` : '—';
+        const aopdStr = r.avgOrdersPerDay > 0 ? r.avgOrdersPerDay.toFixed(1) : '—';
+
         return `<tr>
             <td class="font-mono text-gray-400 text-xs">${sr}</td>
+            <td class="font-bold text-gray-900">${r.shopName}</td>
             <td class="font-medium">${r.phone}</td>
-            <td>${r.shopName}</td>
-            <td class="text-gray-500 text-xs">${r.city}</td>
-            <td class="text-center font-semibold">${r.totalOrders || '—'}</td>
-            <td class="text-right font-medium">${gmvStr}</td>
-            <td class="text-xs text-gray-500">${r.firstOrder ? fmtDate(r.firstOrder) : '—'}</td>
-            <td class="text-xs text-gray-500">${r.lastOrder  ? fmtDate(r.lastOrder)  : '—'}</td>
-            <td>${statusBadge}</td>
+            <td>${r.city}</td>
+            <td class="font-semibold text-center">${r.activeDays}</td>
+            <td class="font-semibold text-center">${r.totalOrders}</td>
+            <td class="font-medium">${gmvStr}</td>
+            <td class="text-xs">${aovStr}</td>
+            <td class="text-xs text-center">${aopdStr}</td>
+            <td class="text-xs text-gray-500 whitespace-nowrap">${r.firstOrder ? new Date(r.firstOrder).toLocaleDateString('en-IN', {month:'short', day:'numeric'}) : '—'}</td>
+            <td class="text-xs text-gray-500 whitespace-nowrap">${r.lastOrder ? new Date(r.lastOrder).toLocaleDateString('en-IN', {month:'short', day:'numeric'}) : '—'}</td>
+            <td class="font-mono text-center">${r.daysSinceLast !== null ? r.daysSinceLast : '—'}</td>
+            <td class="whitespace-nowrap">${statusBadge}</td>
+            <td>${priorityBadge}</td>
         </tr>`;
     }).join('');
 
@@ -2103,11 +2150,11 @@ window.exportExcel = function(type) {
     if (type !== 'retention') return;
     const metrics = calculateRetentionMetrics();
     const rows = getSellerRowsForStage(_retentionCurrentStage, metrics);
-    let csv = 'Sr,Phone,Shop Name,City,Total Orders,GMV (INR),First Order,Last Order,Status\n';
+    let csv = 'Sr,Seller,Phone,City,Active Days,Lifetime Orders,Lifetime GMV,Avg Order Value,Avg Orders/Day,First Order,Last Order,Days Since Last Order,Status,Priority\n';
     rows.forEach((r, i) => {
         const first = r.firstOrder ? new Date(r.firstOrder).toLocaleDateString('en-IN') : '';
         const last  = r.lastOrder  ? new Date(r.lastOrder).toLocaleDateString('en-IN')  : '';
-        csv += `${i+1},"${r.phone}","${r.shopName}","${r.city}",${r.totalOrders},${Math.round(r.gmv)},"${first}","${last}","${r.status}"\n`;
+        csv += `${i+1},"${r.shopName}","${r.phone}","${r.city}",${r.activeDays},${r.totalOrders},${Math.round(r.gmv)},${Math.round(r.avgOrderValue)},${r.avgOrdersPerDay.toFixed(1)},"${first}","${last}",${r.daysSinceLast !== null ? r.daysSinceLast : ''},"${r.status}","${r.priority}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
